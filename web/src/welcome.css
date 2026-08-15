@@ -1,0 +1,161 @@
+/* Onboarding. One question per screen, large targets, plain words.
+ * The whole job of this flow is to end with a watch set up. */
+
+.wz { max-width: 620px; margin: 0 auto; padding: 44px 24px 90px; }
+
+/* ---- Path picker: the first thing anyone sees ---- */
+
+.pick-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid; place-items: center;
+  padding: 24px; overflow-y: auto;
+}
+
+.pick {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  max-width: 780px; width: 100%;
+  padding: 34px;
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+.pick h1 {
+  font-size: clamp(25px, 4vw, 31px); line-height: 1.2;
+  letter-spacing: -0.02em; margin: 0 0 10px; text-wrap: balance;
+}
+.pick .lede { font-size: 18px; color: var(--ink-soft); margin: 0 0 28px; max-width: 50ch; }
+
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+
+.pick-card {
+  text-align: left; width: 100%;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  border-radius: 5px;
+  padding: 24px;
+  color: var(--ink);
+  display: flex; flex-direction: column;
+}
+.pick-card:hover { border-color: var(--ink); background: var(--paper); }
+
+.pick-card h2 { font-size: 22px; letter-spacing: -0.015em; margin: 0 0 6px; }
+.pick-card .who { font-size: 17px; color: var(--ink-soft); margin: 0 0 16px; }
+
+.pick-card ul { margin: 0 0 20px; padding-left: 20px; }
+.pick-card li { font-size: 16px; margin-bottom: 9px; color: var(--ink-soft); }
+
+.pick-price {
+  margin-top: auto; padding-top: 16px; border-top: 1px solid var(--rule);
+  font-size: 17px; font-weight: 600;
+}
+.pick-price small { display: block; font-size: 15px; font-weight: 400; color: var(--ink-faint); margin-top: 3px; }
+
+.pick-go {
+  margin-top: 16px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sticker); color: #141210; border: 1px solid var(--ink);
+  border-radius: 4px; padding: 12px 18px; font-size: 17px; font-weight: 600; min-height: 44px;
+}
+.pick-card:hover .pick-go { background: var(--sticker-deep); }
+
+.pick-foot { margin: 24px 0 0; font-size: 16px; color: var(--ink-faint); }
+
+@media (max-width: 620px) {
+  .pick { padding: 24px; }
+}
+
+.wz-progress { display: flex; gap: 8px; margin-bottom: 34px; }
+.wz-progress span {
+  height: 6px; flex: 1; background: var(--rule); border-radius: 3px;
+}
+.wz-progress span.done { background: var(--sticker); }
+
+.wz-step { font-size: 16px; color: var(--ink-faint); margin: 0 0 10px; }
+
+.wz h1 {
+  font-size: clamp(27px, 4.5vw, 34px); line-height: 1.2;
+  letter-spacing: -0.02em; margin: 0 0 12px; text-wrap: balance;
+}
+.wz .lede { font-size: 18px; color: var(--ink-soft); margin: 0 0 30px; max-width: 46ch; }
+
+/* ---- Fields ---- */
+
+.field { margin-bottom: 26px; }
+.field label { display: block; font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.field .hint { font-size: 16px; color: var(--ink-faint); margin: 0 0 10px; }
+
+.wz input[type="text"], .wz input[type="number"], .wz select {
+  font-family: inherit; font-size: 18px; padding: 13px 14px; width: 100%;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: 4px; min-height: 52px;
+}
+.wz input:focus-visible, .wz select:focus-visible { border-color: var(--ink); }
+
+.radio-group { display: grid; gap: 10px; }
+.radio {
+  display: flex; align-items: flex-start; gap: 12px; padding: 15px;
+  border: 1px solid var(--rule-strong); border-radius: 4px; cursor: pointer;
+  background: var(--paper); min-height: 44px;
+}
+.radio:hover { background: var(--paper-sunk); }
+.radio.on { border-color: var(--ink); background: var(--sticker); color: #141210; }
+.radio input { margin-top: 3px; width: 20px; height: 20px; flex: none; accent-color: #141210; }
+.radio .rl { font-size: 17px; font-weight: 600; }
+.radio .rh { font-size: 16px; opacity: 0.85; }
+
+/* ---- Watch chips ---- */
+
+.chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+.chip {
+  font-size: 16px; padding: 11px 15px; border-radius: 999px;
+  border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  min-height: 44px;
+}
+.chip:hover { background: var(--paper-sunk); }
+.chip.on { background: var(--sticker); border-color: var(--sticker-deep); color: #141210; font-weight: 600; }
+
+.picked {
+  display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px;
+  padding-top: 18px; border-top: 1px solid var(--rule);
+}
+.picked:empty { display: none; }
+.picked-item {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--paper-sunk); border: 1px solid var(--rule-strong);
+  border-radius: 999px; padding: 9px 9px 9px 15px; font-size: 16px; min-height: 44px;
+}
+.picked-item button {
+  background: none; border: 0; color: var(--ink-faint); font-size: 20px;
+  line-height: 1; padding: 4px 8px; min-height: auto;
+}
+.picked-item button:hover { color: var(--drop); }
+
+/* ---- Nav ---- */
+
+.wz-nav { display: flex; gap: 12px; align-items: center; margin-top: 36px; flex-wrap: wrap; }
+.wz-nav .grow { margin-left: auto; }
+.wz-skip { background: none; border: 0; color: var(--ink-faint); font-size: 16px; text-decoration: underline; }
+.wz-skip:hover { color: var(--ink); }
+
+.wz-err { color: var(--drop); font-size: 16px; margin: 10px 0 0; }
+
+/* ---- Done ---- */
+
+.wz-done { text-align: left; }
+.wz-check {
+  width: 54px; height: 54px; border-radius: 50%; background: var(--sticker);
+  color: #141210; display: grid; place-items: center; font-size: 28px;
+  font-weight: 700; margin-bottom: 20px;
+}
+.summary {
+  border: 1px solid var(--rule-strong); border-radius: 4px;
+  padding: 6px 18px; margin: 8px 0 28px; background: var(--paper-sunk);
+}
+.summary-row {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 17px;
+}
+.summary-row:last-child { border-bottom: 0; }
+.summary-row .k { color: var(--ink-soft); }
+.summary-row .v { font-weight: 600; text-align: right; }

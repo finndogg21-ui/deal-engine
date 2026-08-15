@@ -1,0 +1,141 @@
+/* App shell. Plain sentence-case labels, no wide letterspacing, large tap
+ * targets. The yellow accent is the only decorative thing that survived. */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 262px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---- Sidebar ---- */
+
+.sb {
+  border-right: 1px solid var(--rule);
+  background: var(--paper-sunk);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+
+.sb-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 18px 16px; border-bottom: 1px solid var(--rule);
+}
+
+.sb-brand {
+  font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+  min-width: 0; min-height: 44px;
+}
+.sb-brand::before {
+  content: ""; width: 15px; height: 15px; background: var(--sticker); flex: none;
+}
+.sb-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.icon-btn {
+  background: none; border: 1px solid transparent; border-radius: 3px;
+  padding: 9px; line-height: 0; color: var(--ink-soft); flex: none;
+  min-width: 44px; display: grid; place-items: center;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--rule-strong); }
+
+.sb-nav { padding: 12px 10px; flex: 1; }
+
+.sb-sec {
+  font-size: 14px; font-weight: 700; color: var(--ink-faint);
+  padding: 18px 10px 8px;
+}
+.sb-sec:first-child { padding-top: 4px; }
+
+.sb-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; text-decoration: none; color: var(--ink-soft);
+  font-size: 17px; border: 1px solid transparent; border-radius: 4px;
+}
+.sb-item:hover { color: var(--ink); background: var(--paper); }
+
+.sb-item.active {
+  color: #141210; background: var(--sticker);
+  border-color: var(--sticker-deep); font-weight: 600;
+}
+.sb-item.active .sb-icon { opacity: 1; }
+
+.sb-icon { width: 19px; height: 19px; flex: none; opacity: 0.7; }
+
+.sb-badge {
+  margin-left: auto; font-family: var(--mono); font-size: 14px; font-weight: 700;
+  padding: 2px 7px; border: 1px solid currentColor; border-radius: 3px; flex: none;
+}
+
+.sb-soon {
+  margin-left: auto; font-size: 14px; color: var(--ink-faint); flex: none;
+}
+.sb-item.active .sb-soon { color: #141210; opacity: 0.7; }
+
+/* ---- Foot ---- */
+
+.sb-foot { padding: 10px; border-top: 1px solid var(--rule); }
+
+.sb-discord {
+  display: flex; align-items: center; gap: 11px; padding: 11px 12px;
+  text-decoration: none; font-size: 16px; color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: 4px; margin-bottom: 8px;
+}
+.sb-discord:hover { border-color: var(--ink); background: var(--paper); }
+
+.sb-user {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px; width: 100%;
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--ink); font-size: 16px; text-align: left;
+}
+.sb-user:hover { border-color: var(--rule-strong); background: var(--paper); }
+.sb-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink); color: var(--paper);
+  font-size: 14px; font-weight: 700; display: grid; place-items: center; flex: none;
+}
+
+/* ---- Main ---- */
+
+.app-main { min-width: 0; }
+
+/* ---- Mobile drawer ---- */
+
+.sb-toggle {
+  display: none; position: fixed; top: 12px; left: 12px; z-index: 40;
+  background: var(--paper); border: 1px solid var(--ink); border-radius: 4px;
+  padding: 11px; line-height: 0; min-width: 46px;
+}
+
+.sb-scrim { display: none; }
+
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sb-toggle { display: grid; place-items: center; }
+
+  .sb {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 262px; z-index: 50;
+    transform: translateX(-100%); transition: transform 0.18s ease;
+  }
+  .sb.open { transform: none; }
+
+  .sb-scrim.show {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.45); z-index: 45; border: 0; width: 100%;
+  }
+
+  .app-main { padding-top: 60px; }
+}
+
+/* ---- Stub pages ---- */
+
+.stub { max-width: 640px; padding: 56px 24px; }
+.stub .sb-sec { padding: 0 0 8px; }
+.stub h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 12px; }
+.stub p { color: var(--ink-soft); margin: 0 0 18px; max-width: 54ch; }
+.stub ul { color: var(--ink-soft); padding-left: 20px; margin: 0 0 22px; }
+.stub li { margin-bottom: 8px; }
+.stub .tag {
+  display: inline-block; font-size: 14px; font-weight: 700;
+  background: var(--sticker); color: #141210;
+  padding: 4px 10px; margin-bottom: 16px; border-radius: 3px;
+}

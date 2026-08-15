@@ -1,0 +1,106 @@
+/* Tokens and reset. Page-specific styling lives in landing.css / dashboard.css.
+ *
+ * Direction: the receipt. A penny price only ever exists at the register, and
+ * receipts are what resellers actually live on. Dashed tear-rules, mono
+ * numerals, figures right-aligned. Clearance-sticker yellow is the one loud
+ * thing on the page; everything else stays quiet. */
+
+:root {
+  --sticker: #ffd400; /* clearance sticker */
+  --sticker-deep: #e0b400;
+  --ink: #141210; /* warm near-black */
+  --ink-soft: #443f39;
+  /* Was #837c72 at 4.85:1 — passes AA and still strains. This clears 7:1. */
+  --ink-faint: #5c564d;
+  --paper: #faf7f0; /* receipt stock */
+  --paper-sunk: #efeae0;
+  --rule: #d6cfc2;
+  --rule-strong: #b3aa9a;
+  --drop: #c8341e; /* the "was" price, the markdown */
+  --go: #0f5132; /* money, confirmed */
+  /* Sticker yellow is a background, never text — it fails contrast on paper.
+   * This is the readable version for type. */
+  --accent-text: #8a6a00;
+
+  --sans: ui-sans-serif, system-ui, "Segoe UI Variable", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Three theme states, not two. "system" stamps nothing and lets the media
+ * query decide; an explicit choice stamps data-theme and wins either way. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sticker: #ffd400;
+    --sticker-deep: #ffe770;
+    --ink: #f2ece1;
+    --ink-soft: #c6bdb0;
+    --ink-faint: #a89e90;
+    --paper: #14130f;
+    --paper-sunk: #1d1b16;
+    --rule: #34302a;
+    --rule-strong: #4c463d;
+    --drop: #ef6a52;
+    --go: #6fb98a;
+    --accent-text: #ffd400;
+  }
+}
+
+:root[data-theme="dark"] {
+  --sticker: #ffd400;
+  --sticker-deep: #ffe770;
+  --ink: #f2ece1;
+  --ink-soft: #c6bdb0;
+  --ink-faint: #a89e90;
+  --paper: #14130f;
+  --paper-sunk: #1d1b16;
+  --rule: #34302a;
+  --rule-strong: #4c463d;
+  --drop: #ef6a52;
+  --go: #6fb98a;
+  --accent-text: #ffd400;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  /* 17px base. Most of the people this is for are not 25. */
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Anything you tap or click is at least 44px tall. */
+button, a.btn, .sb-item, .sb-user, .sb-discord {
+  min-height: 44px;
+}
+
+a { color: inherit; }
+button { font-family: inherit; cursor: pointer; }
+
+:focus-visible {
+  outline: 3px solid var(--sticker);
+  outline-offset: 2px;
+}
+
+.notfound {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 120px 24px;
+  font-family: var(--mono);
+}
+.notfound h1 { font-size: 28px; margin: 0 0 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

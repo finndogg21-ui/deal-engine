@@ -1,0 +1,172 @@
+/* Landing page.
+ *
+ * Written for someone who wants to save money, not someone who enjoys design.
+ * Plain sentence-case labels, no wide letterspacing, generous type, and one
+ * accent colour. Monospace is reserved for prices, where lining figures
+ * genuinely help. */
+
+.lp { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+
+.tear { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+/* ---- Nav ---- */
+
+.lp-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 20px 0; flex-wrap: wrap;
+}
+
+.wordmark {
+  font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+  min-height: 44px;
+}
+.wordmark::before {
+  content: ""; width: 16px; height: 16px;
+  background: var(--sticker); display: inline-block; flex: none;
+}
+
+.lp-nav-right { display: flex; align-items: center; gap: 10px; font-size: 17px; flex-wrap: wrap; }
+.lp-nav-right a {
+  text-decoration: none; color: var(--ink-soft);
+  padding: 11px 12px; display: inline-flex; align-items: center; min-height: 44px;
+  border-radius: 4px;
+}
+.lp-nav-right a:hover { color: var(--ink); background: var(--paper-sunk); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sticker); color: #141210;
+  border: 1px solid var(--ink);
+  padding: 13px 22px; font-size: 17px; font-weight: 600;
+  text-decoration: none; border-radius: 3px;
+}
+.btn:hover { background: var(--sticker-deep); }
+
+.btn-quiet {
+  background: transparent; border-color: var(--rule-strong); color: var(--ink);
+}
+.btn-quiet:hover { background: var(--paper-sunk); border-color: var(--ink); }
+
+/* ---- Hero ---- */
+
+.hero { padding: 56px 0 64px; }
+
+.eyebrow {
+  font-size: 15px; color: var(--ink-faint); margin: 0 0 22px;
+  display: flex; align-items: center; gap: 9px;
+}
+.eyebrow .live {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--go); flex: none;
+}
+
+.hero-lede { font-size: 19px; color: var(--ink-soft); margin: 0 0 8px; }
+
+.prices { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
+
+.was {
+  font-family: var(--mono); font-size: clamp(26px, 4vw, 38px);
+  color: var(--drop); position: relative;
+}
+.was::after {
+  content: ""; position: absolute; left: -3%; right: -3%; top: 52%;
+  height: 3px; background: var(--drop);
+}
+
+.now {
+  font-family: var(--mono); font-weight: 700;
+  font-size: clamp(56px, 12vw, 116px); line-height: 0.95; letter-spacing: -0.04em;
+}
+.now mark {
+  background: var(--sticker); color: #141210;
+  padding: 0 0.06em; box-decoration-break: clone;
+}
+
+.hero-detail {
+  margin: 28px 0 0; font-size: 22px; line-height: 1.45; max-width: 30ch; color: var(--ink);
+}
+.hero-meta { font-size: 16px; color: var(--ink-faint); margin: 12px 0 0; }
+
+.hero-cta { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+
+/* ---- Sections ---- */
+
+.sec { padding: 56px 0; }
+
+.sec-label { font-size: 16px; font-weight: 600; color: var(--ink-faint); margin: 0 0 26px; }
+
+h2.sec-head {
+  font-size: clamp(26px, 3.6vw, 34px); line-height: 1.2; letter-spacing: -0.015em;
+  margin: 0 0 32px; max-width: 22ch; text-wrap: balance;
+}
+
+/* ---- Steps ---- */
+
+.steps { display: grid; gap: 32px; }
+.step { display: grid; grid-template-columns: 40px 1fr; gap: 18px; align-items: start; }
+.step-n {
+  font-size: 19px; font-weight: 700; color: #141210;
+  background: var(--sticker); width: 34px; height: 34px;
+  display: grid; place-items: center; border-radius: 50%;
+}
+.step h3 { margin: 3px 0 8px; font-size: 21px; letter-spacing: -0.01em; }
+.step p { margin: 0; color: var(--ink-soft); max-width: 56ch; font-size: 17px; }
+
+/* ---- Audience ---- */
+
+.who { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.who-card {
+  border: 1px solid var(--rule-strong); border-radius: 4px;
+  padding: 26px; background: var(--paper-sunk);
+}
+.who-card h3 { margin: 0 0 10px; font-size: 21px; letter-spacing: -0.01em; }
+.who-card p { margin: 0 0 16px; color: var(--ink-soft); }
+.who-card ul { margin: 0; padding-left: 20px; color: var(--ink-soft); }
+.who-card li { margin-bottom: 8px; }
+.who-tag {
+  font-size: 15px; font-weight: 700; background: var(--sticker); color: #141210;
+  padding: 4px 10px; display: inline-block; margin-bottom: 14px; border-radius: 3px;
+}
+
+/* ---- Pricing ---- */
+
+.tiers { display: grid; gap: 0; }
+.tier {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: baseline;
+  padding: 22px 0; border-bottom: 1px solid var(--rule);
+}
+.tier:last-of-type { border-bottom: 0; }
+.tier-name { font-size: 21px; font-weight: 700; }
+.tier-price {
+  font-family: var(--mono); font-size: 26px; font-weight: 700;
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.tier-desc { grid-column: 1 / -1; color: var(--ink-soft); max-width: 60ch; }
+.tier-flag {
+  font-size: 15px; font-weight: 700; background: var(--sticker); color: #141210;
+  padding: 3px 9px; margin-left: 10px; white-space: nowrap; border-radius: 3px;
+}
+
+/* ---- Close ---- */
+
+.close { padding: 60px 0 26px; }
+.close h2 {
+  font-size: clamp(26px, 4vw, 38px); letter-spacing: -0.02em;
+  margin: 0 0 16px; max-width: 20ch; text-wrap: balance;
+}
+.close p { color: var(--ink-soft); max-width: 48ch; margin: 0 0 26px; font-size: 18px; }
+
+.lp-foot {
+  font-size: 15px; color: var(--ink-faint); padding: 26px 0 60px;
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.lp-foot a {
+  color: var(--ink-faint); display: inline-flex; align-items: center;
+  min-height: 44px; padding: 0 4px;
+}
+
+@media (max-width: 620px) {
+  .hero { padding: 36px 0 48px; }
+  .sec { padding: 44px 0; }
+  .step { grid-template-columns: 34px 1fr; gap: 14px; }
+}

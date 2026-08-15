@@ -1,0 +1,19 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  root: __dirname,
+  plugins: [react()],
+  server: {
+    port: 5173,
+    // Dev server talks to the Express API. In production Express serves the
+    // built assets itself, so there is no proxy and no CORS either way.
+    proxy: {
+      '/api': 'http://localhost:8787',
+    },
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
+});

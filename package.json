@@ -1,0 +1,44 @@
+{
+  "name": "deal-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Retail clearance deal engine — daily sweep, markdown-stage detection, penny scoring, operator dashboard.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/ingest/seed.ts",
+    "scan": "tsx src/ingest/run-scan.ts",
+    "score": "tsx src/engine/rebuild.ts",
+    "dev": "concurrently -n api,web -c yellow,cyan \"tsx watch src/api/server.ts\" \"vite --config web/vite.config.ts\"",
+    "start": "tsx src/api/server.ts",
+    "typecheck": "tsc --noEmit",
+    "fixtures": "tsx src/ingest/fixtures.ts",
+    "web:dev": "vite --config web/vite.config.ts",
+    "web:build": "vite build --config web/vite.config.ts",
+    "purge": "tsx src/ingest/purge-fixtures.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "vite": "^6.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
