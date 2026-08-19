@@ -15,7 +15,7 @@
 .pick {
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  border-radius: 6px;
+  border-radius: var(--r-md);
   max-width: 780px; width: 100%;
   padding: 34px;
   box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
@@ -33,7 +33,7 @@
   text-align: left; width: 100%;
   background: var(--paper-sunk);
   border: 1px solid var(--rule-strong);
-  border-radius: 5px;
+  border-radius: var(--r-md);
   padding: 24px;
   color: var(--ink);
   display: flex; flex-direction: column;
@@ -54,8 +54,8 @@
 
 .pick-go {
   margin-top: 16px; display: inline-flex; align-items: center; justify-content: center;
-  background: var(--sticker); color: #141210; border: 1px solid var(--ink);
-  border-radius: 4px; padding: 12px 18px; font-size: 17px; font-weight: 600; min-height: 44px;
+  background: var(--sticker); color: var(--on-accent); border: 1px solid var(--ink);
+  border-radius: var(--r-sm); padding: 12px 18px; font-size: 17px; font-weight: 600; min-height: 44px;
 }
 .pick-card:hover .pick-go { background: var(--sticker-deep); }
 
@@ -67,7 +67,7 @@
 
 .wz-progress { display: flex; gap: 8px; margin-bottom: 34px; }
 .wz-progress span {
-  height: 6px; flex: 1; background: var(--rule); border-radius: 3px;
+  height: 6px; flex: 1; background: var(--rule); border-radius: var(--r-sm);
 }
 .wz-progress span.done { background: var(--sticker); }
 
@@ -88,19 +88,19 @@
 .wz input[type="text"], .wz input[type="number"], .wz select {
   font-family: inherit; font-size: 18px; padding: 13px 14px; width: 100%;
   background: var(--paper); color: var(--ink);
-  border: 1px solid var(--rule-strong); border-radius: 4px; min-height: 52px;
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); min-height: 52px;
 }
 .wz input:focus-visible, .wz select:focus-visible { border-color: var(--ink); }
 
 .radio-group { display: grid; gap: 10px; }
 .radio {
   display: flex; align-items: flex-start; gap: 12px; padding: 15px;
-  border: 1px solid var(--rule-strong); border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); cursor: pointer;
   background: var(--paper); min-height: 44px;
 }
 .radio:hover { background: var(--paper-sunk); }
-.radio.on { border-color: var(--ink); background: var(--sticker); color: #141210; }
-.radio input { margin-top: 3px; width: 20px; height: 20px; flex: none; accent-color: #141210; }
+.radio.on { border-color: var(--ink); background: var(--sticker); color: var(--on-accent); }
+.radio input { margin-top: 3px; width: 20px; height: 20px; flex: none; accent-color: var(--on-accent); }
 .radio .rl { font-size: 17px; font-weight: 600; }
 .radio .rh { font-size: 16px; opacity: 0.85; }
 
@@ -108,12 +108,12 @@
 
 .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
 .chip {
-  font-size: 16px; padding: 11px 15px; border-radius: 999px;
+  font-size: 16px; padding: 11px 15px; border-radius: var(--r-full);
   border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
   min-height: 44px;
 }
 .chip:hover { background: var(--paper-sunk); }
-.chip.on { background: var(--sticker); border-color: var(--sticker-deep); color: #141210; font-weight: 600; }
+.chip.on { background: var(--sticker); border-color: var(--sticker-deep); color: var(--on-accent); font-weight: 600; }
 
 .picked {
   display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px;
@@ -123,7 +123,7 @@
 .picked-item {
   display: inline-flex; align-items: center; gap: 9px;
   background: var(--paper-sunk); border: 1px solid var(--rule-strong);
-  border-radius: 999px; padding: 9px 9px 9px 15px; font-size: 16px; min-height: 44px;
+  border-radius: var(--r-full); padding: 9px 9px 9px 15px; font-size: 16px; min-height: 44px;
 }
 .picked-item button {
   background: none; border: 0; color: var(--ink-faint); font-size: 20px;
@@ -145,11 +145,11 @@
 .wz-done { text-align: left; }
 .wz-check {
   width: 54px; height: 54px; border-radius: 50%; background: var(--sticker);
-  color: #141210; display: grid; place-items: center; font-size: 28px;
+  color: var(--on-accent); display: grid; place-items: center; font-size: 28px;
   font-weight: 700; margin-bottom: 20px;
 }
 .summary {
-  border: 1px solid var(--rule-strong); border-radius: 4px;
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
   padding: 6px 18px; margin: 8px 0 28px; background: var(--paper-sunk);
 }
 .summary-row {

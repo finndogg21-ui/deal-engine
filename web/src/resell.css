@@ -1,0 +1,336 @@
+/* Blueprints F, G, H — inventory, orders, profit.
+   One stylesheet for the three reseller screens; they are the same table with
+   different columns and should not drift apart. */
+
+.rs {
+  max-width: 1240px;
+  padding: var(--s6) var(--s5) var(--s8);
+}
+
+.rs-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 5vw, 54px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: var(--s2) 0 var(--s3);
+}
+
+.rs-lede {
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  margin: 0 0 var(--s5);
+}
+
+.rs-error { color: var(--drop); margin: 0 0 var(--s4); }
+
+.rs-note {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 76ch;
+  margin: var(--s3) 0 0;
+  flex-basis: 100%;
+}
+
+/* ---- summary numbers --------------------------------------------------- */
+
+.rs-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s6);
+  padding: var(--s4) 0 var(--s5);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--s5);
+}
+
+.rs-stats div { display: flex; flex-direction: column; }
+
+.rs-stats strong {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-stats span { font-size: 13px; color: var(--ink-faint); }
+
+.rs-headline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s7);
+  margin-bottom: var(--s5);
+}
+
+.rs-big { display: flex; flex-direction: column; gap: var(--s1); }
+.rs-big span { font-size: 13.5px; color: var(--ink-faint); }
+
+/* The one number the whole product is selling. It gets display type. */
+.rs-big strong {
+  font-family: var(--display);
+  font-size: clamp(38px, 6vw, 62px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-big strong.neg { color: var(--drop); }
+
+/* ---- add forms --------------------------------------------------------- */
+
+.rs-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s4);
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  margin-bottom: var(--s5);
+}
+
+.rs-field { display: flex; flex-direction: column; gap: var(--s1); min-width: 110px; }
+.rs-field > span { font-size: 13.5px; font-weight: 500; color: var(--ink-faint); }
+.rs-grow { flex: 1 1 240px; }
+.rs-narrow { max-width: 90px; }
+
+.rs-field input,
+.rs-field select {
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  min-height: 44px;
+  width: 100%;
+}
+
+.rs-field input:focus-visible,
+.rs-field select:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.rs-checkline {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  flex-basis: 100%;
+}
+
+.rs-preview {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink);
+}
+.rs-preview strong { color: var(--accent-text); font-variant-numeric: tabular-nums; }
+
+/* ---- filter bar -------------------------------------------------------- */
+
+.rs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s4);
+}
+
+.rs-tabs { display: flex; gap: var(--s1); flex-wrap: wrap; }
+
+.rs-tab {
+  font: inherit;
+  font-size: 14.5px;
+  min-height: 40px;
+  padding: 0 var(--s4);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.rs-tab:hover { background: var(--paper-sunk); }
+.rs-tab.on { background: var(--ink); color: var(--paper); }
+.rs-tab:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+
+.rs-bulk { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; font-size: 14px; }
+
+.rs-ghost {
+  font: inherit;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.rs-ghost:hover { background: var(--paper-sunk); }
+
+/* ---- table ------------------------------------------------------------- */
+
+.rs-tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+}
+
+.rs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.rs-table th {
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+
+.rs-table td {
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.rs-table tbody tr:last-child td { border-bottom: 0; }
+.rs-table tbody tr:hover { background: var(--paper-sunk); }
+.rs-table tbody tr.on { background: var(--paper-sunk); }
+
+.rs-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rs-dim { color: var(--ink-faint); white-space: nowrap; }
+.rs-item { min-width: 220px; max-width: 420px; }
+
+.rs-net { font-weight: 600; color: var(--accent-text); }
+.rs-net.neg { color: var(--drop); }
+
+.rs-check { width: 44px; }
+.rs-check input { width: 18px; height: 18px; }
+
+.rs-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rs-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: var(--r-full);
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+.rs-pill.sold { border-color: var(--accent-text); color: var(--accent-text); }
+.rs-pill.returned { border-color: var(--drop); color: var(--drop); }
+
+/* ---- empty ------------------------------------------------------------- */
+
+.rs-empty {
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-lg);
+  padding: var(--s6);
+  text-align: center;
+}
+.rs-empty p:first-child { font-size: 21px; font-weight: 600; margin: 0 0 var(--s2); }
+.rs-empty .rs-lede { margin: 0 auto; }
+
+/* ---- chart and rankings ------------------------------------------------ */
+
+.rs-chart { margin: var(--s6) 0; }
+
+.rs-chart h2,
+.rs-split h2 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s4);
+}
+
+.rs-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s3);
+  overflow-x: auto;
+  padding-bottom: var(--s2);
+}
+
+.rs-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  min-width: 56px;
+  flex: 1;
+}
+
+.rs-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 150px;
+}
+
+.rs-bar-fill {
+  width: 100%;
+  background: var(--accent-text);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+}
+.rs-bar-fill.neg { background: var(--drop); }
+
+.rs-bar-val { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.rs-bar-lab { font-size: 12px; color: var(--ink-faint); }
+
+.rs-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s6);
+  margin-bottom: var(--s6);
+}
+
+.rs-rank { list-style: none; margin: 0; padding: 0; }
+
+.rs-rank li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.rs-rank em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-rank small { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-faint); }
+
+@media (max-width: 720px) {
+  .rs { padding: var(--s5) var(--s4) var(--s7); }
+  .rs-stats { gap: var(--s5); }
+  .rs-headline { gap: var(--s5); }
+}

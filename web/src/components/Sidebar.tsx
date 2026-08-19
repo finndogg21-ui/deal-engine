@@ -1,8 +1,11 @@
 import { NavLink, Link } from 'react-router-dom';
 import { BRAND } from '../App.js';
 import { useTheme, isDark } from '../lib/theme.js';
+import { useAuth } from '../lib/auth.js';
+import Notifications from './Notifications.js';
+import '../notifications.css';
 
-/* Inline icons — a whole icon library is not worth the weight for nine glyphs. */
+/* Inline icons, a whole icon library is not worth the weight for nine glyphs. */
 const I = {
   tag: 'M3 3h7l8 8-7 7-8-8V3Zm3.5 3.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z',
   penny: 'M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 3.2v9.6M7.4 7.6h4.2a1.8 1.8 0 0 1 0 3.6H7.4',
@@ -29,7 +32,7 @@ function Icon({ d }: { d: string }) {
 const cls = ({ isActive }: { isActive: boolean }) => `sb-item${isActive ? ' active' : ''}`;
 
 /** Retailers we can actually check store-level stock for. `soon` means the
- *  vendor is wired but the retailer isn't live yet — never a fake link. */
+ *  vendor is wired but the retailer isn't live yet, never a fake link. */
 const RETAILERS = [
   { slug: 'home-depot', name: 'Home Depot', badge: 'HD', live: true },
   { slug: 'lowes', name: "Lowe's", badge: 'LW', live: true },
@@ -39,23 +42,18 @@ const RETAILERS = [
 
 export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const { theme, toggle } = useTheme();
+  const { me, signOut } = useAuth();
   const dark = isDark(theme);
 
   return (
     <aside className={`sb${open ? ' open' : ''}`} aria-label="Main">
       <div className="sb-head">
         <Link to="/" className="sb-brand"><span>{BRAND}</span></Link>
-        <button className="icon-btn" aria-label="Notifications">
-          <svg className="sb-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d={I.bell} />
-          </svg>
-        </button>
       </div>
 
       <nav className="sb-nav" onClick={onNavigate}>
         <div className="sb-sec">Find</div>
-        <NavLink to="/app" end className={cls}><Icon d={I.tag} />Deals</NavLink>
+        <NavLink to="/app" end className={cls}><Icon d={I.tag} />All deals</NavLink>
         <NavLink to="/app/penny" className={cls}><Icon d={I.penny} />Penny watch</NavLink>
         <NavLink to="/app/watchlist" className={cls}><Icon d={I.bell} />My watchlist</NavLink>
 
@@ -72,14 +70,24 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
         <NavLink to="/app/inventory" className={cls}><Icon d={I.box} />Inventory</NavLink>
         <NavLink to="/app/orders" className={cls}><Icon d={I.cart} />Orders</NavLink>
         <NavLink to="/app/profit" className={cls}><Icon d={I.chart} />Profit</NavLink>
+
+        {me?.role === 'operator' && (
+          <>
+            <div className="sb-sec">Operator</div>
+            <NavLink to="/app/admin" className={cls}><Icon d={I.chart} />Admin</NavLink>
+          </>
+        )}
       </nav>
 
       <div className="sb-foot">
-        <a className="sb-discord" href="https://discord.gg" target="_blank" rel="noreferrer">
+        <Notifications />
+
+        {import.meta.env.VITE_DISCORD_INVITE && (
+        <a className="sb-discord" href={import.meta.env.VITE_DISCORD_INVITE} target="_blank" rel="noreferrer">
           <svg className="sb-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
             strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d={I.discord} /></svg>
           Join the Discord
-        </a>
+        </a>)}
 
         <button className="sb-user" onClick={toggle}>
           <svg className="sb-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
@@ -89,9 +97,12 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
           {dark ? 'Light mode' : 'Dark mode'}
         </button>
 
-        <button className="sb-user">
-          <span className="sb-avatar">F</span>
-          Finnley
+        <button className="sb-user" onClick={() => void signOut()}>
+          <span className="sb-avatar">{(me?.email ?? '?')[0]!.toUpperCase()}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {me?.email ?? 'Account'}
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--ink-faint)' }}>Sign out</span>
         </button>
       </div>
     </aside>

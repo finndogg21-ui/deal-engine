@@ -1,0 +1,108 @@
+/* Blueprint L — admin. Extends resell.css rather than restating it. */
+
+.ad-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s6);
+  align-items: flex-start;
+  padding: var(--s5);
+  margin-bottom: var(--s5);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-lg);
+  background: var(--paper-sunk);
+}
+
+/* A stale scan is the one alarm on this page that earns colour. */
+.ad-health.bad {
+  border-color: var(--drop);
+  border-left-width: 4px;
+}
+
+.ad-health > div { display: flex; flex-direction: column; }
+.ad-health span { font-size: 13px; color: var(--ink-faint); }
+
+.ad-health strong {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-health.bad strong { color: var(--drop); }
+
+.ad-verdict {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 78ch;
+}
+
+.ad-warn {
+  padding: var(--s3) var(--s4);
+  border-left: 3px solid var(--drop);
+  background: var(--paper-sunk);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin: 0 0 var(--s5);
+}
+
+.ad-big {
+  font-family: var(--display);
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.ad-big small {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--ink-faint);
+}
+
+.ad-vendors { list-style: none; margin: 0 0 var(--s3); padding: 0; }
+
+.ad-vendors li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14.5px;
+  text-transform: capitalize;
+}
+
+.ad-vendors em { font-style: normal; font-size: 13px; }
+.ad-vendors em.on { color: var(--accent-text); }
+.ad-vendors em.off { color: var(--ink-faint); }
+
+.ad-messages { list-style: none; margin: 0; padding: 0; }
+
+.ad-messages li {
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--s3);
+}
+
+.ad-messages li > div { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
+.ad-messages p { margin: var(--s2) 0 var(--s3); font-size: 14.5px; line-height: 1.55; }
+
+.rs section > h2 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: var(--s6) 0 var(--s4);
+}

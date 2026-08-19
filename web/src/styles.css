@@ -6,24 +6,54 @@
  * thing on the page; everything else stays quiet. */
 
 :root {
-  --sticker: #ffd400; /* clearance sticker */
-  --sticker-deep: #e0b400;
-  --ink: #141210; /* warm near-black */
-  --ink-soft: #443f39;
-  /* Was #837c72 at 4.85:1 — passes AA and still strains. This clears 7:1. */
-  --ink-faint: #5c564d;
-  --paper: #faf7f0; /* receipt stock */
-  --paper-sunk: #efeae0;
-  --rule: #d6cfc2;
-  --rule-strong: #b3aa9a;
-  --drop: #c8341e; /* the "was" price, the markdown */
-  --go: #0f5132; /* money, confirmed */
-  /* Sticker yellow is a background, never text — it fails contrast on paper.
-   * This is the readable version for type. */
-  --accent-text: #8a6a00;
+  /* Deep green. One meaning per colour: the accent belongs to the deal —
+   * the price, the score, the saving. Structure stays neutral. */
+  --sticker: #1f5c3d; /* accent surface */
+  --sticker-deep: #17482f; /* accent, pressed */
+  --on-accent: #faf9f5; /* text on accent */
+  --ink: #12150f;
+  --ink-soft: #3d443f;
+  --ink-faint: #555b56; /* clears 7:1 on paper */
+  --paper: #faf9f5;
+  --paper-sunk: #efeee7;
+  --rule: #dcdad0;
+  --rule-strong: #b3b1a4;
+  --drop: #a53a22; /* the struck-through "was" price */
+  --go: #1f5c3d; /* money, confirmed */
+  --accent-text: #1a4f34;
 
-  --sans: ui-sans-serif, system-ui, "Segoe UI Variable", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Real typefaces. A system stack is the loudest "generated design" signal
+   * there is, and this product's hero is a number, so figures matter. */
+  --display: "Cabinet Grotesk", "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Satoshi", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "Satoshi", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radius hierarchy. One uniform radius everywhere reads as generated. */
+  --r-sm: 5px;
+  --r-md: 9px;
+  --r-lg: 16px;
+  --r-full: 9999px;
+
+  /* One spacing scale, used everywhere. Uneven gaps between sections are a
+   * dead giveaway of a page assembled rather than designed, and the only
+   * reliable cure is refusing to type arbitrary pixel values. */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --s9: 96px;
+
+  /* Section rhythm: every marketing section uses this, no exceptions. */
+  --section-y: var(--s8);
+  --measure: 62ch;
+}
+
+@media (max-width: 620px) {
+  :root { --section-y: var(--s7); }
 }
 
 /* Three theme states, not two. "system" stamps nothing and lets the media
@@ -31,34 +61,36 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --sticker: #ffd400;
-    --sticker-deep: #ffe770;
-    --ink: #f2ece1;
-    --ink-soft: #c6bdb0;
-    --ink-faint: #a89e90;
-    --paper: #14130f;
-    --paper-sunk: #1d1b16;
-    --rule: #34302a;
-    --rule-strong: #4c463d;
-    --drop: #ef6a52;
-    --go: #6fb98a;
-    --accent-text: #ffd400;
+    --sticker: #4fae7e;
+    --sticker-deep: #63c290;
+    --on-accent: #0c110e;
+    --ink: #e9ece9;
+    --ink-soft: #b9c1bb;
+    --ink-faint: #98a09a;
+    --paper: #0f1210;
+    --paper-sunk: #171b17;
+    --rule: #282e29;
+    --rule-strong: #3d453e;
+    --drop: #e8785c;
+    --go: #5fbe8b;
+    --accent-text: #6ecb96;
   }
 }
 
 :root[data-theme="dark"] {
-  --sticker: #ffd400;
-  --sticker-deep: #ffe770;
-  --ink: #f2ece1;
-  --ink-soft: #c6bdb0;
-  --ink-faint: #a89e90;
-  --paper: #14130f;
-  --paper-sunk: #1d1b16;
-  --rule: #34302a;
-  --rule-strong: #4c463d;
-  --drop: #ef6a52;
-  --go: #6fb98a;
-  --accent-text: #ffd400;
+  --sticker: #4fae7e;
+  --sticker-deep: #63c290;
+  --on-accent: #0c110e;
+  --ink: #e9ece9;
+  --ink-soft: #b9c1bb;
+  --ink-faint: #98a09a;
+  --paper: #0f1310;
+  --paper-sunk: #171d19;
+  --rule: #2a322d;
+  --rule-strong: #3f4a43;
+  --drop: #e8785c;
+  --go: #5fbe8b;
+  --accent-text: #6ecb96;
 }
 
 * { box-sizing: border-box; }
@@ -74,6 +106,23 @@ body {
   font-size: 17px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display type. Measured against Copilot, Ramp and Linear: all set headlines
+ * at 64-112px with weight 400-600 and leading at or below 1.0. Weight 700 at
+ * display size is the amateur tell, so it is capped at 500 here. */
+h1, h2, .display {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+h3, h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.012em;
 }
 
 /* Anything you tap or click is at least 44px tall. */

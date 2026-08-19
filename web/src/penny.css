@@ -1,0 +1,251 @@
+/* Blueprint I — penny watch. */
+
+.pw { max-width: 1240px; padding: var(--s6) var(--s5) var(--s8); }
+
+.pw-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 5vw, 54px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: var(--s2) 0 var(--s3);
+}
+
+.pw-lede { color: var(--ink-soft); max-width: var(--measure); margin: 0 0 var(--s5); }
+.pw-error { color: var(--drop); margin: 0 0 var(--s4); }
+
+.pw-filters { display: flex; gap: var(--s4); flex-wrap: wrap; margin-bottom: var(--s5); }
+.pw-filters label { display: flex; flex-direction: column; gap: var(--s1); }
+.pw-filters span { font-size: 13.5px; font-weight: 500; color: var(--ink-faint); }
+
+.pw-filters select {
+  font: inherit;
+  font-size: 16px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md);
+}
+.pw-filters select:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+
+.pw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--s4);
+}
+
+.pw-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  background: var(--paper);
+}
+
+.pw-card-head { display: flex; gap: var(--s4); align-items: flex-start; }
+
+/* The score is the hero of this card, so it gets display type and figures. */
+.pw-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 78px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-md);
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+}
+
+.pw-score strong {
+  font-family: var(--display);
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-score span { font-size: 11.5px; color: var(--ink-faint); text-align: center; line-height: 1.25; }
+
+/* Strong candidates earn the accent. Weak ones stay neutral rather than
+   getting an alarming colour they have not earned. */
+.pw-score.s4 strong, .pw-score.s5 strong { color: var(--accent-text); }
+.pw-score.s4, .pw-score.s5 { border-color: var(--accent-text); }
+
+.pw-head-text { min-width: 0; }
+
+.pw-card h2 {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  margin: 0 0 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pw-where { margin: 0; font-size: 13px; color: var(--ink-faint); }
+
+.pw-facts {
+  display: flex;
+  gap: var(--s5);
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.pw-facts div { display: flex; flex-direction: column; }
+
+.pw-facts strong {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.pw-facts span { font-size: 12px; color: var(--ink-faint); }
+
+.pw-verified {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.pw-why {
+  font: inherit;
+  font-size: 13px;
+  align-self: flex-start;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.pw-why:hover { color: var(--ink); }
+.pw-why:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+/* Product photo. Contained, not cropped — a cropped tool is unrecognisable. */
+.pw-img {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.pw-img img { width: 100%; height: 100%; object-fit: contain; padding: var(--s3); }
+.pw-noimg { font-size: 13px; color: var(--ink-faint); }
+
+/* Score sits on the image so the card leads with the product. */
+.pw-img .pw-score {
+  position: absolute;
+  top: var(--s2);
+  left: var(--s2);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  padding: 4px var(--s2);
+  min-width: 58px;
+}
+.pw-img .pw-score strong { font-size: 26px; }
+.pw-img .pw-score span { font-size: 10.5px; }
+
+/* ---- the breakdown ----------------------------------------------------- */
+
+.pw-break {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4);
+  background: var(--paper-sunk);
+  border-radius: var(--r-md);
+}
+
+.pw-part { display: flex; flex-direction: column; gap: 4px; }
+
+.pw-part-top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-size: 14px;
+}
+
+.pw-part-top em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.pw-bar {
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.pw-bar-fill { height: 100%; background: var(--accent-text); border-radius: var(--r-full); }
+
+.pw-part small { font-size: 12.5px; color: var(--ink-faint); line-height: 1.4; }
+
+.pw-caveat {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s3);
+}
+
+.pw-actions { margin-top: auto; }
+
+/* ---- loading and empty ------------------------------------------------- */
+
+/* Matches real card height so the swap does not shift the page. */
+.pw-skel {
+  height: 268px;
+  border-radius: var(--r-lg);
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pw-skel { animation: pw-pulse 1.4s ease-in-out infinite; }
+  @keyframes pw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+}
+
+.pw-empty {
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-lg);
+  padding: var(--s6);
+  text-align: center;
+}
+.pw-empty p:first-child { font-size: 21px; font-weight: 600; margin: 0 0 var(--s2); }
+.pw-empty .pw-lede { margin: 0 auto; }
+
+@media (max-width: 720px) {
+  .pw { padding: var(--s5) var(--s4) var(--s7); }
+  .pw-grid { grid-template-columns: 1fr; }
+}
+
+/* Shown while the dataset is too young for the history-based signals. */
+.pw-young {
+  border-left: 3px solid var(--accent-text);
+  background: var(--paper-sunk);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  padding: var(--s3) var(--s4);
+  margin: 0 0 var(--s5);
+  font-size: 14.5px;
+  line-height: 1.55;
+  max-width: 78ch;
+}

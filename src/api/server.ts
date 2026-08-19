@@ -10,12 +10,56 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { getDb, OPERATOR_USER_ID } from '../db/client.js';
+import { getDb } from '../db/client.js';
 import { confidenceLabel } from '../engine/score.js';
+import { cookies, loadUser, requireAuth, requirePlan, rateLimit, route } from './middleware.js';
+import { auth } from './routes/auth.js';
+import { contact } from './routes/contact.js';
+import { watchlists } from './routes/watchlists.js';
+import { alerts } from './routes/alerts.js';
+import { finds } from './routes/finds.js';
+import { inventory } from './routes/inventory.js';
+import { orders } from './routes/orders.js';
+import { stock } from './routes/stock.js';
+import { stockFind } from './routes/stock-find.js';
+import { stockQueue } from './routes/stock-queue.js';
+import { startStockWorker } from './stock-worker.js';
+import { billing } from './routes/billing.js';
+import { admin } from './routes/admin.js';
+import { coverageFor } from '../coverage.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(express.json());
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+/**
+ * The Stripe webhook must see the exact bytes Stripe signed, so it is mounted
+ * with express.raw BEFORE express.json. Order matters: json() marks the body
+ * consumed, and a re-serialised body will never match the signature. Getting
+ * this backwards produces a webhook that appears to work and can verify
+ * nothing.
+ */
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }));
+
+app.use(express.json({ limit: '256kb' }));
+app.use(cookies);
+app.use(loadUser);
+
+app.use('/api/auth', auth);
+app.use('/api', contact);
+app.use('/api', watchlists);
+app.use('/api', alerts);
+app.use('/api', finds);
+app.use('/api', inventory);
+app.use('/api', orders);
+app.use('/api', stock);
+app.use('/api', stockFind);
+app.use('/api', stockQueue);
+app.use('/api', billing);
+app.use('/api', admin);
+
+/** Deal data is the product, so reading it is the paywall. Operators bypass. */
+const paid = [requireAuth, requirePlan('consumer', 'reseller')];
 
 const HOME_LAT = Number(process.env.HOME_LAT ?? 29.6047);
 const HOME_LNG = Number(process.env.HOME_LNG ?? -98.4947);
@@ -35,57 +79,139 @@ function distanceMi(lat: number, lng: number): number {
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
 /* ---------------------------------------------------------------------------
+ * GET /api/coverage — do we work where this person lives?
+ *
+ * Public, because the pricing page and onboarding both need to answer it
+ * BEFORE taking money. Selling a plan into a metro with no price history is
+ * the fastest possible refund.
+ * ------------------------------------------------------------------------- */
+app.get('/api/coverage', async (req, res) => {
+  try {
+    const db = await getDb();
+    const zip = typeof req.query.zip === 'string' ? req.query.zip : (req.user?.zip ?? null);
+    res.json(await coverageFor(db, zip));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'coverage check failed' });
+  }
+});
+
+/* ---------------------------------------------------------------------------
  * GET /api/candidates
  * ------------------------------------------------------------------------- */
-app.get('/api/candidates', async (req, res) => {
+app.get('/api/candidates', ...paid, async (req, res) => {
   try {
     const db = await getDb();
     const minScore = Number(req.query.min_score ?? 0);
-    const minDiscount = Number(req.query.min_discount ?? 0);
+    /**
+     * A "deal" means a real markdown. Default 25% so full-price catalogue
+     * never reaches the deals list — the sweep records everything because
+     * history is the asset, but showing everything makes the product look
+     * like a product listing rather than a deal feed.
+     */
+    const minDiscount = Number(req.query.min_discount ?? 25);
     const stage = typeof req.query.stage === 'string' ? req.query.stage : null;
+    /**
+     * Penny view. Stage alone is too strict on a young dataset: `penny_candidate`
+     * needs the divergence signal, which needs weeks of history, so on day one
+     * the page is empty while a .03 final-markdown item sits right there.
+     * The price ending is the one signal that works from a single observation,
+     * so it counts too.
+     */
+    const pennyOnly = String(req.query.penny ?? '') === '1';
     const limit = Math.min(Number(req.query.limit ?? 100), 500);
+    // Blueprint I. Applied after distance is computed, since the great-circle
+    // maths already lives in JS here.
+    const radius = req.query.radius ? Number(req.query.radius) : null;
 
     const { rows } = await db.query<Record<string, unknown>>(
       `SELECT s.product_id, s.store_id, s.stage, s.stage_entered_at,
               s.penny_score, s.last_price, s.last_discount, s.last_stock,
-              s.last_seen_at,
-              p.title, p.category, p.retailer,
-              st.name AS store_name, st.lat, st.lng, st.zip
+              s.last_seen_at, s.aisle_bay,
+              s.score_ladder, s.score_divergence, s.score_dwell, s.score_scarcity, s.score_price_code,
+              -- Has anyone actually stood there and confirmed it?
+              (SELECT COUNT(DISTINCT f.user_id)::int FROM finds f
+                WHERE f.product_id = s.product_id AND f.store_id = s.store_id
+                  AND f.outcome = 'found'
+                  AND f.recorded_at >= now() - INTERVAL '7 days') AS verified_by,
+              p.title, p.category, p.retailer, p.image_url, p.product_url,
+              st.name AS store_name, st.store_number, st.lat, st.lng, st.zip,
+              -- How many other stores carry this SKU, for "compare N stores".
+              (SELECT COUNT(*) - 1 FROM sku_state o WHERE o.product_id = s.product_id)::int
+                AS other_stores
          FROM sku_state s
          JOIN products p ON p.product_id = s.product_id
          JOIN stores  st ON st.store_id  = s.store_id
         WHERE s.penny_score >= $1
           AND COALESCE(s.last_discount, 0) >= $2
           AND ($3::text IS NULL OR s.stage = $3)
+          AND ($5::boolean IS NOT TRUE
+               OR s.stage = 'penny_candidate'
+               OR COALESCE(s.score_price_code, 0) > 0)
         ORDER BY s.penny_score DESC, s.last_discount DESC
         LIMIT $4`,
-      [minScore, minDiscount, stage, limit],
+      [minScore, minDiscount, stage, limit, pennyOnly],
     );
 
-    res.json(
-      rows.map((r) => {
+    const mapped = rows.map((r) => {
         const lat = num(r.lat);
         const lng = num(r.lng);
         const scoreVal = Number(r.penny_score ?? 0);
+        const price = num(r.last_price);
+        const disc = num(r.last_discount);
+        // Derived, not stored: what it was before the markdown. Only shown
+        // when we have both numbers to derive it from.
+        const listPrice =
+          price !== null && disc !== null && disc > 0 && disc < 100
+            ? Math.round((price / (1 - disc / 100)) * 100) / 100
+            : null;
         return {
           product_id: r.product_id,
           store_id: r.store_id,
           title: r.title,
           category: r.category,
           retailer: r.retailer,
+          image_url: r.image_url,
+          product_url: r.product_url,
           store_name: r.store_name,
+          store_number: r.store_number,
+          aisle_bay: r.aisle_bay,
+          other_stores: Number(r.other_stores ?? 0),
+          /* In-store only when the site no longer lists it but units remain. */
+          in_store_only: r.stage === 'penny_candidate' || r.stage === 'delisted',
           zip: r.zip,
           distance_mi: lat !== null && lng !== null ? distanceMi(lat, lng) : null,
           stage: r.stage,
           stage_entered_at: r.stage_entered_at,
           penny_score: scoreVal,
           confidence: confidenceLabel(scoreVal),
-          price: num(r.last_price),
-          discount_pct: num(r.last_discount),
+          price,
+          list_price: listPrice,
+          saves: price !== null && listPrice !== null
+            ? Math.round((listPrice - price) * 100) / 100
+            : null,
+          discount_pct: disc,
           stock_qty: r.last_stock,
           last_seen_at: r.last_seen_at,
+          verified_by: Number(r.verified_by ?? 0),
+          // Blueprint I: the breakdown has to explain why a number is 98,
+          // not just assert it.
+          score_breakdown: {
+            ladder: Number(r.score_ladder ?? 0),
+            divergence: Number(r.score_divergence ?? 0),
+            dwell: Number(r.score_dwell ?? 0),
+            scarcity: Number(r.score_scarcity ?? 0),
+            price_code: Number(r.score_price_code ?? 0),
+          },
         };
-      }),
+      });
+
+    res.json(
+      radius === null
+        ? mapped
+        // Unknown distance is kept rather than dropped: a store with no
+        // coordinates is a data gap, not a store that is far away.
+        : mapped.filter((r) => r.distance_mi === null || r.distance_mi <= radius),
     );
   } catch (err) {
     console.error(err);
@@ -96,13 +222,13 @@ app.get('/api/candidates', async (req, res) => {
 /* ---------------------------------------------------------------------------
  * GET /api/candidates/:productId/:storeId  — the decision screen
  * ------------------------------------------------------------------------- */
-app.get('/api/candidates/:productId/:storeId', async (req, res) => {
+app.get('/api/candidates/:productId/:storeId', ...paid, async (req, res) => {
   try {
     const db = await getDb();
     const { productId, storeId } = req.params;
 
     const head = await db.query<Record<string, unknown>>(
-      `SELECT s.*, p.title, p.category, p.retailer, p.sku,
+      `SELECT s.*, p.title, p.category, p.retailer, p.sku, p.product_url,
               st.name AS store_name, st.address, st.zip, st.lat, st.lng
          FROM sku_state s
          JOIN products p ON p.product_id = s.product_id
@@ -126,7 +252,7 @@ app.get('/api/candidates/:productId/:storeId', async (req, res) => {
          FROM finds
         WHERE product_id = $1 AND store_id = $2 AND user_id = $3
         ORDER BY recorded_at DESC`,
-      [productId, storeId, OPERATOR_USER_ID],
+      [productId, storeId, req.user!.user_id],
     );
 
     const lat = num(r.lat);
@@ -139,6 +265,7 @@ app.get('/api/candidates/:productId/:storeId', async (req, res) => {
       title: r.title,
       sku: r.sku,
       category: r.category,
+      product_url: r.product_url,
       retailer: r.retailer,
       store: {
         name: r.store_name,
@@ -176,53 +303,9 @@ app.get('/api/candidates/:productId/:storeId', async (req, res) => {
 });
 
 /* ---------------------------------------------------------------------------
- * POST /api/finds — ground truth. The most important endpoint here.
- * ------------------------------------------------------------------------- */
-app.post('/api/finds', async (req, res) => {
-  try {
-    const db = await getDb();
-    const { product_id, store_id, outcome, actual_price, notes } = req.body ?? {};
-
-    if (!product_id || !store_id) {
-      return res.status(400).json({ error: 'product_id and store_id are required' });
-    }
-    const allowed = ['found', 'not_found', 'wrong_price'];
-    if (!allowed.includes(outcome)) {
-      return res.status(400).json({ error: `outcome must be one of ${allowed.join(', ')}` });
-    }
-
-    // Capture the score that sent them there — this is what makes finds an
-    // answer key rather than just a log.
-    const st = await db.query<{ penny_score: number }>(
-      `SELECT penny_score FROM sku_state WHERE product_id = $1 AND store_id = $2`,
-      [product_id, store_id],
-    );
-
-    const { rows } = await db.query<{ find_id: string }>(
-      `INSERT INTO finds (user_id, product_id, store_id, outcome, actual_price, score_at_time, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING find_id`,
-      [
-        OPERATOR_USER_ID,
-        product_id,
-        store_id,
-        outcome,
-        actual_price ?? null,
-        st.rows[0]?.penny_score ?? null,
-        notes ?? null,
-      ],
-    );
-
-    res.status(201).json({ find_id: rows[0]?.find_id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'could not record find' });
-  }
-});
-
-/* ---------------------------------------------------------------------------
  * GET /api/scan/health — the alarm for silent failure
  * ------------------------------------------------------------------------- */
-app.get('/api/scan/health', async (_req, res) => {
+app.get('/api/scan/health', ...paid, async (_req, res) => {
   try {
     const db = await getDb();
     const last = await db.query<Record<string, unknown>>(
@@ -258,7 +341,7 @@ app.get('/api/scan/health', async (_req, res) => {
 /* ---------------------------------------------------------------------------
  * Hit rate — is the whole premise real?
  * ------------------------------------------------------------------------- */
-app.get('/api/stats/hit-rate', async (_req, res) => {
+app.get('/api/stats/hit-rate', ...paid, async (req, res) => {
   try {
     const db = await getDb();
     const { rows } = await db.query<Record<string, unknown>>(
@@ -267,7 +350,7 @@ app.get('/api/stats/hit-rate', async (_req, res) => {
               AVG(score_at_time) FILTER (WHERE outcome = 'found')::numeric(5,1) AS avg_score_found,
               AVG(score_at_time) FILTER (WHERE outcome = 'not_found')::numeric(5,1) AS avg_score_missed
          FROM finds WHERE user_id = $1`,
-      [OPERATOR_USER_ID],
+      [req.user!.user_id],
     );
     const r = rows[0] ?? {};
     const total = Number(r.total ?? 0);
@@ -292,7 +375,20 @@ if (existsSync(webDist)) {
   app.get('*', (_req, res) => res.sendFile(join(webDist, 'index.html')));
 }
 
-const port = Number(process.env.PORT ?? 8787);
+/**
+ * API_PORT wins over PORT.
+ *
+ * In dev the API and Vite are two processes, and any tool that launches
+ * `npm run dev` with a PORT set (preview harnesses, IDE runners) would
+ * otherwise hand the API Vite's port. The API then binds it, Vite's proxy
+ * gets ECONNREFUSED, and every request 500s with an empty body — which reads
+ * like a broken API rather than a port collision.
+ *
+ * PORT is still honoured second, because that is what hosts set in production.
+ */
+const port = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
+startStockWorker();
+
 app.listen(port, () => {
   console.log(`deal-engine api  http://localhost:${port}`);
 });

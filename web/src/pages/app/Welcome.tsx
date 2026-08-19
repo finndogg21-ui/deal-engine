@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BRAND } from '../../App.js';
 import {
-  saveSetup, SUGGESTED_CONSUMER, SUGGESTED_RESELLER,
+  saveSetup, clearSetup, SUGGESTED_CONSUMER, SUGGESTED_RESELLER,
   type Setup, type Path,
 } from '../../lib/setup.js';
+import { api, useAuth } from '../../lib/auth.js';
 import '../../welcome.css';
 
 /**
@@ -26,7 +27,7 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
       <div className="pick" role="dialog" aria-modal="true" aria-labelledby="pick-title">
         <h1 id="pick-title">Which one sounds like you?</h1>
         <p className="lede">
-          Same deals underneath — but we'll set the app up differently depending on what
+          Same deals underneath, but we'll set the app up differently depending on what
           you're here for. You can switch later.
         </p>
 
@@ -35,7 +36,7 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
             <h2>I want to save money</h2>
             <p className="who">For everyday shopping.</p>
             <ul>
-              <li>Watch any product — type "blender", we cover every brand</li>
+              <li>Watch any product, type "blender", we cover every brand</li>
               <li>Amazon Warehouse and clearance deals</li>
               <li>Alerts only when the price actually drops</li>
               <li>A running total of what you've saved</li>
@@ -74,6 +75,7 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
 
 export default function Welcome() {
   const nav = useNavigate();
+  const { me, refresh } = useAuth();
   const [path, setPath] = useState<Path | null>(null);
   const [step, setStep] = useState(0);
   const [zip, setZip] = useState('');
@@ -133,6 +135,33 @@ export default function Welcome() {
         completedAt: new Date().toISOString(),
       };
       saveSetup(s);
+
+      /**
+       * If they are already signed in, the answers have to reach the server
+       * NOW, not at the next sign-in.
+       *
+       * `AppShell` gates on `users.setup_done_at`, so saving only to
+       * localStorage left a signed-in user bouncing /app -> /welcome forever:
+       * finish the survey, press "See today's deals", land back on the survey.
+       * The localStorage write stays for people who onboard before signing up
+       * — `migrateSetup` pushes theirs up at sign-in.
+       */
+      if (me) {
+        void (async () => {
+          try {
+            await api('/api/auth/me/setup', { method: 'PATCH', body: JSON.stringify(s) });
+            clearSetup();
+            await refresh();
+          } catch (e) {
+            // Do not strand them on a finished survey they cannot leave.
+            setErr(
+              'Your answers are saved on this device, but we could not sync them. ' +
+              ((e as Error).message ?? ''),
+            );
+          }
+        })();
+      }
+
       setStep(total);
       return;
     }
@@ -189,8 +218,8 @@ export default function Welcome() {
           <h1>{reseller ? 'What do you flip?' : 'What do you want to save money on?'}</h1>
           <p className="lede">
             {reseller
-              ? 'Pick the categories you actually resell. You will still see everything — these just come first.'
-              : 'Type anything — "blender" works, you don\'t need a model number. We watch every brand of it.'}
+              ? 'Pick the categories you actually resell. You will still see everything, these just come first.'
+              : 'Type anything, "blender" works, you don\'t need a model number. We watch every brand of it.'}
           </p>
 
           <div className="field">
@@ -225,7 +254,7 @@ export default function Welcome() {
           <h1>Tell us what you find, see what others found</h1>
           <p className="lede">
             Predictions are guesses. A confirmed find is not. Members who report back get the
-            verified feed — items someone physically held in the last few hours.
+            verified feed, items someone physically held in the last few hours.
           </p>
 
           <div className="field">
@@ -235,7 +264,7 @@ export default function Welcome() {
               <span>
                 <span className="rl">I'll report what I find</span><br />
                 <span className="rh">
-                  One tap after you check out — found it, or it wasn't there. Report after you
+                  One tap after you check out, found it, or it wasn't there. Report after you
                   buy, so it never costs you the find.
                 </span>
               </span>
@@ -256,7 +285,7 @@ export default function Welcome() {
           <p className="lede">
             {reseller
               ? 'You want volume, but not so much that you stop reading them.'
-              : 'Too many alerts and you\'ll stop reading them. Pick a limit — you can change it later.'}
+              : 'Too many alerts and you\'ll stop reading them. Pick a limit, you can change it later.'}
           </p>
 
           <div className="field">
@@ -304,8 +333,8 @@ export default function Welcome() {
           <h1>You're set up.</h1>
           <p className="lede">
             {reseller
-              ? "We'll watch your stores and score anything heading for a penny. Nothing to check — we'll come to you."
-              : "We'll watch for these and let you know when something drops. Nothing to check — we'll come to you."}
+              ? "We'll watch your stores and score anything heading for a penny. Nothing to check, we'll come to you."
+              : "We'll watch for these and let you know when something drops. Nothing to check, we'll come to you."}
           </p>
 
           <div className="summary">
@@ -324,7 +353,7 @@ export default function Welcome() {
             {reseller && (
               <div className="summary-row">
                 <span className="k">Verified feed</span>
-                <span className="v">{willReport ? 'On — you report back' : 'Off'}</span>
+                <span className="v">{willReport ? 'On, you report back' : 'Off'}</span>
               </div>
             )}
             <div className="summary-row">

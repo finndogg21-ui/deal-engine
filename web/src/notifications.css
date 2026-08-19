@@ -1,0 +1,125 @@
+/* Fix F7 — notifications bell and panel. Lives in the sidebar foot. */
+
+.nt { position: relative; }
+
+.nt-bell {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--s3);
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nt-bell:hover { background: var(--paper-sunk); color: var(--ink); }
+.nt-bell:focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }
+
+.nt-bell svg { width: 20px; height: 20px; flex: none; }
+
+.nt-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--r-full);
+  background: var(--accent-text);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Fixed, not absolute: the sidebar scrolls, and an overflow container clips
+   absolutely-positioned children on both axes. Left/bottom come from the
+   trigger's rect at open time. */
+.nt-panel {
+  position: fixed;
+  width: min(360px, calc(100vw - var(--s4) * 2));
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  z-index: 40;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-lg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+}
+
+.nt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4) var(--s4) var(--s3);
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+}
+
+.nt-link {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--accent-text);
+  background: none;
+  border: 0;
+  padding: 4px;
+  cursor: pointer;
+}
+.nt-link:hover { text-decoration: underline; }
+
+.nt-empty {
+  margin: 0;
+  padding: var(--s5) var(--s4);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.nt-list { list-style: none; margin: 0; padding: 0; }
+
+.nt-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--s3) var(--s4);
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.nt-item:hover { background: var(--paper-sunk); }
+.nt-item:focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }
+
+/* Unread is carried by weight and a marker, never by color alone. */
+.nt-item.unread .nt-item-title { font-weight: 600; }
+.nt-item.unread { border-left: 3px solid var(--accent-text); padding-left: calc(var(--s4) - 3px); }
+
+.nt-item-title {
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nt-item-meta {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.nt-item-foot { font-size: 12.5px; color: var(--ink-faint); }

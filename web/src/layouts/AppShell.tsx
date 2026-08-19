@@ -1,14 +1,27 @@
 import { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Sidebar, { icons } from '../components/Sidebar.js';
-import { readSetup } from '../lib/setup.js';
+import { useAuth } from '../lib/auth.js';
 import '../sidebar.css';
 
 export default function AppShell() {
   const [open, setOpen] = useState(false);
+  const { me, loading } = useAuth();
+  const { pathname } = useLocation();
 
-  // First visit goes to setup. Once it's done this never fires again.
-  if (!readSetup()) return <Navigate to="/welcome" replace />;
+  // Avoid flashing the sign-in page while the session is still being checked.
+  if (loading) {
+    return (
+      <div className="wrap page-head">
+        <p className="lede">Loading</p>
+      </div>
+    );
+  }
+
+  if (!me) return <Navigate to={`/signin?next=${encodeURIComponent(pathname)}`} replace />;
+
+  // Signed in but never finished onboarding.
+  if (!me.setup_done_at) return <Navigate to="/welcome" replace />;
 
   return (
     <div className="app-shell">
@@ -22,7 +35,6 @@ export default function AppShell() {
           strokeWidth="1.8" strokeLinecap="round"><path d={icons.menu} /></svg>
       </button>
 
-      {/* Tapping outside closes the drawer. Only rendered on mobile widths. */}
       <button
         className={`sb-scrim${open ? ' show' : ''}`}
         aria-label="Close menu"

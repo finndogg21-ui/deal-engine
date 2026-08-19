@@ -13,3 +13,11 @@ fixtures/raw/*.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Proxy credentials. Never committed.
+proxies.txt
+proxies*.txt
+
+# Any .env variant (backups, .local, .production) is secrets.
+.env.*
+!.env.example

@@ -9,9 +9,14 @@
   },
   "scripts": {
     "migrate": "tsx src/db/migrate.ts",
-    "seed": "tsx src/ingest/seed.ts",
     "scan": "tsx src/ingest/run-scan.ts",
+    "scan:dry": "tsx src/ingest/run-scan.ts --dry",
+    "replay": "tsx src/ingest/replay.ts",
+    "probe:unwrangle": "tsx src/vendors/probe-unwrangle.ts",
+    "probe:stock": "tsx src/vendors/probe-stock.ts",
+    "probe:proxies": "tsx src/net/probe-proxies.ts",
     "score": "tsx src/engine/rebuild.ts",
+    "alerts": "tsx src/alerts/run.ts",
     "dev": "concurrently -n api,web -c yellow,cyan \"tsx watch src/api/server.ts\" \"vite --config web/vite.config.ts\"",
     "start": "tsx src/api/server.ts",
     "typecheck": "tsc --noEmit",
@@ -32,6 +37,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
+    "undici": "^7.29.0",
     "vite": "^6.4.3"
   },
   "devDependencies": {

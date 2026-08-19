@@ -18,6 +18,8 @@ export interface Observation {
   discount_pct: number | null;
   stock_qty: number | null;
   availability: string | null;
+  /** Shelf location at the time of the observation, where published. */
+  aisle_bay?: string | null;
 }
 
 const DEEP = 75;

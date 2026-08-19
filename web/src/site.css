@@ -1,0 +1,173 @@
+/* Shared marketing pages: nav, footer, and the section rhythm every public
+ * page inherits. Spacing comes from the scale in styles.css, never ad hoc. */
+
+.site { min-height: 100vh; display: flex; flex-direction: column; }
+.site-main { flex: 1; }
+
+.wrap { max-width: 940px; margin: 0 auto; padding-left: var(--s5); padding-right: var(--s5); }
+.wrap-narrow { max-width: 680px; margin: 0 auto; padding-left: var(--s5); padding-right: var(--s5); }
+
+/* ---- Nav ---- */
+
+.nav {
+  border-bottom: 1px solid var(--rule);
+  position: sticky; top: 0; z-index: 30;
+  background: var(--paper);
+}
+.nav-in {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s4); padding-top: var(--s3); padding-bottom: var(--s3); flex-wrap: wrap;
+}
+
+.wordmark {
+  font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+  text-decoration: none; display: inline-flex; align-items: center;
+  gap: var(--s2); min-height: 44px; color: var(--ink);
+}
+.wordmark::before {
+  content: ""; width: 16px; height: 16px; border-radius: var(--r-sm);
+  background: var(--sticker); flex: none;
+}
+
+.nav-links { display: flex; align-items: center; gap: var(--s1); flex-wrap: wrap; }
+.nav-links a {
+  text-decoration: none; color: var(--ink-soft); font-size: 16px;
+  padding: var(--s3); display: inline-flex; align-items: center;
+  min-height: 44px; border-radius: var(--r-sm);
+}
+.nav-links a:hover { color: var(--ink); background: var(--paper-sunk); }
+.nav-links a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+
+/* ---- Buttons ---- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  background: var(--sticker); color: var(--on-accent);
+  border: 1px solid var(--sticker);
+  padding: var(--s3) var(--s5); font-size: 17px; font-weight: 600;
+  text-decoration: none; border-radius: var(--r-sm); min-height: 44px;
+}
+.btn:hover { background: var(--sticker-deep); border-color: var(--sticker-deep); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-quiet {
+  background: transparent; border-color: var(--rule-strong); color: var(--ink);
+}
+.btn-quiet:hover { background: var(--paper-sunk); border-color: var(--ink); }
+
+/* Spinner for async buttons. Every button that waits shows that it is waiting. */
+.spin {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin 0.7s linear infinite; flex: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Page furniture ---- */
+
+.page-head { padding-top: var(--s8); padding-bottom: var(--s6); }
+/* 54px, weight 500, leading 1.05. The research sites run 64-112px at 400-600;
+ * 42px at 700 was the timid, bold, generated-looking version. */
+.page-head h1 {
+  font-size: clamp(36px, 5vw, 54px); line-height: 1.05;
+  letter-spacing: -0.03em; margin: 0 0 var(--s4); text-wrap: balance;
+}
+.page-head .lede {
+  font-family: var(--sans); font-size: 20px; line-height: 1.55;
+  color: var(--ink-soft); margin: 0; max-width: 46ch; letter-spacing: normal;
+}
+
+.section { padding-top: var(--section-y); padding-bottom: var(--section-y); }
+.section + .section { padding-top: 0; }
+
+.section h2 {
+  font-size: clamp(23px, 3.2vw, 29px); line-height: 1.2;
+  letter-spacing: -0.015em; margin: 0 0 var(--s4); max-width: 24ch; text-wrap: balance;
+}
+.section h3 { font-size: 20px; margin: var(--s6) 0 var(--s3); letter-spacing: -0.01em; }
+.section p, .section li { max-width: var(--measure); }
+.section p { margin: 0 0 var(--s4); }
+.section ul, .section ol { margin: 0 0 var(--s4); padding-left: var(--s5); }
+.section li { margin-bottom: var(--s2); }
+
+.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+/* ---- Cards ---- */
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: var(--s4); }
+.card {
+  border: 1px solid var(--rule-strong); border-radius: var(--r-md);
+  padding: var(--s5); background: var(--paper-sunk);
+}
+.card h3 { margin: 0 0 var(--s2); font-size: 19px; }
+.card p { margin: 0; color: var(--ink-soft); font-size: 16px; }
+
+/* ---- Legal pages ---- */
+
+.legal { font-size: 17px; }
+.legal h2 { font-size: 21px; margin: var(--s7) 0 var(--s3); max-width: none; }
+.legal h2:first-of-type { margin-top: var(--s5); }
+.legal p, .legal li { color: var(--ink-soft); }
+.legal .updated { font-size: 15px; color: var(--ink-faint); margin-bottom: var(--s6); }
+.legal .draft {
+  border: 1px solid var(--drop); border-radius: var(--r-sm);
+  padding: var(--s4); margin-bottom: var(--s6);
+  font-size: 16px; color: var(--ink);
+}
+.legal .draft strong { color: var(--drop); }
+
+/* ---- Contact form ---- */
+
+.form { display: grid; gap: var(--s4); max-width: 520px; }
+.form label { display: block; font-weight: 600; margin-bottom: var(--s2); font-size: 16px; }
+.form input, .form select, .form textarea {
+  font-family: inherit; font-size: 17px; width: 100%;
+  padding: var(--s3); min-height: 48px;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
+}
+.form textarea { min-height: 140px; resize: vertical; }
+.form .hint { font-size: 15px; color: var(--ink-faint); margin-top: var(--s1); }
+
+.notice {
+  border: 1px solid var(--go); border-radius: var(--r-sm);
+  padding: var(--s4); background: var(--paper-sunk); font-size: 16px;
+}
+
+/* ---- Footer ---- */
+
+.foot { border-top: 1px solid var(--rule); margin-top: var(--s9); }
+.foot-in {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s6); padding-top: var(--s7); padding-bottom: var(--s6);
+}
+.foot h4 {
+  font-size: 15px; margin: 0 0 var(--s3); color: var(--ink-faint); font-weight: 700;
+}
+.foot ul { list-style: none; margin: 0; padding: 0; }
+.foot li { margin-bottom: var(--s1); }
+.foot a {
+  color: var(--ink-soft); text-decoration: none; font-size: 16px;
+  display: inline-flex; align-items: center; min-height: 44px;
+}
+.foot a:hover { color: var(--ink); text-decoration: underline; }
+
+.foot-base {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s4); padding-bottom: var(--s7);
+  font-size: 15px; color: var(--ink-faint);
+  display: flex; justify-content: space-between; gap: var(--s4); flex-wrap: wrap;
+}
+
+/* Checkout feedback on the pricing page. Errors here are about money, so they
+   get a real block rather than a line of faint helper text. */
+.pricing-notice {
+  border-left: 3px solid var(--drop);
+  background: var(--paper-sunk);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  padding: var(--s3) var(--s4);
+  margin: 0 0 var(--s5);
+  font-size: 15.5px;
+  line-height: 1.55;
+  max-width: 70ch;
+}
