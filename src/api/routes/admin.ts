@@ -170,6 +170,7 @@ admin.post('/admin/messages/:id/handled', requireOperator, route(async (req, res
 
 /* ----------------------------------------------------------------- scan now */
 
+import { timingSafeEqual } from 'node:crypto';
 import { runScan } from '../../ingest/run-scan.js';
 import { rebuild } from '../../engine/rebuild.js';
 
@@ -189,7 +190,9 @@ function scanAuthorized(req: import('express').Request): boolean {
   if (req.user?.role === 'operator') return true;
   const expect = process.env.SCAN_TRIGGER_TOKEN ?? '';
   const got = String(req.headers['x-scan-token'] ?? '');
-  return expect.length >= 32 && got === expect;
+  if (expect.length < 32 || got.length !== expect.length) return false;
+  // Constant-time compare: a plain === leaks match length through timing.
+  return timingSafeEqual(Buffer.from(got), Buffer.from(expect));
 }
 
 /** Only one pipeline run at a time; a second trigger while busy is a no-op. */

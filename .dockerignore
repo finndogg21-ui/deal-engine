@@ -1,0 +1,25 @@
+# Never ship into the build context:
+#  - secrets (.env in any variant, proxy credential files)
+#  - local databases (.data and any backup of it)
+#  - installed modules (the image runs its own npm ci against the lockfile)
+node_modules
+web/node_modules
+.env
+.env.*
+proxies.txt
+proxies*.txt
+.data
+.data*
+web/dist
+dist
+logs
+*.log
+.git
+.claude
+.DS_Store
+Thumbs.db
+docs
+scripts
+DESIGN.md
+web/DESIGN_AUDIT.md
+fixtures

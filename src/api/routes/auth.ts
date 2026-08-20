@@ -37,8 +37,13 @@ auth.post('/signup', rateLimit({ key: 'signup', max: 5, windowMs: 15 * 60_000 })
   const db = await getDb();
   const hash = await hashPassword(password);
 
+  // Deliberately NO operator promotion here. Signup has no email
+  // verification, so promoting at signup would let whoever registers the
+  // founder's (public) address first walk away with the operator role.
+  // Promotion lives in migrate.ts only, run by the operator AFTER they have
+  // personally created their account — tooling never handles their password.
   const { rows } = await db.query<{ user_id: number }>(
-    `INSERT INTO users (email, password_hash) VALUES ($1,$2)
+    `INSERT INTO users (email, password_hash, role, plan) VALUES ($1,$2,'member','none')
      ON CONFLICT (email) DO NOTHING RETURNING user_id`,
     [norm(email), hash],
   );

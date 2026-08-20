@@ -43,6 +43,24 @@ app.set('trust proxy', 1);
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }));
 
 app.use(express.json({ limit: '256kb' }));
+
+/**
+ * GET /api/health — for the host's health checker, so it is mounted before the
+ * cookie/session middleware: probes send no cookies and should not pay for a
+ * session lookup. No auth, no writes; one SELECT 1 proves the DB is reachable,
+ * which is the difference between "process up" and "actually serving".
+ */
+app.get('/api/health', async (_req, res) => {
+  try {
+    const db = await getDb();
+    await db.query('SELECT 1');
+    res.json({ ok: true, db: db.driver });
+  } catch (err) {
+    console.error('health check failed', err);
+    res.status(503).json({ ok: false });
+  }
+});
+
 app.use(cookies);
 app.use(loadUser);
 
@@ -386,7 +404,13 @@ app.get('/api/stats/hit-rate', ...paid, async (req, res) => {
 const webDist = join(here, '../../web/dist');
 if (existsSync(webDist)) {
   app.use(express.static(webDist));
-  app.get('*', (_req, res) => res.sendFile(join(webDist, 'index.html')));
+  app.all('*', (req, res) => {
+    // An unmatched /api path is a typo or a stale client, not a page. Handing
+    // it index.html would return 200 + HTML to code expecting JSON, which
+    // reads as data corruption instead of the 404 it actually is.
+    if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found.' });
+    res.sendFile(join(webDist, 'index.html'));
+  });
 }
 
 /**
@@ -399,8 +423,34 @@ if (existsSync(webDist)) {
  * like a broken API rather than a port collision.
  *
  * PORT is still honoured second, because that is what hosts set in production.
+ *
+ * `||` rather than `??`: a .env copied from the example often leaves
+ * `API_PORT=` blank, and Number('') is 0 — which binds a random port and
+ * makes the health check miss a server that is otherwise fine.
  */
-const port = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
+const port = Number(process.env.API_PORT || process.env.PORT || 8787);
+
+/**
+ * Misconfiguration that must not be quiet. Neither of these crashes the boot —
+ * the dev-activate endpoint is already double-locked and PGlite still runs —
+ * but both mean a production deploy is not what the operator thinks it is.
+ */
+if (process.env.NODE_ENV === 'production') {
+  if (process.env.ALLOW_DEV_PLAN_ACTIVATION === 'true') {
+    console.warn(
+      '*** ALLOW_DEV_PLAN_ACTIVATION=true in production. The endpoint stays disabled '
+      + '(NODE_ENV lock), but this flag hands out free plans in any non-production '
+      + 'process sharing this env. Remove it from the production environment. ***',
+    );
+  }
+  if ((process.env.DB_DRIVER ?? 'pglite') !== 'postgres') {
+    console.warn(
+      '*** NODE_ENV=production but DB_DRIVER is not "postgres". PGlite is a local '
+      + 'dev file with no durability warranty — production data belongs in Neon. ***',
+    );
+  }
+}
+
 startStockWorker();
 
 app.listen(port, () => {
