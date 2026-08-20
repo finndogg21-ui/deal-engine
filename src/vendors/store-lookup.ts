@@ -55,6 +55,25 @@ export interface StockLookupResult {
   empty: boolean;
 }
 
+/**
+ * Product rule: a store more than 25 miles out is not "near you". Applied at
+ * normalization — before anything is written to stock_lookups — so every
+ * cached JSONB row is already radius-clean and no reader re-asks the question.
+ *
+ * A null distance means "the vendor did not say", which is a different claim
+ * from "too far". Those stores are dropped only when at least one store DID
+ * match the radius (next to a known-close store they are just noise); when
+ * nothing matched, they are kept, because "no store within 25 miles" is not
+ * something we can assert about a store whose distance we never learned.
+ */
+export const STOCK_RADIUS_MI = 25;
+
+export function withinRadius(stores: StoreStockRow[]): StoreStockRow[] {
+  const near = stores.filter((s) => s.distanceMi !== null && s.distanceMi <= STOCK_RADIUS_MI);
+  if (near.length > 0) return near;
+  return stores.filter((s) => s.distanceMi === null);
+}
+
 interface RawStore {
   id?: string | number | null;
   name?: string | null;
@@ -168,5 +187,6 @@ export async function lookupStock(productId: string, zip: string): Promise<Stock
   }
 
   stores.sort((a, b) => (a.distanceMi ?? 1e9) - (b.distanceMi ?? 1e9));
-  return { stores, empty: stores.length === 0 };
+  const near = withinRadius(stores);
+  return { stores: near, empty: near.length === 0 };
 }

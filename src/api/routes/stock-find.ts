@@ -17,7 +17,7 @@
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
-import { lookupStock, stockLookupReady, type StoreStockRow } from '../../vendors/store-lookup.js';
+import { lookupStock, stockLookupReady, withinRadius, type StoreStockRow } from '../../vendors/store-lookup.js';
 
 export const stockFind = Router();
 
@@ -72,22 +72,30 @@ stockFind.post(
     /* ---- cache ---------------------------------------------------------- */
     const cached = await db.query<{ stores: StoreStockRow[]; fetched_at: string }>(
       `SELECT stores, fetched_at FROM stock_lookups
-        WHERE product_id = $1 AND zip = $2 AND status = 'ok'
+        -- 'empty' is a real answer too: with the 25-mile rule, "no store in
+          -- range" is the common outcome for remote ZIPs, and refusing to
+          -- cache it would bill the vendor on every repeat press.
+          WHERE product_id = $1 AND zip = $2 AND status IN ('ok','empty')
           AND fetched_at >= now() - ($3 || ' hours')::interval
         ORDER BY fetched_at DESC LIMIT 1`,
       [productId, zip, String(CACHE_HOURS)],
     );
 
     if (cached.rows[0]) {
+      // New rows are radius-clean at write time; filtering here only covers
+      // rows cached before the 25-mile rule, until they age out.
+      const stores = withinRadius(cached.rows[0].stores);
       // Logged as billed=false so the cache-hit rate is measurable rather than
       // assumed, and so a cached read never counts against the daily cap.
       await db.query(
         `INSERT INTO stock_lookups (user_id, product_id, zip, status, stores, billed)
-         VALUES ($1,$2,$3,'ok',$4,false)`,
-        [req.user!.user_id, productId, zip, JSON.stringify(cached.rows[0].stores)],
+         VALUES ($1,$2,$3,$4,$5,false)`,
+        // 'ok' must always mean "has stores" — a pre-rule row filtered to
+        // nothing is mirrored as 'empty', not as a store-less 'ok'.
+        [req.user!.user_id, productId, zip, stores.length > 0 ? 'ok' : 'empty', JSON.stringify(stores)],
       );
       return res.json({
-        stores: cached.rows[0].stores,
+        stores,
         cached: true,
         checked_at: cached.rows[0].fetched_at,
       });

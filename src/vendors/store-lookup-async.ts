@@ -12,7 +12,7 @@
  */
 
 import { notWired, isWired } from './contracts.js';
-import type { StoreStockRow } from './store-lookup.js';
+import { withinRadius, type StoreStockRow } from './store-lookup.js';
 
 const ENV = 'APIFY_TOKEN';
 const ACTOR = (process.env.STOCK_ACTOR_ID ?? 'maplerope44/home-depot-product-lookup').replace('/', '~');
@@ -89,5 +89,7 @@ export async function collect(asyncId: string): Promise<CollectResult> {
     });
   }
   stores.sort((a, b) => (a.distanceMi ?? 1e9) - (b.distanceMi ?? 1e9));
-  return { state: 'done', stores };
+  // 25-mile radius, applied before the worker writes the row — the cache only
+  // ever holds stores that are actually near. See withinRadius for the rule.
+  return { state: 'done', stores: withinRadius(stores) };
 }

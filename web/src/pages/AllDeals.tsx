@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
@@ -198,7 +198,6 @@ export default function AllDeals() {
   // Deep-link params. Alerts, penny-watch "Open", and per-retailer "See this
   // deal" all route to /app/deal/:productId/:storeId, which renders this page.
   const { productId, storeId } = useParams();
-  const nav = useNavigate();
 
   const [rows, setRows] = useState<Candidate[]>([]);
   const [sel, setSel] = useState<Detail | null>(null);
@@ -382,11 +381,8 @@ export default function AllDeals() {
         </div>
 
         <div className="zipbar">
-          <span className="zipchip">
-            Near {setup?.zip ?? 'your area'}
-            {/* Was a dead button. The only place ZIP/radius is edited is setup. */}
-            <button type="button" onClick={() => nav('/welcome')}>Change</button>
-          </span>
+          {/* The ZIP chip that sat here moved to the shell's top bar, which is
+              now the one place the app-level ZIP is shown and edited. */}
           <label className="searchbox">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
               <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
@@ -541,8 +537,9 @@ export default function AllDeals() {
             </p>
 
             {/* Answers "is it near ME", which the sweep cannot: it only knows
-                the stores it happened to see. */}
-            <FindStock productId={sel.product_id} defaultZip={setup?.zip ?? null} />
+                the stores it happened to see. Uses the app-level ZIP from the
+                top bar, so there is nothing to type here. */}
+            <FindStock productId={sel.product_id} />
 
             <div className="actions">
               <button className="found" disabled={!!saving} onClick={() => void record('found')}>

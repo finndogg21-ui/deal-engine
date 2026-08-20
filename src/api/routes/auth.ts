@@ -163,6 +163,20 @@ auth.patch('/me/setup', requireAuth, route(async (req, res) => {
   res.json({ ok: true });
 }));
 
+/**
+ * The app-level ZIP, edited in place from the shell's top bar. Deliberately
+ * not routed through /me/setup: that endpoint rewrites radius and alert
+ * settings with defaults, which a ZIP-only edit must not touch.
+ */
+auth.patch('/me/zip', requireAuth, route(async (req, res) => {
+  const zip = String((req.body ?? {}).zip ?? '').trim();
+  if (!/^\d{5}$/.test(zip)) return res.status(400).json({ error: 'Enter a 5-digit ZIP code.' });
+
+  const db = await getDb();
+  await db.query(`UPDATE users SET zip = $1 WHERE user_id = $2`, [zip, req.user!.user_id]);
+  res.json({ ok: true });
+}));
+
 /* -------------------------------------------------------- account deletion */
 
 auth.post('/account/delete-request', rateLimit({ key: 'del', max: 3, windowMs: 60 * 60_000 }), route(async (req, res) => {

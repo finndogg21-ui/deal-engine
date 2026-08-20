@@ -98,6 +98,38 @@
 
 .app-main { min-width: 0; }
 
+/* ---- Top bar: the one ZIP every "Find stock" uses ---- */
+
+.topbar {
+  display: flex; justify-content: flex-end; align-items: center;
+  min-height: 56px; padding: var(--s2) var(--s5);
+  border-bottom: 1px solid var(--rule); background: var(--paper);
+  position: sticky; top: 0; z-index: 30;
+}
+
+.zb { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+
+.zb-field { display: flex; align-items: center; gap: var(--s2); }
+.zb-field span { font-size: 14px; font-weight: 500; color: var(--ink-faint); white-space: nowrap; }
+.zb-field input {
+  font: inherit; font-size: 15px; width: 92px; min-height: 38px;
+  padding: 0 var(--s3); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
+  font-variant-numeric: tabular-nums;
+}
+.zb-field input:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+
+.zb-save {
+  font: inherit; font-size: 14px; font-weight: 600; min-height: 38px;
+  padding: 0 var(--s4); border: 1px solid var(--sticker-deep); border-radius: var(--r-sm);
+  background: var(--sticker); color: var(--on-accent); cursor: pointer;
+}
+.zb-save:disabled { opacity: 0.55; cursor: default; }
+
+.zb-ok { font-size: 14px; color: var(--accent-text); }
+.zb-hint { font-size: 14px; color: var(--ink-faint); }
+.zb-err { font-size: 14px; color: var(--drop); }
+
 /* ---- Mobile drawer ---- */
 
 .sb-toggle {
@@ -123,7 +155,10 @@
     background: rgba(0, 0, 0, 0.45); z-index: 45; border: 0; width: 100%;
   }
 
-  .app-main { padding-top: 60px; }
+  /* The fixed menu toggle sits INSIDE the top bar rather than floating over
+     the page — one bar, hamburger left, ZIP right. The bar supplies the
+     60px offset that .app-main padding used to. */
+  .topbar { min-height: 60px; padding-left: 70px; }
 }
 
 /* ---- Stub pages ---- */

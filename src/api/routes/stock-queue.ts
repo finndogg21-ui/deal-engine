@@ -11,7 +11,7 @@ import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
 import { submit, asyncLookupReady } from '../../vendors/store-lookup-async.js';
-import type { StoreStockRow } from '../../vendors/store-lookup.js';
+import { withinRadius, type StoreStockRow } from '../../vendors/store-lookup.js';
 
 export const stockQueue = Router();
 
@@ -60,13 +60,17 @@ stockQueue.post('/stock/queue', ...paid,
       // Cache first — a queued job that the cache could answer is money burnt.
       const hit = await db.query<{ stores: StoreStockRow[] }>(
         `SELECT stores FROM stock_lookups
-          WHERE product_id = $1 AND zip = $2 AND status = 'ok'
+          -- 'empty' included: "no store within 25 miles" repeats just as often
+            -- as a hit, and re-buying that answer would burn the daily budget.
+            WHERE product_id = $1 AND zip = $2 AND status IN ('ok','empty')
             AND fetched_at >= now() - ($3 || ' hours')::interval
           ORDER BY fetched_at DESC LIMIT 1`,
         [productId, zip, String(CACHE_HOURS)],
       );
       if (hit.rows[0]) {
-        cached.push({ product_id: productId, stores: hit.rows[0].stores });
+        // New rows are radius-clean at write time; re-filtering on read only
+        // covers rows cached before the 25-mile rule, until they age out.
+        cached.push({ product_id: productId, stores: withinRadius(hit.rows[0].stores) });
         continue;
       }
 
@@ -131,18 +135,24 @@ stockQueue.get('/stock/jobs', ...paid, route(async (req, res) => {
   );
 
   res.json({
-    jobs: rows.map((r) => ({
-      lookup_id: String(r.lookup_id),
-      product_id: r.product_id,
-      title: r.title,
-      image_url: r.image_url,
-      zip: r.zip,
-      status: r.status,
-      stores: (r.stores as StoreStockRow[]) ?? [],
-      error: r.error,
-      queued_at: r.queued_at,
-      fetched_at: r.fetched_at,
-    })),
+    jobs: rows.map((r) => {
+      // Same pre-rule-row guard as the cache hit above. An 'ok' row whose
+      // stores were all beyond 25 miles must present as 'empty', or the tray
+      // would render a success with nothing in it.
+      const stores = withinRadius((r.stores as StoreStockRow[]) ?? []);
+      return {
+        lookup_id: String(r.lookup_id),
+        product_id: r.product_id,
+        title: r.title,
+        image_url: r.image_url,
+        zip: r.zip,
+        status: r.status === 'ok' && stores.length === 0 ? 'empty' : r.status,
+        stores,
+        error: r.error,
+        queued_at: r.queued_at,
+        fetched_at: r.fetched_at,
+      };
+    }),
     pending: rows.filter((r) => r.status === 'pending').length,
   });
 }));

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Sidebar, { icons } from '../components/Sidebar.js';
+import ZipBar from '../components/ZipBar.js';
 import { useAuth } from '../lib/auth.js';
 import '../sidebar.css';
 
@@ -45,6 +46,8 @@ export default function AppShell() {
       <Sidebar open={open} onNavigate={() => setOpen(false)} />
 
       <main className="app-main">
+        {/* The app-level ZIP, on every page. Every "Find stock" reads it. */}
+        <div className="topbar"><ZipBar /></div>
         <Outlet />
       </main>
     </div>

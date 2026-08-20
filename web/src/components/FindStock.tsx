@@ -1,8 +1,11 @@
 /**
  * "Find Stock" — the button that answers "is it near ME?"
  *
- * The sweep only knows the stores it happened to see. This asks, for whatever
- * ZIP the person types, right now.
+ * The sweep only knows the stores it happened to see. This asks, for the one
+ * app-level ZIP in the top bar, right now. Nobody re-types a ZIP per press:
+ * the account's saved ZIP is used automatically, and the only time an input
+ * appears here is when no ZIP has been set yet — typed once, it is saved to
+ * the account and never asked for again.
  *
  * Every uncached press costs real money, so the UI is deliberate about it:
  * the remaining daily allowance is shown BEFORE pressing, a cached answer says
@@ -12,7 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../lib/auth.js';
+import { api, useAuth } from '../lib/auth.js';
 
 interface StoreRow {
   storeId: string;
@@ -37,25 +40,18 @@ interface FindResult {
 
 interface Quota { used: number; cap: number; remaining: number }
 
-export default function FindStock({ productId, defaultZip }: { productId: string; defaultZip?: string | null }) {
-  const [zip, setZip] = useState(defaultZip ?? '');
+export default function FindStock({ productId }: { productId: string }) {
+  const { me, refresh } = useAuth();
+  // The one ZIP everything uses, set in the top bar or during onboarding.
+  const appZip = me?.zip && /^\d{5}$/.test(me.zip) ? me.zip : null;
+  const [fallbackZip, setFallbackZip] = useState('');
+  const zip = appZip ?? fallbackZip;
+
   const [result, setResult] = useState<FindResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [quota, setQuota] = useState<Quota | null>(null);
-  /**
-   * The vendor is async and slow — measured 3s to 21s for identical requests.
-   * A bare "Checking…" for twenty seconds is indistinguishable from a hang,
-   * so the button counts out loud.
-   */
-  const [elapsed, setElapsed] = useState(0);
   const [queued, setQueued] = useState(false);
-
-  useEffect(() => {
-    if (!busy) { setElapsed(0); return; }
-    const t = setInterval(() => setElapsed((n) => n + 1), 1000);
-    return () => clearInterval(t);
-  }, [busy]);
 
   const loadQuota = useCallback(async () => {
     try { setQuota(await api<Quota>('/api/stock/quota')); } catch { /* non-critical */ }
@@ -71,6 +67,12 @@ export default function FindStock({ productId, defaultZip }: { productId: string
     setBusy(true);
     setError(null);
     try {
+      if (!appZip) {
+        // First stock check without a saved ZIP: the typed one becomes THE
+        // app ZIP, so this is the last time anyone types it.
+        await api('/api/auth/me/zip', { method: 'PATCH', body: JSON.stringify({ zip }) });
+        void refresh();
+      }
       /**
        * Queue rather than block. The vendor takes 3-21 seconds, and holding
        * the button hostage for that long taught people it was broken. The
@@ -108,24 +110,35 @@ export default function FindStock({ productId, defaultZip }: { productId: string
       </div>
 
       <div className="fs-row">
-        <label className="fs-field">
-          <span className="fs-sr">ZIP code</span>
-          <input
-            value={zip}
-            onChange={(e) => setZip(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            placeholder="ZIP code"
-            inputMode="numeric"
-            onKeyDown={(e) => { if (e.key === 'Enter') void find(); }}
-          />
-        </label>
+        {/* Inline ZIP only while none is saved — a prompt to set it, not a
+            per-press question. Once saved, the top bar owns it. */}
+        {!appZip && (
+          <label className="fs-field">
+            <span className="fs-sr">ZIP code</span>
+            <input
+              value={fallbackZip}
+              onChange={(e) => setFallbackZip(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              placeholder="ZIP code"
+              inputMode="numeric"
+              onKeyDown={(e) => { if (e.key === 'Enter') void find(); }}
+            />
+          </label>
+        )}
         <button
           className="btn"
           onClick={() => void find()}
           disabled={busy || zip.length !== 5 || outOfQuota}
         >
-          {busy ? 'Adding…' : 'Find stock'}
+          {busy ? 'Adding…' : appZip ? `Find stock near ${appZip}` : 'Find stock'}
         </button>
       </div>
+
+      {!appZip && (
+        <p className="fs-note">
+          No ZIP saved yet. This one is kept on your account and used for every
+          stock check — change it any time in the bar at the top.
+        </p>
+      )}
 
       {queued && (
         <p className="fs-note">
@@ -151,7 +164,7 @@ export default function FindStock({ productId, defaultZip }: { productId: string
 
       {result && result.stores.length === 0 && !error && (
         <p className="fs-note">
-          No store near {zip} shows this in stock right now.
+          No store within 25 miles of {zip} has this in stock right now.
         </p>
       )}
 

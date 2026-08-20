@@ -115,7 +115,10 @@ export default function StockQueuePanel() {
                   </div>
                 ))}
 
-              {j.status === 'empty' && <span className="qd-dim">no store nearby has it</span>}
+              {/* 'empty' covers both "vendor knows no store with it" and "every
+                  store was beyond the 25-mile radius" — either way the honest
+                  claim is the same, and it is stated, not left as a blank row. */}
+              {j.status === 'empty' && <span className="qd-dim">no store within 25 miles has it</span>}
 
               {/* A failure is stated as a failure. "None nearby" would be a
                   different and much more damaging claim. */}

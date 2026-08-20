@@ -17,16 +17,7 @@
 
 .zipbar { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
 
-.zipchip {
-  display: inline-flex; align-items: center; gap: var(--s2);
-  border: 1px solid var(--rule-strong); border-radius: var(--r-full);
-  padding: var(--s2) var(--s4); font-size: 16px; min-height: 44px;
-  background: var(--paper); color: var(--ink);
-}
-.zipchip button {
-  background: none; border: 0; color: var(--accent-text);
-  font-size: 16px; font-weight: 600; padding: 0 0 0 var(--s1); min-height: auto;
-}
+/* The ZIP chip moved to the shell's top bar (.topbar in sidebar.css). */
 
 .searchbox {
   flex: 1 1 260px; min-width: 220px;
