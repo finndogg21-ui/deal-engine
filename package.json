@@ -19,7 +19,7 @@
     "alerts": "tsx src/alerts/run.ts",
     "dev": "concurrently -n api,web -c yellow,cyan \"tsx watch src/api/server.ts\" \"vite --config web/vite.config.ts\"",
     "start": "tsx src/api/server.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "fixtures": "tsx src/ingest/fixtures.ts",
     "web:dev": "vite --config web/vite.config.ts",
     "web:build": "vite build --config web/vite.config.ts",

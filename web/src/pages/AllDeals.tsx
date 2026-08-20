@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
@@ -89,7 +89,7 @@ const retailerName = (slug: string) =>
 
 const TABS = [
   { id: 'all', label: 'All deals' },
-  { id: 'penny', label: 'Penny deals' },
+  { id: 'penny', label: 'Penny track' },
   { id: 'near', label: 'Closest to me' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
@@ -195,6 +195,10 @@ function PriceChart({ points }: { points: HistoryPoint[] }) {
 
 export default function AllDeals() {
   const setup = readSetup();
+  // Deep-link params. Alerts, penny-watch "Open", and per-retailer "See this
+  // deal" all route to /app/deal/:productId/:storeId, which renders this page.
+  const { productId, storeId } = useParams();
+  const nav = useNavigate();
 
   const [rows, setRows] = useState<Candidate[]>([]);
   const [sel, setSel] = useState<Detail | null>(null);
@@ -282,7 +286,10 @@ export default function AllDeals() {
    * triggers a vendor call, which is why cost stays flat as users grow. */
   const shown = useMemo(() => {
     let out = rows;
-    if (store) out = out.filter((c) => c.retailer === store);
+    // The store chips carry lib slugs like "home-depot", but the API's
+    // `retailer` field is the hyphen-less "homedepot". Compare both forms, or
+    // the Home Depot chip silently filters to zero deals.
+    if (store) out = out.filter((c) => c.retailer === store || c.retailer === store.replace(/-/g, ''));
     if (tab === 'penny') out = out.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70);
     if (tab === 'near') out = out.filter((c) => c.distance_mi !== null);
     const term = q.trim().toLowerCase();
@@ -326,10 +333,23 @@ export default function AllDeals() {
     near: rows.filter((c) => c.distance_mi !== null).length,
   }), [rows]);
 
+  const openById = useCallback(async (pid: string, sid: string) => {
+    // A failed detail fetch must not set a malformed object as `sel` — the
+    // detail panel reads sel.price_history / sel.store and would crash on one.
+    const r = await fetch(`/api/candidates/${encodeURIComponent(pid)}/${encodeURIComponent(sid)}`);
+    if (!r.ok) return;
+    const body = await r.json().catch(() => null);
+    if (body && typeof body === 'object') setSel(body as Detail);
+  }, []);
+
   async function open(c: Candidate) {
-    const r = await fetch(`/api/candidates/${encodeURIComponent(c.product_id)}/${encodeURIComponent(c.store_id)}`);
-    setSel(await r.json());
+    await openById(c.product_id, c.store_id);
   }
+
+  // Open the detail panel straight away when the page is reached by a deep link.
+  useEffect(() => {
+    if (productId && storeId) void openById(productId, storeId);
+  }, [productId, storeId, openById]);
 
   const [saving, setSaving] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState('');
@@ -364,7 +384,8 @@ export default function AllDeals() {
         <div className="zipbar">
           <span className="zipchip">
             Near {setup?.zip ?? 'your area'}
-            <button type="button">Change</button>
+            {/* Was a dead button. The only place ZIP/radius is edited is setup. */}
+            <button type="button" onClick={() => nav('/welcome')}>Change</button>
           </span>
           <label className="searchbox">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -428,6 +449,8 @@ export default function AllDeals() {
             {health?.last_run
               ? `Updated ${health.hours_since}h ago`
               : 'No scan yet'}
+            {/* Staleness must not be signalled by red colour alone. */}
+            {health?.stale && ' · stale'}
           </span>
         </span>
       </div>

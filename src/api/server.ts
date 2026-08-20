@@ -23,6 +23,7 @@ import { orders } from './routes/orders.js';
 import { stock } from './routes/stock.js';
 import { stockFind } from './routes/stock-find.js';
 import { stockQueue } from './routes/stock-queue.js';
+import { nearbyDeals } from './routes/nearby-deals.js';
 import { startStockWorker } from './stock-worker.js';
 import { billing } from './routes/billing.js';
 import { admin } from './routes/admin.js';
@@ -55,6 +56,7 @@ app.use('/api', orders);
 app.use('/api', stock);
 app.use('/api', stockFind);
 app.use('/api', stockQueue);
+app.use('/api', nearbyDeals);
 app.use('/api', billing);
 app.use('/api', admin);
 
@@ -104,19 +106,27 @@ app.get('/api/candidates', ...paid, async (req, res) => {
     const db = await getDb();
     const minScore = Number(req.query.min_score ?? 0);
     /**
-     * A "deal" means a real markdown. Default 25% so full-price catalogue
-     * never reaches the deals list — the sweep records everything because
-     * history is the asset, but showing everything makes the product look
-     * like a product listing rather than a deal feed.
+     * A "deal" means a HEAVY markdown, not any markdown. 25% is the floor:
+     * 5-10% off is ordinary retail noise, and a feed full of it trains people
+     * to ignore the feed. The sweep still records everything, because history
+     * is the asset — this is a display decision, not an ingest one.
      */
     const minDiscount = Number(req.query.min_discount ?? 25);
     const stage = typeof req.query.stage === 'string' ? req.query.stage : null;
     /**
-     * Penny view. Stage alone is too strict on a young dataset: `penny_candidate`
-     * needs the divergence signal, which needs weeks of history, so on day one
-     * the page is empty while a .03 final-markdown item sits right there.
-     * The price ending is the one signal that works from a single observation,
-     * so it counts too.
+     * Penny view. This means PENNY, not "close to it".
+     *
+     * Two things qualify and nothing else: a price that is literally $X.01, or
+     * `penny_candidate` stage, which is the real definition of the thing — an
+     * item that walked the whole markdown ladder, vanished from the site, and
+     * still has stock sitting on the floor.
+     *
+     * A .03 is the final markdown, so it is genuinely the step before a penny,
+     * and the tempting move is to let it in so the page has something on it.
+     * That is exactly the mistake. If this page lists $7.03 items, "penny" stops
+     * meaning anything, and the one page where the promise has to be literal is
+     * the one carrying the whole product's credibility. An honest empty page is
+     * worth more than a padded one, and the .03 items are still on All deals.
      */
     const pennyOnly = String(req.query.penny ?? '') === '1';
     const limit = Math.min(Number(req.query.limit ?? 100), 500);
@@ -146,8 +156,12 @@ app.get('/api/candidates', ...paid, async (req, res) => {
           AND COALESCE(s.last_discount, 0) >= $2
           AND ($3::text IS NULL OR s.stage = $3)
           AND ($5::boolean IS NOT TRUE
+               -- Walked the ladder, delisted, stock still on the shelf.
                OR s.stage = 'penny_candidate'
-               OR COALESCE(s.score_price_code, 0) > 0)
+               -- Or the price is literally a penny. 20 is the score for a .01
+               -- ending; .03 (18), .02 (15) and .06 (8) are NOT pennies and are
+               -- deliberately shut out, however close .03 gets.
+               OR COALESCE(s.score_price_code, 0) = 20)
         ORDER BY s.penny_score DESC, s.last_discount DESC
         LIMIT $4`,
       [minScore, minDiscount, stage, limit, pennyOnly],

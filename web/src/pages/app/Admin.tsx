@@ -100,7 +100,7 @@ export default function Admin() {
         <div><strong>{d.counts.alerts_7d}</strong><span>alerts, 7d</span></div>
       </div>
 
-      {d.counts.alerts_undelivered > 0 && (
+      {(d.counts.alerts_undelivered ?? 0) > 0 && (
         <p className="ad-warn">
           {d.counts.alerts_undelivered} alerts written but never delivered. That is a
           mailer failure, not a quiet week — check the delivery log.

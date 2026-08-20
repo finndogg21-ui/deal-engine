@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import SiteLayout from './layouts/SiteLayout.js';
 import AppShell from './layouts/AppShell.js';
 
@@ -21,6 +21,7 @@ import Inventory from './pages/app/Inventory.js';
 import Orders from './pages/app/Orders.js';
 import Profit from './pages/app/Profit.js';
 import PennyWatch from './pages/app/PennyWatch.js';
+import RetailerDeals from './pages/app/RetailerDeals.js';
 import StockCheck from './pages/app/StockCheck.js';
 import Admin from './pages/app/Admin.js';
 
@@ -69,6 +70,9 @@ export default function App() {
       <Route path="/app" element={<AppShell />}>
         <Route index element={<AllDeals />} />
         <Route path="penny" element={<PennyWatch />} />
+        {/* The queue merged into My watchlist; keep old links working. */}
+        <Route path="queue" element={<Navigate to="/app/watchlist" replace />} />
+        <Route path="deals/:retailer" element={<RetailerDeals />} />
         <Route path="watchlist" element={<Watchlist />} />
         <Route path="stock/:retailer" element={<StockCheck />} />
         <Route path="inventory" element={<Inventory />} />

@@ -1,0 +1,163 @@
+/* Stock queue. Two stacked jobs: pick what to check, then watch answers land. */
+
+.qd { max-width: 1240px; padding: var(--s6) var(--s5) var(--s8); }
+
+.qd-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 5vw, 54px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: var(--s2) 0 var(--s3);
+}
+
+.qd-lede { color: var(--ink-soft); max-width: var(--measure); margin: 0 0 var(--s5); }
+
+/* ---- ZIP bar ---- */
+
+.qd-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--s5);
+}
+
+.qd-zip { display: flex; flex-direction: column; gap: var(--s1); }
+.qd-zip span { font-size: 13.5px; font-weight: 500; color: var(--ink-faint); }
+.qd-zip input {
+  font: inherit; font-size: 16px; min-height: 44px; width: 160px;
+  padding: 0 var(--s3); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-md);
+}
+.qd-zip input:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+
+/* Spend is always visible: each uncached check is real money. */
+.qd-quota { font-size: 13.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+.qd-notice {
+  margin: 0 0 var(--s4);
+  padding: var(--s3) var(--s4);
+  border-left: 3px solid var(--accent-text);
+  background: var(--paper-sunk);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 14.5px;
+}
+
+/* ---- sections ---- */
+
+.qd-sec { margin-bottom: var(--s7); }
+
+.qd-sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s4); flex-wrap: wrap; margin-bottom: var(--s4);
+}
+.qd-sec-head h2 {
+  font-size: 21px; font-weight: 600; letter-spacing: -0.01em; margin: 0;
+}
+
+.qd-actions { display: flex; gap: var(--s2); flex-wrap: wrap; }
+
+.qd-ghost {
+  font: inherit; font-size: 15px; min-height: 44px; padding: 0 var(--s4);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-md);
+  background: transparent; color: var(--ink); cursor: pointer;
+}
+.qd-ghost:hover:not(:disabled) { background: var(--paper-sunk); }
+.qd-ghost:disabled { opacity: 0.5; cursor: default; }
+
+.qd-empty {
+  border: 1px dashed var(--rule-strong); border-radius: var(--r-lg);
+  padding: var(--s6); text-align: center; color: var(--ink-faint);
+}
+
+/* ---- pick list ---- */
+
+.qd-pick { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+/* Same min-width:auto trap as the results rows: without this a long product
+   title makes the row wider than its grid track and the page scrolls sideways. */
+.qd-pick > li { min-width: 0; }
+
+.qd-pick label {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s2) var(--s3); border-radius: var(--r-md);
+  cursor: pointer; font-size: 15px;
+  min-width: 0;
+}
+.qd-pick label:hover { background: var(--paper-sunk); }
+.qd-pick input { width: 18px; height: 18px; flex: none; }
+.qd-pick img {
+  width: 34px; height: 34px; object-fit: contain; flex: none;
+  background: var(--paper-sunk); border-radius: var(--r-sm);
+}
+.qd-pick-title {
+  flex: 1 1 0; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.qd-pick-price {
+  color: var(--accent-text); font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+/* ---- results ---- */
+
+.qd-working { display: inline-flex; align-items: center; gap: var(--s2); font-size: 14px; color: var(--ink-faint); }
+
+.qd-spin {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--rule-strong); border-top-color: var(--accent-text);
+  animation: qd-turn 0.8s linear infinite;
+}
+@keyframes qd-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .qd-spin { animation: none; } }
+
+.qd-results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+
+.qd-row {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3); border: 1px solid var(--rule); border-radius: var(--r-md);
+  background: var(--paper);
+  /* Grid items default to min-width:auto and will not shrink below their
+     content. Without this a long title makes the row wider than its track. */
+  min-width: 0;
+}
+/* Still working reads as unfinished, not as a result. */
+.qd-row.pending { opacity: 0.7; border-style: dashed; }
+
+.qd-thumb {
+  width: 44px; height: 44px; object-fit: contain; flex: none;
+  background: var(--paper-sunk); border-radius: var(--r-sm);
+}
+.qd-nothumb { display: block; }
+
+.qd-row-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.qd-row-title {
+  font-size: 15px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qd-row-zip { font-size: 12.5px; color: var(--ink-faint); }
+
+.qd-row-answer { text-align: right; font-size: 14px; flex: 0 0 auto; max-width: 45%; }
+.qd-have { color: var(--accent-text); }
+.qd-none { color: var(--ink-faint); font-weight: 400; }
+.qd-dim { color: var(--ink-faint); }
+.qd-err { color: var(--drop); }
+
+/* The answer is the whole point of the row, so it wraps under the title well
+   before it would be pushed off-screen. Long product names are the norm here,
+   not the exception. */
+@media (max-width: 900px) {
+  .qd-row { flex-wrap: wrap; }
+  .qd-row-main { flex: 1 1 60%; }
+  .qd-row-answer {
+    text-align: left; min-width: 0; width: 100%;
+    padding-left: calc(44px + var(--s3));
+  }
+}
+
+@media (max-width: 720px) {
+  .qd { padding: var(--s5) var(--s4) var(--s7); }
+  .qd-row-answer { padding-left: 0; }
+}

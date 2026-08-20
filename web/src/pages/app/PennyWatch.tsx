@@ -62,7 +62,9 @@ export default function PennyWatch() {
   const load = useCallback(async () => {
     setRows(null);
     try {
-      // penny=1 means "stage says penny OR the price ending does".
+      // penny=1 means a literal $X.01 price or confirmed penny_candidate stage.
+      // min_discount 0 because a penny is 100% off anyway and the discount
+      // column can be null on a delisted item.
       const q = new URLSearchParams({ penny: '1', min_score: String(minScore), min_discount: '0' });
       if (radius > 0) q.set('radius', String(radius));
       setRows(await api<Candidate[]>(`/api/candidates?${q}`));
@@ -78,10 +80,12 @@ export default function PennyWatch() {
   return (
     <div className="pw">
       <div className="dash-eyebrow">Find</div>
-      <h1 className="pw-title">Penny watch</h1>
+      <h1 className="pw-title">Penny deals</h1>
       <p className="pw-lede">
-        Items that walked the whole markdown ladder and then vanished from the site
-        while stock stayed on the floor. Every score shows its working.
+        Pennies only. An item is on this page for one of two reasons: it rings up at
+        <strong> $0.01</strong>, or it walked the whole markdown ladder, vanished from
+        the site, and still has stock on the floor. Nothing else gets in — not a $7.03,
+        not a 90% off. Every score shows its working.
       </p>
 
       <div className="pw-filters">
@@ -123,10 +127,13 @@ export default function PennyWatch() {
 
       {rows?.length === 0 && (
         <div className="pw-empty">
-          <p>Nothing at penny stage right now.</p>
+          <p>No pennies right now.</p>
           <p className="pw-lede">
-            This fills in as the daily scan watches items walk down the ladder. Widen
-            the distance or lower the score if you want to see near-misses.
+            Nothing rings up at a cent and nothing has finished the ladder yet. That is
+            the normal state — real pennies are rare, and this page stays empty rather
+            than padding itself with deep clearance and calling it something it is not.
+            Deep markdowns, including final-markdown <strong>.03</strong> items one step
+            away, are on <Link to="/app">All deals</Link>.
           </p>
         </div>
       )}

@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/auth.js';
 
 interface StoreRow {
@@ -48,6 +49,7 @@ export default function FindStock({ productId, defaultZip }: { productId: string
    * so the button counts out loud.
    */
   const [elapsed, setElapsed] = useState(0);
+  const [queued, setQueued] = useState(false);
 
   useEffect(() => {
     if (!busy) { setElapsed(0); return; }
@@ -62,21 +64,31 @@ export default function FindStock({ productId, defaultZip }: { productId: string
   useEffect(() => { void loadQuota(); }, [loadQuota]);
 
   // A new product means the previous store answer is about something else.
-  useEffect(() => { setResult(null); setError(null); }, [productId]);
+  useEffect(() => { setResult(null); setError(null); setQueued(false); }, [productId]);
 
   async function find() {
     if (busy || !/^\d{5}$/.test(zip)) return;
     setBusy(true);
     setError(null);
     try {
-      const r = await api<FindResult>('/api/stock/find', {
-        method: 'POST',
-        body: JSON.stringify({ product_id: productId, zip }),
-      });
-      setResult(r);
-      if (!r.cached) void loadQuota();
+      /**
+       * Queue rather than block. The vendor takes 3-21 seconds, and holding
+       * the button hostage for that long taught people it was broken. The
+       * answer appears on My watchlist when the worker finishes.
+       */
+      const r = await api<{ queued: string[]; cached: { stores: StoreRow[] }[] }>(
+        '/api/stock/queue',
+        { method: 'POST', body: JSON.stringify({ product_id: productId, zip }) },
+      );
+      if (r.cached.length > 0) {
+        // Already known, so show it here instead of sending them elsewhere.
+        setResult({ stores: r.cached[0]!.stores, cached: true, checked_at: new Date().toISOString() });
+      } else {
+        setQueued(true);
+      }
+      void loadQuota();
     } catch (e) {
-      const err = e as Error & { data?: { detail?: string; retryable?: boolean } };
+      const err = e as Error & { data?: { detail?: string } };
       setError(err.data?.detail ?? err.message);
       void loadQuota();
     } finally {
@@ -111,13 +123,14 @@ export default function FindStock({ productId, defaultZip }: { productId: string
           onClick={() => void find()}
           disabled={busy || zip.length !== 5 || outOfQuota}
         >
-          {busy ? `Checking… ${elapsed}s` : 'Find stock'}
+          {busy ? 'Adding…' : 'Find stock'}
         </button>
       </div>
 
-      {busy && elapsed >= 4 && (
+      {queued && (
         <p className="fs-note">
-          The store lookup can take up to about 30 seconds. Leave this open.
+          Finding stock near {zip}. The answer appears under{' '}
+          <Link to="/app/watchlist">My watchlist</Link> in a few seconds — you can keep browsing.
         </p>
       )}
 

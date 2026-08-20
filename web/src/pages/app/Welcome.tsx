@@ -129,7 +129,9 @@ export default function Welcome() {
     }
     if (step === total - 1) {
       const s: Setup = {
-        path, zip, radiusMi: radius, watches,
+        // Unreachable until PathPicker has set it; the early return above guards.
+        path: path!,
+        zip, radiusMi: radius, watches,
         alertsPerDay: perDay, quietHours: quiet,
         ...(reseller ? { willReport } : {}),
         completedAt: new Date().toISOString(),

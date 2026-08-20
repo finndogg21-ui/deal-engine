@@ -9,7 +9,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/auth.js';
+import StockQueuePanel from '../../components/StockQueuePanel.js';
 import '../../watchlist.css';
+import '../../queue.css';
 
 interface Watch {
   watch_id: string;
@@ -175,7 +177,9 @@ export default function Watchlist() {
           <label className="wl-field">
             <span>At least</span>
             <select value={minDiscount} onChange={(e) => setMinDiscount(Number(e.target.value))}>
-              {[0, 25, 40, 50, 70, 90].map((d) => (
+              {/* 25% is the product's discount floor; a 0%-off watch would fire
+                  on everything and violates that rule, so it is not offered. */}
+              {[25, 40, 50, 70, 90].map((d) => (
                 <option key={d} value={d}>{d}% off</option>
               ))}
             </select>
@@ -218,6 +222,11 @@ export default function Watchlist() {
           </p>
         )}
       </form>
+
+      {/* Stock checks land here. Pressing "Find stock" anywhere in the app
+          queues it and the answer shows up on this page, so there is one place
+          to look for "things I asked about". */}
+      <StockQueuePanel />
 
       {error && <p className="wl-error">{error}</p>}
 

@@ -21,3 +21,6 @@ proxies*.txt
 # Any .env variant (backups, .local, .production) is secrets.
 .env.*
 !.env.example
+
+# Corrupted-DB backups (any .data variant is database, never committed)
+.data*/

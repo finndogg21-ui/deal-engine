@@ -139,3 +139,16 @@
   background: var(--sticker); color: var(--on-accent);
   padding: 4px 10px; margin-bottom: 16px; border-radius: var(--r-sm);
 }
+
+/* ---- Collapsible nav groups ---- */
+/* The nav would otherwise grow a permanent wall of links; grouping keeps the
+   top level scannable while the current section stays open. */
+.sb-group-head { width: 100%; cursor: pointer; }
+.sb-caret {
+  width: 16px; height: 16px; margin-left: auto; opacity: 0.55;
+  transition: transform 0.14s ease;
+}
+@media (prefers-reduced-motion: reduce) { .sb-caret { transition: none; } }
+.sb-group.open .sb-caret { transform: rotate(90deg); }
+.sb-sub { display: grid; gap: 2px; margin: 2px 0 var(--s2) var(--s4); }
+.sb-sub .sb-item { font-size: 15px; }

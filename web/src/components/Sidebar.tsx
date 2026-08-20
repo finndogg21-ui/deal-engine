@@ -54,8 +54,13 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
       <nav className="sb-nav" onClick={onNavigate}>
         <div className="sb-sec">Find</div>
         <NavLink to="/app" end className={cls}><Icon d={I.tag} />All deals</NavLink>
-        <NavLink to="/app/penny" className={cls}><Icon d={I.penny} />Penny watch</NavLink>
-        <NavLink to="/app/watchlist" className={cls}><Icon d={I.bell} />My watchlist</NavLink>
+        {/* Retailers sit under All deals because they are the same list
+            filtered, not a different feature. */}
+        <div className="sb-sub">
+          <NavLink to="/app/deals/homedepot" className={cls}><Icon d={I.store} />Home Depot</NavLink>
+          <NavLink to="/app/deals/lowes" className={cls}><Icon d={I.store} />Lowe&apos;s</NavLink>
+        </div>
+        <NavLink to="/app/penny" className={cls}><Icon d={I.penny} />Penny deals</NavLink>
 
         <div className="sb-sec">Stock check</div>
         {RETAILERS.map((r) => (
@@ -67,6 +72,7 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
         ))}
 
         <div className="sb-sec">Resell</div>
+        <NavLink to="/app/watchlist" className={cls}><Icon d={I.bell} />My watchlist</NavLink>
         <NavLink to="/app/inventory" className={cls}><Icon d={I.box} />Inventory</NavLink>
         <NavLink to="/app/orders" className={cls}><Icon d={I.cart} />Orders</NavLink>
         <NavLink to="/app/profit" className={cls}><Icon d={I.chart} />Profit</NavLink>

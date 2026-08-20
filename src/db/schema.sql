@@ -392,3 +392,155 @@ ALTER TABLE stock_lookups ADD COLUMN IF NOT EXISTS attempts   INTEGER NOT NULL D
 -- status: ok | empty | vendor_error | pending
 CREATE INDEX IF NOT EXISTS idx_stock_pending
   ON stock_lookups (queued_at) WHERE status = 'pending';
+
+-- ===========================================================================
+-- Nationwide in-store clearance feed  ("enter any US ZIP, see nearby deals")
+--
+-- Everything below backs GET /api/deals/nearby. It matches the shape of the
+-- competitor's in-store feed (Hidden Clearances /leads/nearby): a fast,
+-- DB-served list of possible in-store clearance finds around a ZIP, NOT a live
+-- scrape. See docs/nationwide-zip-deals-plan.md for the full design and the
+-- open questions this migration deliberately leaves to a later decision
+-- (ZIP-centroid reference data, and which vendor sources the leads).
+--
+-- Pattern reuse: this is the SAME append-only-log -> current-state-projection
+-- shape the price sweep already uses. The append-only log stays
+-- price_observations (the one compounding asset — see the top of this file);
+-- lead/stock rows land there tagged with a `source` like 'leads:<vendor>'.
+-- store_inventory below is the projection those observations materialise into,
+-- exactly as sku_state is the projection for the scorer. The difference is
+-- deliberate and explained on the table.
+-- ===========================================================================
+
+-- --- (a) stores: make the directory nationwide-ready ----------------------
+-- These columns already exist in the CREATE TABLE above on a fresh database.
+-- They are re-declared as idempotent ALTERs so an OLDER database that predates
+-- them picks them up without a destructive migration — the same belt-and-
+-- suspenders the users and products tables use. All are no-ops when present.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS city    TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS state   TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS lat     DOUBLE PRECISION;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS lng     DOUBLE PRECISION;
+-- How this store row was learned: seed | scan | teaser | directory. A national
+-- directory is assembled from several sources and needs to know which, so a
+-- low-trust row (e.g. a competitor teaser lookup) can be re-verified later.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS source  TEXT;
+
+-- Distance queries prefilter by a lat/lng bounding box before the haversine
+-- runs in JS (src/geo/nearby.ts). A plain btree cannot do great-circle, but it
+-- serves the box scan, which is what keeps "nearby" fast at national scale.
+CREATE INDEX IF NOT EXISTS idx_stores_latlng ON stores (lat, lng);
+CREATE INDEX IF NOT EXISTS idx_stores_state  ON stores (state);
+-- ZIP-exact and ZIP-prefix anchor resolution both look stores up by zip.
+CREATE INDEX IF NOT EXISTS idx_stores_zip    ON stores (zip);
+
+-- --- (b) store_inventory: the in-store current-state projection ------------
+--
+-- Keyed (retailer, sku, store_id) — the same grain as sku_state's
+-- (product_id, store_id), just decomposed, because a lead arrives as
+-- retailer + SKU (Home Depot Internet #) and must be able to land BEFORE a
+-- catalog `products` row exists. So there is intentionally NO foreign key to
+-- products here; display fields are joined in at read time on (retailer, sku).
+-- store_id DOES reference stores, because a row with no coordinates cannot
+-- appear in a nearby feed at all.
+--
+-- Why this projection is not just rebuilt like sku_state:
+--   sku_state is a pure function of price_observations and is dropped-and-
+--   rebuilt. This feed's source is EVENT-DRIVEN and sparse (community reports,
+--   per-store stock checks), not a daily full sweep, so decay has to be
+--   carried as explicit state on the row rather than re-derived from a dense
+--   history that does not exist. That is what the three clocks and miss_streak
+--   are for.
+--
+-- THE THREE CLOCKS — do not collapse them, they answer three different
+-- questions and the product's honesty depends on the distinction:
+--   last_seen_at    — last time we OBSERVED IT PRESENT (units on the shelf).
+--   last_checked_at — last time we LOOKED, hit OR miss. "checked 2h ago,
+--                     still nothing" is a real, useful answer.
+--   last_changed_at — last time a stored VALUE actually changed. Powers "this
+--                     price has held for 9 days" without walking history.
+--
+-- TWO RULES burned into this table, because getting them wrong sends a person
+-- on a wasted drive:
+--   1. A VENDOR ERROR IS NOT AN OBSERVATION. A 500/429/timeout from a lead or
+--      stock source updates NOTHING here — it never nulls a quantity, never
+--      advances a clock, never increments miss_streak. It is logged elsewhere
+--      (stock_lookups) as a failed CHECK. Only a real "looked and it was gone"
+--      answer is a miss. Conflating the two silently deletes good inventory.
+--   2. ONLY AN ARCHIVER EVER DELETES. Normal ingest and decay NEVER issue a
+--      DELETE. When stock dries up the row is TOMBSTONED (state='archived'),
+--      never removed, so its history and any pending finds survive. A single
+--      dedicated archiver job is the only writer permitted to hard-delete, and
+--      only archived tombstones past the retention window. Tombstone, never
+--      delete.
+CREATE TABLE IF NOT EXISTS store_inventory (
+  retailer        TEXT NOT NULL,          -- slug, matches products.retailer / stores.retailer
+  sku             TEXT NOT NULL,          -- retailer SKU (HD Internet #); joins products on (retailer, sku)
+  store_id        TEXT NOT NULL REFERENCES stores(store_id),
+
+  -- Last OBSERVED values. Nullable, and null means "never counted", never
+  -- "vendor failed" (see rule 1). quantity is stored but is an OPERATIONS
+  -- signal only — see the aisle/shelf-count note; the API must never put it on
+  -- a card.
+  quantity        INTEGER,
+  in_stock        BOOLEAN,                -- last observed presence, independent of an exact count
+  price_cents     INTEGER,                -- clearance price, integer cents (no float drift)
+  -- Pre-markdown price + discount are stored, not derived at read time, so the
+  -- nearby feed can filter on the 25% floor in SQL and show "was / now"
+  -- without a second code path that can disagree with the stored number.
+  orig_price_cents INTEGER,
+  discount_pct    NUMERIC(5,2),
+
+  -- Shelf location, as the competitor surfaces it. aisle_source records WHO
+  -- said so (community | vendor | retailer), because a staff-verified aisle and
+  -- a shopper guess are not the same claim and the UI grades them differently.
+  aisle           TEXT,
+  bay             TEXT,
+  aisle_source    TEXT,
+
+  -- Consecutive real misses (looked, genuinely gone). Vendor errors never
+  -- touch this. Drives the live -> presumed_gone transition.
+  miss_streak     INTEGER NOT NULL DEFAULT 0,
+
+  -- Decay state machine. Free TEXT + documented values, matching sku_state.stage
+  -- and stock_lookups.status (this schema does not use CHECK constraints for
+  -- enums). Allowed: live | aging | stale | presumed_gone | archived.
+  --   live          fresh, recently confirmed present
+  --   aging         no re-confirmation in a while, still probably there
+  --   stale         old enough that presence is a guess, dropped from the feed
+  --   presumed_gone miss_streak crossed the threshold; hidden from the feed
+  --   archived      tombstone; only the archiver writes this, and only it may
+  --                 later hard-delete such rows past retention
+  state           TEXT NOT NULL DEFAULT 'live',
+
+  -- The three clocks (see the table header).
+  last_seen_at    TIMESTAMPTZ,            -- last observed PRESENT
+  last_checked_at TIMESTAMPTZ,            -- last looked, hit or miss
+  last_changed_at TIMESTAMPTZ,            -- last stored value change
+
+  -- Which pluggable lead source produced this (e.g. 'leads:hiddenclearances',
+  -- 'apify:home-depot-clearance'). The source is deliberately left open — a
+  -- parallel research lane is choosing the cheapest one — so nothing here is
+  -- coupled to a specific vendor.
+  source          TEXT,
+  first_seen_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  PRIMARY KEY (retailer, sku, store_id)
+);
+
+-- The hot read path: "inventory at these nearby store_ids that is still worth
+-- showing". Partial on the two feed-visible states so the index stays small
+-- and only covers rows the feed can actually return.
+CREATE INDEX IF NOT EXISTS idx_store_inv_store_live
+  ON store_inventory (store_id)
+  WHERE state IN ('live', 'aging');
+-- The decay/archiver sweep scans by how long ago we last looked, skipping
+-- rows already tombstoned.
+CREATE INDEX IF NOT EXISTS idx_store_inv_checked
+  ON store_inventory (last_checked_at)
+  WHERE state <> 'archived';
+-- Optional retailer filter on the feed.
+CREATE INDEX IF NOT EXISTS idx_store_inv_retailer
+  ON store_inventory (retailer, discount_pct DESC)
+  WHERE state IN ('live', 'aging');

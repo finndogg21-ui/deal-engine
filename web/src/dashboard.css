@@ -10,7 +10,9 @@
   display: flex; flex-wrap: wrap; gap: var(--s4); align-items: flex-start;
   justify-content: space-between; padding: var(--s5) 0 var(--s4);
 }
-.dash-top h1 { font-size: 26px; letter-spacing: -0.02em; margin: 2px 0 0; }
+/* Was 26px — the smallest title in the app, next to 54px on every sub-page.
+   Brought up toward that scale while staying contained in the header row. */
+.dash-top h1 { font-size: clamp(28px, 3.4vw, 38px); letter-spacing: -0.02em; margin: 2px 0 0; }
 .dash-eyebrow { font-size: 15px; color: var(--ink-faint); }
 
 .zipbar { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
