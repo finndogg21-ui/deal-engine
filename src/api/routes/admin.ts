@@ -167,3 +167,46 @@ admin.post('/admin/messages/:id/handled', requireOperator, route(async (req, res
   if (rowCount === 0) return res.status(404).json({ error: 'No such message.' });
   res.json({ ok: true });
 }));
+
+/* ----------------------------------------------------------------- scan now */
+
+import { runScan } from '../../ingest/run-scan.js';
+import { rebuild } from '../../engine/rebuild.js';
+
+/**
+ * Triggers the daily pipeline (scan, then score rebuild) inside THIS process.
+ *
+ * This exists because PGlite is single-connection: while the server is up, a
+ * cron job running `npm run scan` in a second process would corrupt the
+ * database. The scheduled task (scripts/daily-scan.ps1) therefore calls this
+ * endpoint first and only falls back to the standalone scan when nothing is
+ * listening on the API port.
+ *
+ * Auth: an operator session, or the SCAN_TRIGGER_TOKEN shared secret — cron
+ * has no session, and the token lives only in .env on this machine.
+ */
+function scanAuthorized(req: import('express').Request): boolean {
+  if (req.user?.role === 'operator') return true;
+  const expect = process.env.SCAN_TRIGGER_TOKEN ?? '';
+  const got = String(req.headers['x-scan-token'] ?? '');
+  return expect.length >= 32 && got === expect;
+}
+
+/** Only one pipeline run at a time; a second trigger while busy is a no-op. */
+let scanInFlight = false;
+
+admin.post('/admin/scan', route(async (req, res) => {
+  if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
+  if (scanInFlight) return res.status(409).json({ error: 'A scan is already running.' });
+
+  scanInFlight = true;
+  try {
+    const scan = await runScan();
+    // Score rebuild after every scan — pages read sku_state, not raw history,
+    // so skipping this would make a successful scan invisible in the app.
+    const scored = await rebuild();
+    res.json({ scan, scored });
+  } finally {
+    scanInFlight = false;
+  }
+}));

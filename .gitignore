@@ -24,3 +24,4 @@ proxies*.txt
 
 # Corrupted-DB backups (any .data variant is database, never committed)
 .data*/
+logs/
