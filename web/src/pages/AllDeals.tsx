@@ -3,7 +3,26 @@ import { Link, useParams } from 'react-router-dom';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
+import { useAuth } from '../lib/auth.js';
 import '../dashboard.css';
+
+/** One deal from GET /api/deals/nearby — national catalog + local stock. */
+interface NearbyDeal {
+  product_id: string;
+  retailer: string;
+  title: string | null;
+  category: string | null;
+  image_url: string | null;
+  product_url: string | null;
+  price: number | null;
+  original_price: number | null;
+  discount_pct: number | null;
+  in_store_only: boolean;
+  stock: {
+    qty: number | null;
+    store: { name: string | null; city: string | null; state: string | null; distance_mi: number | null } | null;
+  };
+}
 
 interface Candidate {
   product_id: string;
@@ -28,6 +47,9 @@ interface Candidate {
   stock_qty: number | null;
   last_seen_at: string;
   product_url: string | null;
+  /** Only on the "Closest to me" feed: this deal's stock at the nearest nearby
+   *  store, shown even when 0 or unknown. Absent on the national candidate list. */
+  near_stock?: { qty: number | null; store: string | null; distance_mi: number | null } | null;
 }
 
 interface HistoryPoint {
@@ -64,6 +86,16 @@ interface Coverage {
 
 const money = (n: number | null) => (n === null ? 'Unknown' : `$${n.toFixed(2)}`);
 const pct = (n: number | null) => (n === null ? 'Unknown' : `${Math.round(n)}%`);
+
+/** Stock line for the nearby feed — shown even when 0 or unknown. This is the
+ *  local half: the deal is national, the count is where the shopper is. */
+function stockText(s: { qty: number | null; store: string | null; distance_mi: number | null }): string {
+  if (!s.store) return 'No tracked store near you yet';
+  const where = s.distance_mi != null ? `${s.store} · ${s.distance_mi} mi` : s.store;
+  if (s.qty === null) return `Stock unknown · ${where}`;
+  if (s.qty === 0) return `0 in stock · ${where}`;
+  return `${s.qty} in stock · ${where}`;
+}
 
 /** "5 hr ago". People judge freshness constantly on this screen. */
 function ago(iso: string): string {
@@ -144,8 +176,14 @@ function DealCard({ c, selected, onOpen }: { c: Candidate; selected: boolean; on
             invites a wasted drive. Stock is resolved on the detail page, for
             the ZIP the person actually types. */}
         <div className="card-facts">
-          <span className="card-possible">Possible deal · check your store</span>
-          <span>seen {ago(c.last_seen_at)}</span>
+          {c.near_stock ? (
+            <span className="card-possible">{stockText(c.near_stock)}</span>
+          ) : (
+            <>
+              <span className="card-possible">Possible deal · check your store</span>
+              <span>seen {ago(c.last_seen_at)}</span>
+            </>
+          )}
         </div>
 
         <span className="card-cta">
@@ -199,7 +237,11 @@ export default function AllDeals() {
   // deal" all route to /app/deal/:productId/:storeId, which renders this page.
   const { productId, storeId } = useParams();
 
+  const { me } = useAuth();
+  const appZip = me?.zip ?? null;
+
   const [rows, setRows] = useState<Candidate[]>([]);
+  const [nearRows, setNearRows] = useState<Candidate[]>([]);
   const [sel, setSel] = useState<Detail | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [hit, setHit] = useState<HitRate | null>(null);
@@ -278,19 +320,68 @@ export default function AllDeals() {
     }
   }, []);
 
+  // "Closest to me": the national deal catalog with THIS ZIP's local stock
+  // overlaid (even 0). Deals are national, so this is populated for every ZIP;
+  // only the stock line changes with location. Loaded whenever the app ZIP is
+  // set, so the tab is instant and its count is correct before it's opened.
+  const loadNear = useCallback(async (zip: string) => {
+    try {
+      const r = await fetch(`/api/deals/nearby?zip=${encodeURIComponent(zip)}&min_discount=25&limit=200`);
+      const body = await r.json().catch(() => null);
+      if (!r.ok || !body || !Array.isArray(body.deals)) { setNearRows([]); return; }
+      const mapped: Candidate[] = (body.deals as NearbyDeal[]).map((d) => ({
+        product_id: String(d.product_id),
+        store_id: '',
+        title: d.title ?? '',
+        category: d.category ?? null,
+        retailer: d.retailer,
+        image_url: d.image_url ?? null,
+        store_name: d.stock?.store?.name ?? '',
+        store_number: null,
+        aisle_bay: null,
+        other_stores: 0,
+        in_store_only: !!d.in_store_only,
+        distance_mi: d.stock?.store?.distance_mi ?? null,
+        stage: '',
+        penny_score: 0,
+        confidence: '',
+        price: d.price ?? null,
+        list_price: d.original_price ?? null,
+        saves:
+          d.price != null && d.original_price != null
+            ? Math.round((d.original_price - d.price) * 100) / 100
+            : null,
+        discount_pct: d.discount_pct ?? null,
+        stock_qty: d.stock?.qty ?? null,
+        last_seen_at: new Date().toISOString(),
+        product_url: d.product_url ?? null,
+        near_stock: {
+          qty: d.stock?.qty ?? null,
+          store: d.stock?.store?.name ?? null,
+          distance_mi: d.stock?.store?.distance_mi ?? null,
+        },
+      }));
+      setNearRows(mapped);
+    } catch {
+      setNearRows([]);
+    }
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadStats(); }, [loadStats]);
+  useEffect(() => { if (appZip) void loadNear(appZip); }, [appZip, loadNear]);
 
   /* Filtering happens here, against data already fetched. No user action ever
    * triggers a vendor call, which is why cost stays flat as users grow. */
   const shown = useMemo(() => {
-    let out = rows;
+    // "Closest to me" is the national catalog with local stock (from nearby);
+    // the other tabs filter the store-level candidate list.
+    let out = tab === 'near' ? nearRows : rows;
     // The store chips carry lib slugs like "home-depot", but the API's
     // `retailer` field is the hyphen-less "homedepot". Compare both forms, or
     // the Home Depot chip silently filters to zero deals.
     if (store) out = out.filter((c) => c.retailer === store || c.retailer === store.replace(/-/g, ''));
     if (tab === 'penny') out = out.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70);
-    if (tab === 'near') out = out.filter((c) => c.distance_mi !== null);
     const term = q.trim().toLowerCase();
     if (term) {
       out = out.filter((c) =>
@@ -324,13 +415,13 @@ export default function AllDeals() {
     sorted.sort((a, b) => goneLast(a) - goneLast(b));
 
     return sorted;
-  }, [rows, store, tab, q, sort]);
+  }, [rows, nearRows, store, tab, q, sort]);
 
   const counts = useMemo(() => ({
     all: rows.length,
     penny: rows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
-    near: rows.filter((c) => c.distance_mi !== null).length,
-  }), [rows]);
+    near: nearRows.length,
+  }), [rows, nearRows]);
 
   const openById = useCallback(async (pid: string, sid: string) => {
     // A failed detail fetch must not set a malformed object as `sel` — the

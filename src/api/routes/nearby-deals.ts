@@ -96,74 +96,85 @@ nearbyDeals.get(
       });
     }
 
-    if (stores.length === 0) {
-      return res.json({ zip, radius_mi: radiusMi, located: true, deals: [] });
+    // The deal CATALOG is national — a clearance SKU is marked down chain-wide,
+    // not native to one store — so the SAME deal list shows in every ZIP. What
+    // is local is STOCK, which we overlay per deal, shown even when it is 0 or
+    // unknown. "0 near you" is real information: the deal exists, just not on a
+    // nearby shelf right now. This is why an empty-store ZIP still lists deals.
+    const byId = new Map<string, NearbyStore>(stores.map((s) => [s.store_id, s]));
+    const nearbyIds = stores.map((s) => s.store_id);
+
+    // 1) National catalog: one row per product (best discount), over the floor.
+    const cat = await db.query<Record<string, unknown>>(
+      `SELECT DISTINCT ON (s.product_id)
+              s.product_id, p.retailer, p.title, p.image_url, p.product_url, p.category,
+              s.last_price, s.last_discount, s.stage
+         FROM sku_state s
+         JOIN products p ON p.product_id = s.product_id
+        WHERE COALESCE(s.last_discount, 0) >= $1
+          AND ($2::text IS NULL OR p.retailer = $2)
+        ORDER BY s.product_id, s.last_discount DESC NULLS LAST`,
+      [minDiscount, retailer],
+    );
+    const catalog = cat.rows
+      .sort((a, b) => (num(b.last_discount) ?? 0) - (num(a.last_discount) ?? 0))
+      .slice(0, limit);
+
+    // 2) Local stock overlay: the nearest nearby store carrying each product.
+    const productIds = catalog.map((r) => String(r.product_id));
+    const stockByProduct = new Map<string, { qty: number | null; store: NearbyStore }>();
+    if (productIds.length > 0 && nearbyIds.length > 0) {
+      const st = await db.query<Record<string, unknown>>(
+        `SELECT product_id, store_id, last_stock
+           FROM sku_state
+          WHERE product_id = ANY($1::text[]) AND store_id = ANY($2::text[])`,
+        [productIds, nearbyIds],
+      );
+      for (const r of st.rows) {
+        const pid = String(r.product_id);
+        const store = byId.get(String(r.store_id));
+        if (!store) continue;
+        const prev = stockByProduct.get(pid);
+        if (!prev || store.distance_mi < prev.store.distance_mi) {
+          stockByProduct.set(pid, { qty: num(r.last_stock), store });
+        }
+      }
     }
 
-    const byId = new Map<string, NearbyStore>(stores.map((s) => [s.store_id, s]));
-    const storeIds = stores.map((s) => s.store_id);
-
-    // 2. Read the projection for exactly those stores. Join products on
-    //    (retailer, sku) for display — store_inventory has no products FK by
-    //    design, so this LEFT JOIN is how a card gets its title/image.
-    const { rows } = await db.query<Record<string, unknown>>(
-      `SELECT si.retailer, si.sku, si.store_id,
-              si.price_cents, si.orig_price_cents, si.discount_pct,
-              si.in_stock, si.state, si.aisle, si.aisle_source,
-              si.last_seen_at, si.last_checked_at,
-              p.title, p.image_url, p.product_url, p.category
-         FROM store_inventory si
-         LEFT JOIN products p
-                ON p.retailer = si.retailer AND p.sku = si.sku
-        WHERE si.store_id = ANY($1::text[])
-          AND si.state IN ('live', 'aging')
-          AND COALESCE(si.discount_pct, 0) >= $2
-          AND ($3::text IS NULL OR si.retailer = $3)
-        ORDER BY si.discount_pct DESC NULLS LAST, si.last_seen_at DESC NULLS LAST
-        LIMIT $4`,
-      [storeIds, minDiscount, retailer, limit],
-    );
-
-    const deals = rows.map((r) => {
-      const store = byId.get(String(r.store_id));
-      const priceCents = num(r.price_cents);
-      const origCents = num(r.orig_price_cents);
+    const deals = catalog.map((r) => {
+      const pid = String(r.product_id);
+      const price = num(r.last_price);
+      const disc = num(r.last_discount);
+      const listPrice =
+        price !== null && disc !== null && disc > 0 && disc < 100
+          ? Math.round((price / (1 - disc / 100)) * 100) / 100
+          : null;
+      const local = stockByProduct.get(pid);
       return {
-        // Identity a client needs to open the detail / record a find. product_id
-        // is the same "{retailer}:{sku}" key the rest of the API uses.
-        product_id: `${r.retailer}:${r.sku}`,
+        product_id: pid,
         retailer: r.retailer,
         title: r.title ?? null,
         category: r.category ?? null,
         image_url: r.image_url ?? null,
         product_url: r.product_url ?? null,
-
-        // Money, in dollars for display. Clearance price is the hero.
-        price: priceCents === null ? null : Math.round(priceCents) / 100,
-        original_price: origCents === null ? null : Math.round(origCents) / 100,
-        discount_pct: num(r.discount_pct),
-
-        // Location: name + area + distance ONLY. No store_number (internal key),
-        // no quantity (a count reads as a live promise we aren't making).
-        store: store
-          ? {
-              name: store.name,
-              city: store.city,
-              state: store.state,
-              distance_mi: store.distance_mi,
-            }
-          : null,
-        // Aisle is location guidance, not a count — the competitor surfaces it
-        // and it helps in a big-box store. aisle_source lets the UI grade a
-        // staff-verified aisle vs a shopper guess.
-        aisle: r.aisle ?? null,
-        aisle_source: r.aisle_source ?? null,
-
-        // Coarse availability, never a number. 'live' = recently confirmed,
-        // 'aging' = older, treat as possible. This is why cards say "Possible".
-        availability: r.state,
-        in_store_only: true,
-        last_seen_at: r.last_seen_at ?? null,
+        price,
+        original_price: listPrice,
+        discount_pct: disc,
+        in_store_only: r.stage === 'penny_candidate' || r.stage === 'delisted',
+        // Stock at the nearest nearby store, shown even when 0. qty null means we
+        // have no local record at all (no swept store near this ZIP yet); a
+        // number (including 0) is a real nearby count.
+        stock: {
+          qty: local ? local.qty : null,
+          store: local
+            ? {
+                name: local.store.name,
+                city: local.store.city,
+                state: local.store.state,
+                distance_mi: local.store.distance_mi,
+              }
+            : null,
+        },
       };
     });
 
@@ -171,11 +182,10 @@ nearbyDeals.get(
       zip,
       radius_mi: radiusMi,
       located: true,
-      // How precisely we placed the ZIP, so a client can caveat distances when
-      // the anchor is only a prefix match rather than an exact-ZIP store.
       anchor_precision: anchor.source,
       min_discount: minDiscount,
       count: deals.length,
+      nearby_stores: stores.length,
       deals,
     });
   }),
