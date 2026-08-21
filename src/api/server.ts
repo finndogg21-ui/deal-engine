@@ -27,6 +27,7 @@ import { nearbyDeals } from './routes/nearby-deals.js';
 import { startStockWorker } from './stock-worker.js';
 import { billing } from './routes/billing.js';
 import { admin } from './routes/admin.js';
+import { scanStatus } from './routes/scan-status.js';
 import { coverageFor } from '../coverage.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -77,6 +78,7 @@ app.use('/api', stockQueue);
 app.use('/api', nearbyDeals);
 app.use('/api', billing);
 app.use('/api', admin);
+app.use('/api', scanStatus);
 
 /** Deal data is the product, so reading it is the paywall. Operators bypass. */
 const paid = [requireAuth, requirePlan('consumer', 'reseller')];
