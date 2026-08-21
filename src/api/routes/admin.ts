@@ -173,6 +173,7 @@ admin.post('/admin/messages/:id/handled', requireOperator, route(async (req, res
 import { timingSafeEqual } from 'node:crypto';
 import { runScan } from '../../ingest/run-scan.js';
 import { rebuild } from '../../engine/rebuild.js';
+import { refreshNearbyFeed } from '../../engine/project-inventory.js';
 
 /**
  * Triggers the daily pipeline (scan, then score rebuild) inside THIS process.
@@ -208,7 +209,10 @@ admin.post('/admin/scan', route(async (req, res) => {
     // Score rebuild after every scan — pages read sku_state, not raw history,
     // so skipping this would make a successful scan invisible in the app.
     const scored = await rebuild();
-    res.json({ scan, scored });
+    // Project the current state into store_inventory (+ seed store geo) so the
+    // "Closest to me" nearby feed reflects this scan without a live call.
+    const nearby = await refreshNearbyFeed(await getDb());
+    res.json({ scan, scored, nearby });
   } finally {
     scanInFlight = false;
   }
