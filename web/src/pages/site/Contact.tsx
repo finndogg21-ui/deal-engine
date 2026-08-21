@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../../lib/auth.js';
 
 const SUPPORT_EMAIL = 'support@example.com'; // TODO: real address once the domain is bought
 
@@ -7,17 +8,25 @@ export default function Contact() {
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState('');
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr('');
     setSending(true);
+    const form = new FormData(e.currentTarget);
     try {
-      // No backend for this yet. Rather than silently pretend, this fails
-      // honestly and points at the email address.
-      await new Promise((r) => setTimeout(r, 600));
-      throw new Error('not-wired');
-    } catch {
-      setErr(`The contact form is not connected yet. Email ${SUPPORT_EMAIL} and we will get it.`);
+      await api('/api/contact', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.get('name'),
+          email: form.get('email'),
+          topic: form.get('topic'),
+          message: form.get('message'),
+          hp: form.get('hp'),
+        }),
+      });
+      setSent(true);
+    } catch (x) {
+      setErr((x as Error).message || `Could not send. Email ${SUPPORT_EMAIL} and we will get it.`);
     } finally {
       setSending(false);
     }
@@ -41,6 +50,15 @@ export default function Contact() {
           </div>
         ) : (
           <form className="form" onSubmit={submit}>
+            <input
+              type="text"
+              name="hp"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+            />
+
             <div>
               <label htmlFor="name">Your name</label>
               <input id="name" name="name" type="text" autoComplete="name" required />
