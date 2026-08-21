@@ -35,6 +35,30 @@ export function cookies(req: Request, _res: Response, next: NextFunction) {
 }
 
 /** Attaches req.user when a valid session cookie is present. Never rejects. */
+/**
+ * TEMPORARY public-preview identity. When PUBLIC_PREVIEW=1, anonymous visitors
+ * are treated as this logged-in reseller so the deals are browsable without an
+ * account or a plan. To restore the paywall, unset PUBLIC_PREVIEW and redeploy.
+ *
+ * Deliberate choices: role is 'member', so the operator/admin surface stays
+ * protected. It reuses the operator row (user_id 1) so any per-user write is
+ * FK-safe and every preview visitor shares one daily stock-lookup cap, which
+ * bounds vendor spend no matter how much anonymous traffic arrives.
+ */
+const PREVIEW_USER: SessionUser = {
+  user_id: 1,
+  email: 'preview@deal-engine.local',
+  plan: 'reseller',
+  role: 'member',
+  path: 'reseller',
+  zip: null,
+  radius_mi: 25,
+  alerts_per_day: 5,
+  quiet_hours: true,
+  will_report: false,
+  setup_done_at: '2026-01-01T00:00:00.000Z',
+};
+
 export async function loadUser(req: Request, _res: Response, next: NextFunction) {
   try {
     const db = await getDb();
@@ -42,6 +66,10 @@ export async function loadUser(req: Request, _res: Response, next: NextFunction)
     if (u) req.user = u;
   } catch {
     /* a broken session must not take the request down */
+  }
+  // Public preview: no session + flag on => browse as a reseller. See above.
+  if (!req.user && process.env.PUBLIC_PREVIEW === '1') {
+    req.user = { ...PREVIEW_USER };
   }
   next();
 }
