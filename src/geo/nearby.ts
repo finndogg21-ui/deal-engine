@@ -57,7 +57,7 @@ export interface ZipAnchor {
    *                      ZIP prefix (a rough metro proxy, same idea as
    *                      coverage.ts's prefix logic).
    */
-  source: 'store_zip_exact' | 'store_zip_prefix';
+  source: 'zip_centroid' | 'store_zip_exact' | 'store_zip_prefix';
 }
 
 export interface NearbyStore {
@@ -92,7 +92,21 @@ function num(v: unknown): number | null {
 export async function resolveZipAnchor(db: Db, zip: string): Promise<ZipAnchor | null> {
   if (!/^\d{5}$/.test(zip)) return null;
 
-  // Exact ZIP first — the tightest anchor we can get without a centroid table.
+  // Real ZIP centroid — the correct, universal anchor. Placed for EVERY US ZIP
+  // (US Census ZCTA Gazetteer, loaded into zip_centroids). This is what lets an
+  // arbitrary ZIP resolve instead of only ZIPs where we happen to have a store.
+  const centroid = await db.query<{ lat: unknown; lng: unknown }>(
+    `SELECT lat, lng FROM zip_centroids WHERE zip = $1`,
+    [zip],
+  );
+  const cLat = num(centroid.rows[0]?.lat);
+  const cLng = num(centroid.rows[0]?.lng);
+  if (cLat !== null && cLng !== null) {
+    return { lat: cLat, lng: cLng, source: 'zip_centroid' };
+  }
+
+  // Fallbacks below only matter for a ZIP not in the centroid table (rare —
+  // ZCTAs miss a few PO-box-only ZIPs). Anchor on stores we already trust.
   const exact = await db.query<{ lat: unknown; lng: unknown }>(
     `SELECT AVG(lat) AS lat, AVG(lng) AS lng
        FROM stores

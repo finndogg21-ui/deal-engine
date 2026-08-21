@@ -544,3 +544,15 @@ CREATE INDEX IF NOT EXISTS idx_store_inv_checked
 CREATE INDEX IF NOT EXISTS idx_store_inv_retailer
   ON store_inventory (retailer, discount_pct DESC)
   WHERE state IN ('live', 'aging');
+
+-- ---------------------------------------------------------------------------
+-- ZIP centroids — every US ZIP -> a coordinate, so the nearby resolver can
+-- place ANY ZIP on the map instead of only ZIPs where we already have a store.
+-- Source: US Census 2024 ZCTA Gazetteer (public domain), loaded from
+-- data/zip_centroids.csv by src/geo/load-zip-centroids.ts. ~33k rows.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS zip_centroids (
+  zip  TEXT PRIMARY KEY,
+  lat  DOUBLE PRECISION NOT NULL,
+  lng  DOUBLE PRECISION NOT NULL
+);

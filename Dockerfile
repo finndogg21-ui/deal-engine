@@ -43,6 +43,7 @@ RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 COPY tsconfig.json ./
 COPY src ./src
+COPY data ./data
 COPY --from=build /app/web/dist ./web/dist
 
 # The server reads PORT from the host (API_PORT is a dev-only override).

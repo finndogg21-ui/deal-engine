@@ -8,6 +8,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { getDb } from './client.js';
+import { loadZipCentroids } from '../geo/load-zip-centroids.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +17,10 @@ async function main() {
   const sql = await readFile(join(here, 'schema.sql'), 'utf8');
 
   await db.exec(sql);
+
+  // Load the US ZIP centroid table (idempotent) so nearby resolves any ZIP.
+  const zips = await loadZipCentroids(db);
+  console.log(`zip_centroids ready (${zips} rows)`);
 
   // Founder promotion, idempotent — and the ONLY place promotion happens.
   // Signup deliberately does not promote: with no email verification, a
