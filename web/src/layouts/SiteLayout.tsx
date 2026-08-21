@@ -1,6 +1,7 @@
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { BRAND } from '../App.js';
 import { RETAILERS } from '../lib/retailers.js';
+import FreshnessBar from '../components/FreshnessBar.js';
 import '../site.css';
 
 /** Every public page shares this frame, so spacing and navigation cannot
@@ -28,6 +29,10 @@ export default function SiteLayout() {
       </main>
 
       <footer className="foot">
+        <div className="wrap">
+          <FreshnessBar />
+        </div>
+
         <div className="wrap foot-in">
           <div>
             <h4>Product</h4>
