@@ -7,6 +7,30 @@ import { useAuth } from '../lib/auth.js';
 import { getLocalZip, onZipChange } from '../lib/zip.js';
 import '../dashboard.css';
 
+/**
+ * One crowd-reported find from GET /api/community-deals. Hearsay by design —
+ * always rendered with its source and "scan in store" framing, never as our
+ * own verified data. Pennies only ever come from here: $0.01 is a register-only
+ * state no scraper can see.
+ */
+interface CommunityReport {
+  report_id: number;
+  source: string;
+  kind: string;
+  sku: string | null;
+  item_id: string | null;
+  title: string;
+  price: string | number | null;
+  list_price: string | number | null;
+  state: string | null;
+  city: string | null;
+  store_number: string | null;
+  product_url: string | null;
+  source_url: string | null;
+  image_url: string | null;
+  reported_at: string | null;
+}
+
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
 interface NearbyDeal {
   product_id: string;
@@ -251,6 +275,7 @@ export default function AllDeals() {
 
   const [rows, setRows] = useState<Candidate[]>([]);
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
+  const [pennyReports, setPennyReports] = useState<CommunityReport[]>([]);
   const [sel, setSel] = useState<Detail | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [hit, setHit] = useState<HitRate | null>(null);
@@ -381,6 +406,18 @@ export default function AllDeals() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadStats(); }, [loadStats]);
   useEffect(() => { if (appZip) void loadNear(appZip); }, [appZip, loadNear]);
+
+  // Community penny reports — the crowd's $0.01 finds from public penny lists.
+  // Loaded once; the penny tab renders them above the ladder candidates.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch('/api/community-deals?kind=penny&limit=100');
+        const body = await r.json().catch(() => null);
+        if (r.ok && body && Array.isArray(body.reports)) setPennyReports(body.reports as CommunityReport[]);
+      } catch { /* section simply doesn't render */ }
+    })();
+  }, []);
 
   /**
    * INSTANT STOCK ON EVERY CARD. The moment a ZIP is set, nearRows (already
@@ -594,7 +631,50 @@ export default function AllDeals() {
             </div>
           )}
 
-          {!loading && !loadError && shown.length === 0 && (
+          {tab === 'penny' && pennyReports.length > 0 && (
+            <>
+              <div className="community-head">
+                <h3>Community penny reports</h3>
+                <p>
+                  Crowd-reported $0.01 finds from public penny lists. Penny status is
+                  store-specific and never guaranteed — scan the SKU in store.
+                </p>
+              </div>
+              {pennyReports.map((r) => (
+                <button
+                  key={r.report_id}
+                  className="card-deal"
+                  onClick={() => { const u = r.product_url ?? r.source_url; if (u) window.open(u, '_blank', 'noopener'); }}
+                >
+                  <div className="card-img">
+                    <span className="badge-off">PENNY</span>
+                    {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <Ph />}
+                  </div>
+                  <div className="card-body">
+                    <span className="retailer">Home Depot</span>
+                    <p className="card-title">{r.title}</p>
+                    <div className="card-price">
+                      <span className="now">$0.01</span>
+                      {r.list_price !== null && <span className="was">Was <b>{money(Number(r.list_price))}</b></span>}
+                    </div>
+                    <div className="card-facts">
+                      <span className="card-possible">
+                        Reported {r.state ? `in ${r.state}` : 'by the community'}
+                        {r.store_number ? ` · Store #${r.store_number}` : ''}
+                      </span>
+                      <span>
+                        via {r.source}{r.reported_at ? ` · ${ago(r.reported_at)}` : ''}
+                        {r.sku ? ` · SKU ${r.sku}` : ''}
+                      </span>
+                    </div>
+                    <span className="card-cta">Check on Home Depot</span>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+
+          {!loading && !loadError && shown.length === 0 && !(tab === 'penny' && pennyReports.length > 0) && (
             <div className="empty">
               {rows.length > 0 ? (
                 'Nothing matches those filters. Try a different store or clear the search.'

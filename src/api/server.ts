@@ -26,6 +26,7 @@ import { stock } from './routes/stock.js';
 import { stockFind } from './routes/stock-find.js';
 import { stockQueue } from './routes/stock-queue.js';
 import { nearbyDeals } from './routes/nearby-deals.js';
+import { communityDeals } from './routes/community-deals.js';
 import { startStockWorker } from './stock-worker.js';
 import { billing } from './routes/billing.js';
 import { admin } from './routes/admin.js';
@@ -77,6 +78,7 @@ app.use('/api', stock);
 app.use('/api', stockFind);
 app.use('/api', stockQueue);
 app.use('/api', nearbyDeals);
+app.use('/api', communityDeals);
 app.use('/api', billing);
 app.use('/api', admin);
 

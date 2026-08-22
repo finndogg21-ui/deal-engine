@@ -1,0 +1,327 @@
+/**
+ * Community deal ingest — the crowd's output, from PUBLIC pages only.
+ *
+ *   npm run community          fetch all sources, upsert into community_reports
+ *
+ * Why this exists: $0.01 penny prices are a register-only state that no
+ * scraper can see, and full-catalog store scans are economically impossible.
+ * The people already walking the aisles ARE the sensor network — and the
+ * biggest crowds publish their finds on open pages:
+ *
+ *   pennycentral   penny list, server-embedded JSON, robots.txt allows, no
+ *                  login (verified 2026-08-22). ~155k-member Facebook crowd.
+ *   slickdeals     RSS search feed, HD clearance 50-90% off, same-day fresh
+ *                  (verified 2026-08-22). Keep to 1-2 polls/day — their robots
+ *                  guidance is ambiguous, so stay polite.
+ *   rebelsavings   deep clearance 35-99%, no login, robots fully open
+ *                  (verified 2026-08-22). Page structure undocumented, so this
+ *                  adapter is EXPERIMENTAL: it parses what it can and returns
+ *                  [] gracefully when the shape changes.
+ *
+ * HARD RULES: one polite GET per source per run. Public pages only — never a
+ * login-walled competitor (that's a ToS breach and a canary-trap risk; see
+ * company/architecture-verdict.md). Reports are hearsay, stored apart from
+ * price_observations and always labeled community-reported in the UI.
+ */
+
+import 'dotenv/config';
+import { getDb, type Db } from '../db/client.js';
+import { meetsTieredFloor } from '../engine/deal-floor.js';
+
+const UA = 'deal-engine-community-reader/1.0 (polite; 1-2 fetches/day)';
+
+export interface CommunityReport {
+  source: 'pennycentral' | 'slickdeals' | 'rebelsavings';
+  kind: 'penny' | 'clearance';
+  dedupeKey: string;
+  sku?: string | null;
+  itemId?: string | null;
+  title: string;
+  price?: number | null;
+  listPrice?: number | null;
+  discountPct?: number | null;
+  state?: string | null;
+  city?: string | null;
+  storeNumber?: string | null;
+  productUrl?: string | null;
+  sourceUrl?: string | null;
+  imageUrl?: string | null;
+  reportedAt?: Date | null;
+  raw?: unknown;
+}
+
+async function get(url: string): Promise<string> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 30_000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': UA } });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const num = (v: unknown): number | null => {
+  if (v === null || v === undefined) return null;
+  const n = Number(String(v).replace(/[$,]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+
+/** HD product URL from an internet number/item id. */
+const hdUrl = (itemId: string | null | undefined) =>
+  itemId ? `https://www.homedepot.com/p/${itemId}` : null;
+
+/* ------------------------------------------------------------ pennycentral */
+
+/**
+ * The penny list ships as server-embedded JSON (Next.js-style state blob).
+ * The exact shape is theirs to change, so instead of hardcoding a path we
+ * deep-search the embedded JSON for arrays of penny-record-looking objects
+ * (sku / internetNumber + a seen/state field). Verified present 2026-08-22.
+ */
+function deepFindPennyRecords(node: unknown, out: Record<string, unknown>[] = [], depth = 0): Record<string, unknown>[] {
+  if (depth > 12 || node === null || typeof node !== 'object') return out;
+  if (Array.isArray(node)) {
+    const objs = node.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x));
+    const looksPenny = objs.length >= 3 && objs.every((o) =>
+      ('sku' in o || 'internetNumber' in o || 'internet_number' in o) &&
+      ('lastSeenAt' in o || 'last_seen' in o || 'state' in o || 'lastSeen' in o));
+    if (looksPenny) { out.push(...objs); return out; }
+    for (const x of node) deepFindPennyRecords(x, out, depth + 1);
+    return out;
+  }
+  for (const v of Object.values(node)) deepFindPennyRecords(v, out, depth + 1);
+  return out;
+}
+
+/**
+ * The list ships inside Next.js FLIGHT chunks — `self.__next_f.push([1,"…"])`
+ * script tags whose payload is an escaped JS string, not clean JSON (probed
+ * 2026-08-22: the 50KB chunk carries `"initialItems":[{"sku":…,"price":0.01,
+ * "retailPrice":…,"internetNumber":…,"homeDepotUrl":…,"lastSeenAt":…}]`).
+ * Decode every chunk's string literal, join, then cut the balanced
+ * `initialItems` array out and parse it.
+ */
+function extractBalancedArray(s: string, from: number): string | null {
+  const start = s.indexOf('[', from);
+  if (start < 0) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i]!;
+    if (esc) { esc = false; continue; }
+    if (ch === '\\') { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) return s.slice(start, i + 1); }
+  }
+  return null;
+}
+
+export async function fetchPennyCentral(): Promise<CommunityReport[]> {
+  const html = await get('https://www.pennycentral.com/penny-list');
+  const reports: CommunityReport[] = [];
+
+  // Decode all flight chunks into one stream.
+  const chunks = [...html.matchAll(/__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g)]
+    .map((m) => { try { return JSON.parse(m[1]!) as string; } catch { return ''; } });
+  const flight = chunks.join('');
+  const idx = flight.indexOf('"initialItems":');
+  const blobs: string[] = [];
+  if (idx >= 0) {
+    const arr = extractBalancedArray(flight, idx);
+    if (arr) blobs.push(arr);
+  }
+  // Fallback: any clean application/json script (older embed styles).
+  blobs.push(...[...html.matchAll(/<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((m) => m[1]!));
+
+  for (const blob of blobs) {
+    try {
+      const parsed = JSON.parse(blob);
+      const records = Array.isArray(parsed) && parsed.every((x) => x && typeof x === 'object')
+        ? (parsed as Record<string, unknown>[])
+        : deepFindPennyRecords(parsed);
+      for (const r of records) {
+        const sku = r.sku != null ? String(r.sku) : null;
+        const itemId = (r.internetNumber ?? r.internet_number) != null ? String(r.internetNumber ?? r.internet_number) : null;
+        const title = String(r.title ?? r.name ?? r.productName ?? '').trim() || `HD SKU ${sku ?? itemId ?? '?'}`;
+        const seen = r.lastSeenAt ?? r.last_seen ?? r.lastSeen ?? null;
+        if (!sku && !itemId) continue;
+        reports.push({
+          source: 'pennycentral', kind: 'penny',
+          dedupeKey: sku ?? itemId!,
+          sku, itemId, title,
+          price: 0.01,
+          listPrice: num(r.originalPrice ?? r.retailPrice),
+          // A penny IS ~100% off whatever it was; recorded so feed floors pass.
+          discountPct: 100,
+          state: r.state != null ? String(r.state) : null,
+          city: r.city != null ? String(r.city) : null,
+          storeNumber: r.storeNumber != null ? String(r.storeNumber) : null,
+          productUrl: typeof r.homeDepotUrl === 'string' ? r.homeDepotUrl : hdUrl(itemId),
+          sourceUrl: 'https://www.pennycentral.com/penny-list',
+          imageUrl: typeof r.imageUrl === 'string' ? r.imageUrl : null,
+          reportedAt: seen ? new Date(String(seen)) : null,
+          raw: r,
+        });
+      }
+      if (reports.length > 0) break; // first matching blob wins
+    } catch { /* not JSON or not the blob we want — keep scanning */ }
+  }
+  return reports;
+}
+
+/* -------------------------------------------------------------- slickdeals */
+
+export async function fetchSlickdeals(): Promise<CommunityReport[]> {
+  const xml = await get(
+    'https://slickdeals.net/newsearch.php?rss=1&pp=25&sort=newest&q=home+depot+clearance&searcharea=deals&searchin=first',
+  );
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1]!);
+  const field = (item: string, tag: string) => {
+    const m = item.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`));
+    return m ? m[1]!.trim() : null;
+  };
+  const reports: CommunityReport[] = [];
+  for (const item of items) {
+    const title = field(item, 'title');
+    const link = field(item, 'link');
+    const pub = field(item, 'pubDate');
+    if (!title || !link) continue;
+    // Titles carry the price ("... $39.50") and sometimes the original.
+    const prices = [...title.matchAll(/\$\s?([\d,]+(?:\.\d{1,2})?)/g)].map((m) => num(m[1]));
+    const price: number | null = prices[0] ?? null;
+    const listPrice: number | null = prices.length > 1 ? (prices[prices.length - 1] ?? null) : null;
+    const pctMatch = title.match(/(\d{2})%\s*off/i);
+    const discountPct = pctMatch
+      ? num(pctMatch[1])
+      : price !== null && listPrice !== null && listPrice > price
+        ? Math.round(((listPrice - price) / listPrice) * 100)
+        : null;
+    reports.push({
+      source: 'slickdeals', kind: 'clearance',
+      dedupeKey: link,
+      title: title.replace(/&amp;/g, '&'),
+      price, listPrice, discountPct,
+      sourceUrl: link,
+      reportedAt: pub ? new Date(pub) : null,
+      raw: { title, link, pub },
+    });
+  }
+  return reports;
+}
+
+/* ------------------------------------------------------------ rebelsavings */
+
+/** EXPERIMENTAL — page structure is undocumented; parse embedded JSON deal
+ *  arrays if present, otherwise return [] and let the run report it. */
+export async function fetchRebelSavings(): Promise<CommunityReport[]> {
+  const html = await get('https://www.rebelsavings.com/');
+  const reports: CommunityReport[] = [];
+  const scripts = [...html.matchAll(/<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((m) => m[1]!);
+  const looksDeal = (o: Record<string, unknown>) =>
+    ('price' in o || 'currentPrice' in o || 'salePrice' in o) &&
+    ('title' in o || 'name' in o || 'productName' in o);
+  const found: Record<string, unknown>[] = [];
+  const walk = (node: unknown, depth = 0) => {
+    if (depth > 12 || node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      const objs = node.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x));
+      if (objs.length >= 3 && objs.every(looksDeal)) { found.push(...objs); return; }
+      for (const x of node) walk(x, depth + 1);
+      return;
+    }
+    for (const v of Object.values(node)) walk(v, depth + 1);
+  };
+  for (const blob of scripts) {
+    try { walk(JSON.parse(blob)); if (found.length) break; } catch { /* skip */ }
+  }
+  for (const r of found) {
+    const title = String(r.title ?? r.name ?? r.productName ?? '').trim();
+    if (!title) continue;
+    const price = num(r.price ?? r.currentPrice ?? r.salePrice);
+    const listPrice = num(r.originalPrice ?? r.listPrice ?? r.wasPrice ?? r.retailPrice);
+    const discountPct = num(r.discountPct ?? r.percentOff)
+      ?? (price !== null && listPrice !== null && listPrice > price
+        ? Math.round(((listPrice - price) / listPrice) * 100) : null);
+    const sku = r.sku != null ? String(r.sku) : null;
+    const itemId = (r.internetNumber ?? r.itemId) != null ? String(r.internetNumber ?? r.itemId) : null;
+    reports.push({
+      source: 'rebelsavings', kind: 'clearance',
+      dedupeKey: sku ?? itemId ?? title,
+      sku, itemId, title, price, listPrice, discountPct,
+      state: r.state != null ? String(r.state) : null,
+      city: r.city != null ? String(r.city) : null,
+      productUrl: hdUrl(itemId),
+      sourceUrl: 'https://www.rebelsavings.com/',
+      imageUrl: typeof r.imageUrl === 'string' ? r.imageUrl : null,
+      raw: r,
+    });
+  }
+  return reports;
+}
+
+/* ------------------------------------------------------------------- runner */
+
+export async function ingestCommunity(db: Db): Promise<Array<{ source: string; fetched: number; kept: number; error?: string }>> {
+  const sources: Array<[string, () => Promise<CommunityReport[]>]> = [
+    ['pennycentral', fetchPennyCentral],
+    ['slickdeals', fetchSlickdeals],
+    ['rebelsavings', fetchRebelSavings],
+  ];
+  const out: Array<{ source: string; fetched: number; kept: number; error?: string }> = [];
+
+  for (const [name, fetcher] of sources) {
+    try {
+      const reports = await fetcher();
+      let kept = 0;
+      for (const r of reports) {
+        // Clearance hearsay must still clear the tiered floor; unknown-discount
+        // clearance is junk risk and is dropped. Pennies always pass (100%).
+        if (r.kind === 'clearance' && !meetsTieredFloor(r.price ?? null, r.discountPct ?? null)) continue;
+        await db.query(
+          `INSERT INTO community_reports
+             (source, kind, retailer, dedupe_key, sku, item_id, title, price, list_price,
+              discount_pct, state, city, store_number, product_url, source_url, image_url,
+              reported_at, fetched_at, raw)
+           VALUES ($1,$2,'homedepot',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,now(),$17)
+           ON CONFLICT (source, dedupe_key) DO UPDATE SET
+             price = EXCLUDED.price, list_price = EXCLUDED.list_price,
+             discount_pct = EXCLUDED.discount_pct, state = EXCLUDED.state,
+             city = EXCLUDED.city, store_number = EXCLUDED.store_number,
+             reported_at = COALESCE(EXCLUDED.reported_at, community_reports.reported_at),
+             fetched_at = now()`,
+          [
+            r.source, r.kind, r.dedupeKey, r.sku ?? null, r.itemId ?? null, r.title,
+            r.price ?? null, r.listPrice ?? null, r.discountPct ?? null,
+            r.state ?? null, r.city ?? null, r.storeNumber ?? null,
+            r.productUrl ?? null, r.sourceUrl ?? null, r.imageUrl ?? null,
+            r.reportedAt ?? null, JSON.stringify(r.raw ?? null),
+          ],
+        );
+        kept++;
+      }
+      out.push({ source: name, fetched: reports.length, kept });
+    } catch (err) {
+      // One dead source must not kill the others.
+      out.push({ source: name, fetched: 0, kept: 0, error: (err as Error).message });
+    }
+  }
+  return out;
+}
+
+import { pathToFileURL } from 'node:url';
+const invokedDirectly =
+  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  ingestCommunity(await getDb())
+    .then(async (r) => {
+      console.log('community ingest:', JSON.stringify(r));
+      const db = await getDb();
+      await db.close();
+    })
+    .catch((err) => { console.error('community ingest crashed:', err); process.exit(1); });
+}

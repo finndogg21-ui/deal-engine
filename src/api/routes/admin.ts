@@ -175,6 +175,7 @@ import { runScan } from '../../ingest/run-scan.js';
 import { rebuild } from '../../engine/rebuild.js';
 import { refreshNearbyFeed } from '../../engine/project-inventory.js';
 import { verifyTopDeals } from '../../engine/verify-deals.js';
+import { ingestCommunity } from '../../ingest/community.js';
 
 /**
  * Triggers the daily pipeline (scan, then score rebuild) inside THIS process.
@@ -223,7 +224,10 @@ admin.post('/admin/scan', route(async (req, res) => {
       // Project current state into store_inventory so the "Closest to me" feed
       // reflects this scan without a live call.
       const nearby = await refreshNearbyFeed(await getDb());
-      console.log(`[scan] pipeline complete: ${JSON.stringify({ scan, scored, nearby })}`);
+      // Community sources ride the same cadence (one polite GET per source per
+      // run) — pennies only ever come from here, never from the sweep.
+      const community = await ingestCommunity(await getDb());
+      console.log(`[scan] pipeline complete: ${JSON.stringify({ scan, scored, nearby, community })}`);
     } catch (err) {
       console.error('[scan] pipeline failed:', err);
     } finally {

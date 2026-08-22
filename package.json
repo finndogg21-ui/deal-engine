@@ -11,6 +11,7 @@
     "migrate": "tsx src/db/migrate.ts",
     "scan": "tsx src/ingest/run-scan.ts",
     "scan:dry": "tsx src/ingest/run-scan.ts --dry",
+    "community": "tsx src/ingest/community.ts",
     "replay": "tsx src/ingest/replay.ts",
     "probe:unwrangle": "tsx src/vendors/probe-unwrangle.ts",
     "probe:stock": "tsx src/vendors/probe-stock.ts",

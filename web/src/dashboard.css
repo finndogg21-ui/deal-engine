@@ -330,3 +330,8 @@
 .card-possible { color: var(--accent-text); font-weight: 600; }
 /* The per-ZIP stock line that appears under the hedge the moment a ZIP is set. */
 .card-stock { font-weight: 500; }
+
+/* Community penny reports — the crowd's finds, labeled as such, on the penny tab. */
+.community-head { grid-column: 1 / -1; margin: 0 0 var(--s2); }
+.community-head h3 { margin: 0 0 4px; }
+.community-head p { margin: 0; font-size: 13.5px; opacity: 0.75; }

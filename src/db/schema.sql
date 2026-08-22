@@ -563,3 +563,39 @@ CREATE TABLE IF NOT EXISTS zip_centroids (
 -- as of then. See src/engine/verify-deals.ts.
 ALTER TABLE sku_state       ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
 ALTER TABLE store_inventory ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+
+-- ---------------------------------------------------------------------------
+-- Community-reported deals — the crowd's output, ingested from public sources
+-- (PennyCentral penny list, Slickdeals RSS, RebelSavings). Kept SEPARATE from
+-- price_observations on purpose: that table is what OUR sweep saw (the moat);
+-- this one is hearsay from other people's crowds, always labeled as such in
+-- the UI ("reported by the community — scan in store"). Pennies only ever
+-- come from here or from ladder inference, never from the sweep ($0.01 is a
+-- register-only state that no scraper can see).
+-- dedupe_key is computed in the adapter (sku, item id, or source URL) so a
+-- re-fetch updates the row instead of duplicating it.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS community_reports (
+  report_id    BIGSERIAL PRIMARY KEY,
+  source       TEXT NOT NULL,             -- 'pennycentral' | 'slickdeals' | 'rebelsavings'
+  kind         TEXT NOT NULL,             -- 'penny' | 'clearance'
+  retailer     TEXT NOT NULL DEFAULT 'homedepot',
+  dedupe_key   TEXT NOT NULL,
+  sku          TEXT,
+  item_id      TEXT,
+  title        TEXT NOT NULL,
+  price        NUMERIC(10,2),
+  list_price   NUMERIC(10,2),
+  discount_pct NUMERIC(5,2),
+  state        TEXT,
+  city         TEXT,
+  store_number TEXT,
+  product_url  TEXT,
+  source_url   TEXT,
+  image_url    TEXT,
+  reported_at  TIMESTAMPTZ,
+  fetched_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  raw          JSONB,
+  UNIQUE (source, dedupe_key)
+);
+CREATE INDEX IF NOT EXISTS idx_community_kind ON community_reports (kind, reported_at DESC);
