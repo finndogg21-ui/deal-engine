@@ -485,7 +485,18 @@
   display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap;
 }
 .pp-cta-line { margin: 0; font-size: 15px; max-width: 40ch; }
-.pp-cta-btn { background: var(--ink); color: var(--paper); border: 1px solid var(--ink); }
+
+/* Buttons inside .detail: the legacy `.detail a { color: var(--accent-text) }`
+   rule outranks `.btn`, which in dark mode painted near-white text on the
+   near-white button — invisible (founder screenshot, 2026-08-22). These
+   selectors outrank it and pin an explicit ink/paper pair in BOTH themes. */
+.detail a.btn {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--ink); text-decoration: none;
+}
+.detail a.btn:hover { background: var(--paper-sunk); }
+.detail a.btn.pp-cta-btn { background: var(--ink); color: var(--paper); }
+.detail a.btn.pp-cta-btn:hover { background: var(--sticker-deep); color: var(--on-accent); }
 
 /* ---- Discipline ---- */
 
