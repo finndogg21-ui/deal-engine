@@ -161,6 +161,17 @@ function Ph() {
   );
 }
 
+/**
+ * Append ?store=NNN to a homedepot.com URL so HD opens already in that store's
+ * mode (header, pickup section, and stock state all switch — verified live
+ * 2026-08-22). Non-HD URLs (e.g. a Slickdeals thread) pass through untouched.
+ */
+function hdStoreUrl(url: string | null, storeNumber: string | null): string | null {
+  if (!url) return null;
+  if (!storeNumber || !/homedepot\.com/i.test(url)) return url;
+  return url + (url.includes('?') ? '&' : '?') + 'store=' + encodeURIComponent(storeNumber);
+}
+
 function DealCard({ c, selected, onOpen }: { c: Candidate; selected: boolean; onOpen: () => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = c.image_url && !imgFailed;
@@ -276,6 +287,9 @@ export default function AllDeals() {
   const [rows, setRows] = useState<Candidate[]>([]);
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
   const [pennyReports, setPennyReports] = useState<CommunityReport[]>([]);
+  // The nearest store's number for THIS ZIP — used only inside Home Depot
+  // links (?store=NNN) so HD opens in the customer's store mode. Never shown.
+  const [nearestStoreNum, setNearestStoreNum] = useState<string | null>(null);
   const [sel, setSel] = useState<Detail | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [hit, setHit] = useState<HitRate | null>(null);
@@ -363,6 +377,7 @@ export default function AllDeals() {
       const r = await fetch(`/api/deals/nearby?zip=${encodeURIComponent(zip)}&min_discount=25&limit=200`);
       const body = await r.json().catch(() => null);
       if (!r.ok || !body || !Array.isArray(body.deals)) { setNearRows([]); return; }
+      setNearestStoreNum(typeof body.nearest_store_number === 'string' ? body.nearest_store_number : null);
       const mapped: Candidate[] = (body.deals as NearbyDeal[]).map((d) => ({
         product_id: String(d.product_id),
         // The max-stock store this deal is showing — clicking opens ITS detail,
@@ -644,7 +659,7 @@ export default function AllDeals() {
                 <button
                   key={r.report_id}
                   className="card-deal"
-                  onClick={() => { const u = r.product_url ?? r.source_url; if (u) window.open(u, '_blank', 'noopener'); }}
+                  onClick={() => { const u = hdStoreUrl(r.product_url ?? r.source_url, nearestStoreNum); if (u) window.open(u, '_blank', 'noopener'); }}
                 >
                   <div className="card-img">
                     <span className="badge-off">PENNY</span>
@@ -731,7 +746,9 @@ export default function AllDeals() {
               {sel.store.maps_url && <> · <a href={sel.store.maps_url} target="_blank" rel="noreferrer">Directions</a></>}
               {/* The retailer's own listing. Confirms the item is real and
                   carries the photos and specs we deliberately do not mirror. */}
-              {sel.product_url && <> · <a href={sel.product_url} target="_blank" rel="noreferrer">View on {retailerName(sel.retailer)}</a></>}
+              {sel.product_url && <> · <a
+                href={hdStoreUrl(sel.product_url, sel.store_id?.split(':')[1] ?? nearestStoreNum) ?? sel.product_url}
+                target="_blank" rel="noreferrer">View on {retailerName(sel.retailer)}</a></>}
             </p>
 
             {/* Answers "is it near ME", which the sweep cannot: it only knows

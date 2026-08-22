@@ -211,6 +211,12 @@ nearbyDeals.get(
       min_discount: minDiscount,
       count: deals.length,
       nearby_stores: stores.length,
+      // The nearest store's NUMBER — never printed on a card (product rule),
+      // but used inside Home Depot links (?store=NNN) so HD opens already in
+      // the customer's store mode, showing THAT store's shelf availability.
+      // Verified 2026-08-22: the ?store= param switches homedepot.com's store
+      // context (header, pickup section, stock state).
+      nearest_store_number: stores[0]?.store_number ?? null,
       deals,
     });
   }),
