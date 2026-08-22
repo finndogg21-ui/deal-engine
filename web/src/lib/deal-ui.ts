@@ -28,7 +28,7 @@ export function hdStoreUrl(url: string | null, storeNumber: string | null): stri
  * A stranger reads that as broken; name it what it is instead.
  */
 export function displayTitle(title: string): string {
-  const m = title.match(/^HD SKU (\S+)$/);
+  const m = title.match(/^(?:HD )?SKU (\S+)$/i);
   return m ? `Home Depot item #${m[1]}` : title;
 }
 
