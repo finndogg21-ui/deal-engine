@@ -33,6 +33,32 @@ const n = (v: unknown): number | null => {
   return Number.isFinite(x) ? x : null;
 };
 
+/**
+ * Unwrangle is intermittent for Home Depot — the same item returns real data
+ * one call and "Product not found" the next (HD bot protection, hit unevenly).
+ * So retry with backoff and only trust a `success:true` payload. Returns null
+ * when we genuinely could not reach it, so the caller leaves the deal
+ * unverified rather than wrongly deleting it.
+ */
+async function fetchDetail(url: string): Promise<Record<string, unknown> | null> {
+  // ONE attempt. Each call already takes ~35s (live HD scrape), so retries turn
+  // a 10-item run into 20+ minutes. A flaky miss just leaves the deal unverified
+  // for this pass; the next run picks it up (ORDER BY verified_at NULLS FIRST).
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 40_000);
+    const res = await fetch(url, { signal: ctl.signal });
+    clearTimeout(timer);
+    const data = (await res.json()) as Record<string, unknown>;
+    if (data.success === true) {
+      return (data.detail as Record<string, unknown>) ?? data;
+    }
+  } catch {
+    /* timeout or network — treat as unresolved, do not block */
+  }
+  return null;
+}
+
 export async function verifyTopDeals(db: Db, limit = 10): Promise<VerifyResult> {
   const key = process.env.UNWRANGLE_KEY;
   if (!key) throw new Error('UNWRANGLE_KEY is not set — cannot verify.');
@@ -52,67 +78,86 @@ export async function verifyTopDeals(db: Db, limit = 10): Promise<VerifyResult> 
 
   const out: VerifyResult = { checked: 0, confirmed: 0, rejected: 0, errors: 0, details: [] };
 
-  for (const r of rows) {
+  // Run the Unwrangle calls in parallel WAVES. Each call is ~35s (live HD
+  // scrape), so a wave of 5 finishes in ~35s and 10 deals take ~70s — versus
+  // ~6 min sequential. Full 10-at-once is faster still but trips Unwrangle's
+  // rate limit and most calls fail, so 5 is the speed/reliability sweet spot.
+  // Whatever fails stays unverified and the next run retries it (verified_at
+  // NULLS FIRST ordering), so this is safely re-runnable.
+  const CONCURRENCY = 5;
+  const fetched: Array<{ r: Record<string, unknown>; det: Record<string, unknown> | null }> = [];
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const wave = await Promise.all(
+      rows.slice(i, i + CONCURRENCY).map(async (r) => {
+        const q = new URLSearchParams({
+          platform: 'homedepot_detail',
+          item_id: String(r.item_id),
+          store_no: String(r.store_number ?? ''),
+          zipcode: String(r.zip ?? '78232'),
+          api_key: key,
+        });
+        return { r, det: await fetchDetail(`${ENDPOINT}?${q.toString()}`) };
+      }),
+    );
+    fetched.push(...wave);
+  }
+
+  // DB writes are fast and serial — the slow part (the fetches) already ran.
+  for (const { r, det } of fetched) {
     out.checked++;
     const productId = String(r.product_id);
     const storeId = String(r.store_id);
     const wasDisc = n(r.last_discount) ?? 0;
-    try {
-      const q = new URLSearchParams({
-        platform: 'homedepot_detail',
-        item_id: String(r.item_id),
-        store_no: String(r.store_number ?? ''),
-        zipcode: String(r.zip ?? '78232'),
-        api_key: key,
-      });
-      const res = await fetch(`${ENDPOINT}?${q.toString()}`);
-      const data = (await res.json()) as Record<string, unknown>;
-      const det = (data.detail as Record<string, unknown>) ?? data;
 
-      const price = n(det.price);
-      const listPrice = n(det.list_price);
-      const priceReduced = n(det.price_reduced);
-      const qty = n(det.inventory_quantity) ?? n(det.store_inventory_quantity);
-
-      // The "before" price is the largest listed price that is strictly above
-      // the selling price. If nothing is higher, there is no real markdown.
-      const current = price;
-      const candidates = [listPrice, priceReduced].filter((v): v is number => v !== null && current !== null && v > current);
-      const original = candidates.length ? Math.max(...candidates) : null;
-      const realDisc =
-        current !== null && original !== null ? Math.round(((original - current) / original) * 100) : 0;
-      const kept = realDisc >= FLOOR;
-
-      // Save the truth either way: real price/discount/stock + verified stamp.
-      // A hallucinated deal is written as its real 0% self, so it falls under
-      // the floor and leaves the feed instead of lying.
-      if (current !== null) {
-        await db.query(
-          `UPDATE sku_state
-              SET last_price = $3, last_discount = $4, last_stock = $5, verified_at = now()
-            WHERE product_id = $1 AND store_id = $2`,
-          [productId, storeId, current, realDisc, qty],
-        );
-        const origCents = original !== null ? Math.round(original * 100) : null;
-        await db.query(
-          `UPDATE store_inventory
-              SET price_cents = $4, orig_price_cents = $5, discount_pct = $6,
-                  quantity = $7, in_stock = $8, verified_at = now()
-            WHERE retailer = $1 AND sku = $2 AND store_id = $3`,
-          [
-            String(r.retailer), String(r.sku), storeId,
-            Math.round(current * 100), origCents, realDisc,
-            qty, qty === null ? null : qty > 0,
-          ],
-        );
-      }
-
-      if (kept) out.confirmed++;
-      else out.rejected++;
-      out.details.push({ product_id: productId, was_discount: wasDisc, real_price: current, real_discount: realDisc, qty, kept });
-    } catch {
+    if (!det) {
+      // Could not reach an authoritative answer — leave it UNVERIFIED (do not
+      // touch verified_at, do not delete). Unknown is not the same as fake.
       out.errors++;
+      out.details.push({ product_id: productId, was_discount: wasDisc, real_price: null, real_discount: 0, qty: null, kept: false });
+      continue;
     }
+
+    const price = n(det.price);
+    const listPrice = n(det.list_price);
+    const priceReduced = n(det.price_reduced);
+    const qty = n(det.inventory_quantity) ?? n(det.store_inventory_quantity);
+
+    // The "before" price is the largest listed price strictly above the selling
+    // price. If nothing is higher, there is no real markdown.
+    const current = price;
+    const candidates = [listPrice, priceReduced].filter((v): v is number => v !== null && current !== null && v > current);
+    const original = candidates.length ? Math.max(...candidates) : null;
+    const realDisc =
+      current !== null && original !== null ? Math.round(((original - current) / original) * 100) : 0;
+    const kept = realDisc >= FLOOR;
+
+    // Save the truth either way: real price/discount/stock + verified stamp. A
+    // hallucinated deal is written as its real 0% self, so it drops under the
+    // floor and leaves the feed instead of lying.
+    if (current !== null) {
+      await db.query(
+        `UPDATE sku_state
+            SET last_price = $3, last_discount = $4, last_stock = $5, verified_at = now()
+          WHERE product_id = $1 AND store_id = $2`,
+        [productId, storeId, current, realDisc, qty],
+      );
+      const origCents = original !== null ? Math.round(original * 100) : null;
+      await db.query(
+        `UPDATE store_inventory
+            SET price_cents = $4, orig_price_cents = $5, discount_pct = $6,
+                quantity = $7, in_stock = $8, verified_at = now()
+          WHERE retailer = $1 AND sku = $2 AND store_id = $3`,
+        [
+          String(r.retailer), String(r.sku), storeId,
+          Math.round(current * 100), origCents, realDisc,
+          qty, qty === null ? null : qty > 0,
+        ],
+      );
+    }
+
+    if (kept) out.confirmed++;
+    else out.rejected++;
+    out.details.push({ product_id: productId, was_discount: wasDisc, real_price: current, real_discount: realDisc, qty, kept });
   }
 
   return out;
