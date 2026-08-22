@@ -17,6 +17,65 @@ export const communityDeals = Router();
 
 const paid = [requireAuth, requirePlan('consumer', 'reseller')];
 
+/**
+ * GET /api/community-deals/:id — EVERYTHING we know about one report, for the
+ * in-app detail page: the stored columns plus the extras that live only in
+ * the raw source blob (brand, model, UPC, rarity tier, first-reported date,
+ * and the per-state/city sighting breakdown).
+ */
+communityDeals.get(
+  '/community-deals/:id',
+  ...paid,
+  rateLimit({ key: 'community', max: 60, windowMs: 60_000 }),
+  route(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Bad report id.' });
+    const db = await getDb();
+    const { rows } = await db.query<Record<string, unknown>>(
+      `SELECT report_id, source, kind, sku, item_id, title, price, list_price,
+              discount_pct, state, city, store_number, product_url, source_url,
+              image_url, reported_at, fetched_at, raw
+         FROM community_reports WHERE report_id = $1`,
+      [id],
+    );
+    const r = rows[0];
+    if (!r) return res.status(404).json({ error: 'No such report.' });
+
+    // raw is JSONB (object from pg) but may round-trip as a string on PGlite.
+    let raw: Record<string, unknown> = {};
+    try {
+      raw = (typeof r.raw === 'string' ? JSON.parse(r.raw) : (r.raw as Record<string, unknown>)) ?? {};
+    } catch { /* leave empty */ }
+
+    // The sighting breakdown is a nested {STATE:{City:count}} object under a
+    // source-defined key — same structural detection as the ingest.
+    let locations: Record<string, unknown> | null = null;
+    for (const v of Object.values(raw)) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        const entries = Object.entries(v as Record<string, unknown>);
+        if (entries.length > 0 && entries.every(([k, sub]) => k.length <= 3 && !!sub && typeof sub === 'object' && !Array.isArray(sub))) {
+          locations = v as Record<string, unknown>;
+          break;
+        }
+      }
+    }
+
+    const { raw: _raw, ...cols } = r;
+    res.json({
+      ...cols,
+      extras: {
+        brand: raw.brand ?? null,
+        model_number: raw.modelNumber ?? null,
+        upc: raw.upc ?? null,
+        tier: raw.tier ?? null,
+        first_reported_at: raw.firstReportedAt ?? null,
+        date_added: raw.dateAdded ?? null,
+        locations,
+      },
+    });
+  }),
+);
+
 communityDeals.get(
   '/community-deals',
   ...paid,

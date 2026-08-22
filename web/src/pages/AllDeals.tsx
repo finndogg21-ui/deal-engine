@@ -34,6 +34,20 @@ interface CommunityReport {
   stock_reported: number | null;
 }
 
+/** GET /api/community-deals/:id — the full record for the detail page. */
+interface CommunityDetail extends CommunityReport {
+  extras: {
+    brand: string | null;
+    model_number: string | null;
+    upc: string | null;
+    tier: string | null;
+    first_reported_at: string | null;
+    date_added: string | number | null;
+    /** {STATE: {City: sightingCount}} */
+    locations: Record<string, Record<string, number>> | null;
+  };
+}
+
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
 interface NearbyDeal {
   product_id: string;
@@ -291,6 +305,16 @@ export default function AllDeals() {
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
   const [pennyReports, setPennyReports] = useState<CommunityReport[]>([]);
   const [clearanceReports, setClearanceReports] = useState<CommunityReport[]>([]);
+  const [communitySel, setCommunitySel] = useState<CommunityDetail | null>(null);
+
+  // Click a penny card → the in-app detail page with EVERYTHING we know.
+  const openCommunity = useCallback(async (id: number) => {
+    try {
+      const r = await fetch(`/api/community-deals/${id}`);
+      const body = await r.json().catch(() => null);
+      if (r.ok && body) { setSel(null); setCommunitySel(body as CommunityDetail); }
+    } catch { /* leave the page as-is */ }
+  }, []);
   // The nearest store's number for THIS ZIP — used only inside Home Depot
   // links (?store=NNN) so HD opens in the customer's store mode. Never shown.
   const [nearestStoreNum, setNearestStoreNum] = useState<string | null>(null);
@@ -301,7 +325,12 @@ export default function AllDeals() {
   const [loadError, setLoadError] = useState<{ kind: 'upgrade' | 'error'; message: string } | null>(null);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
 
-  const [tab, setTab] = useState<TabId>('all');
+  // Home Depot is pennies-first (founder decision 2026-08-22): the app opens
+  // on the Penny track; ?tab=all / ?tab=near deep-link the other views.
+  const [tab, setTab] = useState<TabId>(() => {
+    const q = new URLSearchParams(window.location.search).get('tab');
+    return q === 'all' || q === 'near' || q === 'penny' ? q : 'penny';
+  });
   const [store, setStore] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('score');
@@ -668,7 +697,7 @@ export default function AllDeals() {
                 <button
                   key={r.report_id}
                   className="card-deal"
-                  onClick={() => { const u = hdStoreUrl(r.product_url ?? r.source_url, nearestStoreNum); if (u) window.open(u, '_blank', 'noopener'); }}
+                  onClick={() => void openCommunity(r.report_id)}
                 >
                   <div className="card-img">
                     <span className="badge-off">PENNY</span>
@@ -691,7 +720,7 @@ export default function AllDeals() {
                         {r.sku ? ` · SKU ${r.sku}` : ''}
                       </span>
                     </div>
-                    <span className="card-cta">Check on Home Depot</span>
+                    <span className="card-cta">See all the details</span>
                   </div>
                 </button>
               ))}
@@ -722,7 +751,7 @@ export default function AllDeals() {
           {shown.map((c) => (
             <DealCard key={`${c.product_id}|${c.store_id}`} c={c}
               selected={!!sel && sel.product_id === c.product_id && sel.store_id === c.store_id}
-              onOpen={() => void open(c)} />
+              onOpen={() => { setCommunitySel(null); void open(c); }} />
           ))}
 
           {/* Community deep-clearance reports — other crowds' store-specific
@@ -769,6 +798,56 @@ export default function AllDeals() {
             </>
           )}
         </div>
+
+        {communitySel && !sel && (
+          <div className="detail">
+            <h2>{communitySel.extras.brand ? `${communitySel.extras.brand} ` : ''}{communitySel.title}</h2>
+            <p className="sub">
+              Home Depot penny report
+              {communitySel.extras.tier ? ` · ${communitySel.extras.tier}` : ''}
+              {' · via '}{communitySel.source}
+            </p>
+
+            {communitySel.image_url && (
+              <img src={communitySel.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, margin: '8px 0' }} />
+            )}
+
+            <div className="grid">
+              <div className="cell"><div className="k">Rings up</div><div className="v">$0.01</div></div>
+              <div className="cell"><div className="k">Retail</div><div className="v">{communitySel.list_price !== null ? money(Number(communitySel.list_price)) : '—'}</div></div>
+              <div className="cell"><div className="k">SKU</div><div className="v">{communitySel.sku ?? '—'}</div></div>
+              <div className="cell"><div className="k">Internet #</div><div className="v">{communitySel.item_id ?? '—'}</div></div>
+              <div className="cell"><div className="k">Model</div><div className="v">{communitySel.extras.model_number ?? '—'}</div></div>
+              <div className="cell"><div className="k">UPC</div><div className="v">{communitySel.extras.upc ?? '—'}</div></div>
+              <div className="cell"><div className="k">First reported</div><div className="v">{communitySel.extras.first_reported_at ? ago(communitySel.extras.first_reported_at) : '—'}</div></div>
+              <div className="cell"><div className="k">Last seen</div><div className="v">{communitySel.reported_at ? ago(communitySel.reported_at) : '—'}</div></div>
+            </div>
+
+            {communitySel.extras.locations && Object.keys(communitySel.extras.locations).length > 0 && (
+              <>
+                <h3 style={{ margin: '14px 0 6px' }}>Where it's been found</h3>
+                <p className="sub" style={{ margin: 0 }}>
+                  {Object.entries(communitySel.extras.locations).map(([st, cities]) =>
+                    `${st}: ${Object.entries(cities).map(([city, n]) => `${city} ×${n}`).join(', ')}`
+                  ).join(' · ')}
+                </p>
+              </>
+            )}
+
+            <p className="sub" style={{ marginTop: 12 }}>
+              Penny status is store-specific and never guaranteed. It won't show as
+              $0.01 online — scan the SKU or UPC in store to confirm.
+            </p>
+
+            <p style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+              {communitySel.product_url && (
+                <a className="btn" href={hdStoreUrl(communitySel.product_url, nearestStoreNum) ?? communitySel.product_url}
+                  target="_blank" rel="noreferrer">Open at your store on Home Depot</a>
+              )}
+              <button className="btn" onClick={() => setCommunitySel(null)}>Close</button>
+            </p>
+          </div>
+        )}
 
         {sel && (
           <div className="detail">

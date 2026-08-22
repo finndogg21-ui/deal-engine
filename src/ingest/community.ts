@@ -149,6 +149,19 @@ export async function fetchPennyCentral(): Promise<CommunityReport[]> {
         const title = String(r.title ?? r.name ?? r.productName ?? '').trim() || `HD SKU ${sku ?? itemId ?? '?'}`;
         const seen = r.lastSeenAt ?? r.last_seen ?? r.lastSeen ?? null;
         if (!sku && !itemId) continue;
+        // Sighting locations: a nested {STATE: {City: count}} object under a
+        // key we don't hardcode — detect it structurally and keep the state
+        // list in the state column ("MN,TX"); the full breakdown stays in raw.
+        let locStates: string | null = null;
+        for (const v of Object.values(r)) {
+          if (v && typeof v === 'object' && !Array.isArray(v)) {
+            const entries = Object.entries(v as Record<string, unknown>);
+            if (entries.length > 0 && entries.every(([k, sub]) => k.length <= 3 && !!sub && typeof sub === 'object' && !Array.isArray(sub))) {
+              locStates = entries.map(([k]) => k).join(',');
+              break;
+            }
+          }
+        }
         reports.push({
           source: 'pennycentral', kind: 'penny',
           dedupeKey: sku ?? itemId!,
@@ -157,7 +170,7 @@ export async function fetchPennyCentral(): Promise<CommunityReport[]> {
           listPrice: num(r.originalPrice ?? r.retailPrice),
           // A penny IS ~100% off whatever it was; recorded so feed floors pass.
           discountPct: 100,
-          state: r.state != null ? String(r.state) : null,
+          state: locStates ?? (r.state != null ? String(r.state) : null),
           city: r.city != null ? String(r.city) : null,
           storeNumber: r.storeNumber != null ? String(r.storeNumber) : null,
           productUrl: typeof r.homeDepotUrl === 'string' ? r.homeDepotUrl : hdUrl(itemId),

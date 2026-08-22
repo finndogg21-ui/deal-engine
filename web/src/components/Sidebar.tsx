@@ -60,7 +60,9 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
           <NavLink to="/app/deals/homedepot" className={cls}><Icon d={I.store} />Home Depot</NavLink>
           <NavLink to="/app/deals/lowes" className={cls}><Icon d={I.store} />Lowe&apos;s</NavLink>
         </div>
-        <NavLink to="/app/penny" className={cls}><Icon d={I.penny} />Penny deals</NavLink>
+        {/* Points at the Penny track (community reports + ladder candidates),
+            not the literal-ladder page — one penny surface, not two. */}
+        <NavLink to="/app?tab=penny" className={cls}><Icon d={I.penny} />Penny deals</NavLink>
 
         <div className="sb-sec">Stock check</div>
         {RETAILERS.map((r) => (
