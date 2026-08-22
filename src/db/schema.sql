@@ -556,3 +556,10 @@ CREATE TABLE IF NOT EXISTS zip_centroids (
   lat  DOUBLE PRECISION NOT NULL,
   lng  DOUBLE PRECISION NOT NULL
 );
+
+-- Deal verification: when a deal's price/stock was confirmed against an
+-- authoritative source (Unwrangle), not just the hallucination-prone sweep.
+-- NULL = never verified (show cautiously); a timestamp = these numbers are real
+-- as of then. See src/engine/verify-deals.ts.
+ALTER TABLE sku_state       ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+ALTER TABLE store_inventory ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;

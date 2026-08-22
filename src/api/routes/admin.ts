@@ -174,6 +174,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { runScan } from '../../ingest/run-scan.js';
 import { rebuild } from '../../engine/rebuild.js';
 import { refreshNearbyFeed } from '../../engine/project-inventory.js';
+import { verifyTopDeals } from '../../engine/verify-deals.js';
 
 /**
  * Triggers the daily pipeline (scan, then score rebuild) inside THIS process.
@@ -216,4 +217,17 @@ admin.post('/admin/scan', route(async (req, res) => {
   } finally {
     scanInFlight = false;
   }
+}));
+
+/**
+ * Verify the top-N deals against Unwrangle and save the truth. Same auth as the
+ * scan. Costs Unwrangle credits (one per deal), so it is a separate, explicit
+ * call — not part of every scan.
+ */
+admin.post('/admin/verify', route(async (req, res) => {
+  if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
+  const nRaw = Number(req.query.n ?? 10);
+  const n = Math.min(Math.max(Number.isFinite(nRaw) ? nRaw : 10, 1), 50);
+  const result = await verifyTopDeals(await getDb(), n);
+  res.json(result);
 }));
