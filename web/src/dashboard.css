@@ -450,6 +450,43 @@
 /* Long mono values (SKUs, internet numbers) must never clip in cells. */
 .cell .v { font-size: 15px; overflow-wrap: anywhere; }
 
+/* ---- SBB cycle 2026-08-22: penny page, ZIP nudge, trial CTA ---- */
+
+.zip-nudge {
+  display: block; width: 100%; text-align: left;
+  font-family: var(--mono); font-size: 13.5px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--paper-sunk); color: var(--ink);
+  border: 1px dashed var(--ink); padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4); cursor: pointer;
+}
+.zip-nudge:hover { background: var(--ink); color: var(--paper); border-style: solid; }
+
+.tape-trial {
+  font-family: var(--display); font-size: 13px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border: 1px solid var(--ink); color: var(--ink); text-decoration: none;
+  padding: var(--s2) var(--s3); min-height: 40px; display: inline-flex; align-items: center;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tape-trial:hover { background: var(--ink); color: var(--paper); text-decoration: none; }
+
+.penny-page { max-width: 720px; }
+.pp-back {
+  font-family: var(--mono); font-size: 13.5px; font-weight: 600;
+  background: none; border: 0; color: var(--ink); cursor: pointer;
+  padding: var(--s4) 0 var(--s3); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.pp-back:hover { text-decoration: underline; }
+.pp-detail { position: static; }
+.pp-loading { font-family: var(--mono); color: var(--ink-faint); padding: var(--s6) 0; }
+.pp-cta {
+  margin-top: var(--s5); border-top: 2px solid var(--ink); padding-top: var(--s4);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap;
+}
+.pp-cta-line { margin: 0; font-size: 15px; max-width: 40ch; }
+.pp-cta-btn { background: var(--ink); color: var(--paper); border: 1px solid var(--ink); }
+
 /* ---- Discipline ---- */
 
 @media (prefers-reduced-motion: reduce) {

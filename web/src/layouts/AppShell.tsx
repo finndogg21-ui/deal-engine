@@ -33,6 +33,8 @@ export default function AppShell() {
       <header className="tape-head">
         <Link to="/app" className="tape-mark">{BRAND.toUpperCase()}</Link>
         <div className="tape-zip"><ZipBar /></div>
+        {/* The one standing trial pitch — quiet, bordered, inverts on hover. */}
+        <Link to="/signup" className="tape-trial">Start free trial</Link>
         <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
       </header>
       <main className="app-main">

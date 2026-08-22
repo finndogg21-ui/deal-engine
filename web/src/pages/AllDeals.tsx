@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { money, ago, hdStoreUrl, displayTitle, statesLine } from '../lib/deal-ui.js';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
@@ -32,20 +33,6 @@ interface CommunityReport {
   reported_at: string | null;
   /** Reported shelf count at the reported store (clearance rows). */
   stock_reported: number | null;
-}
-
-/** GET /api/community-deals/:id — the full record for the detail page. */
-interface CommunityDetail extends CommunityReport {
-  extras: {
-    brand: string | null;
-    model_number: string | null;
-    upc: string | null;
-    tier: string | null;
-    first_reported_at: string | null;
-    date_added: string | number | null;
-    /** {STATE: {City: sightingCount}} */
-    locations: Record<string, Record<string, number>> | null;
-  };
 }
 
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
@@ -127,7 +114,6 @@ interface Coverage {
   message: string;
 }
 
-const money = (n: number | null) => (n === null ? 'Unknown' : `$${n.toFixed(2)}`);
 const pct = (n: number | null) => (n === null ? 'Unknown' : `${Math.round(n)}%`);
 
 /** Stock line for the nearby feed — shown even when 0 or unknown. This is the
@@ -140,15 +126,8 @@ function stockText(s: { qty: number | null; store: string | null; distance_mi: n
   return `${s.qty} in stock · ${where}`;
 }
 
-/** "5 hr ago". People judge freshness constantly on this screen. */
-function ago(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs} hr ago`;
-  const days = Math.round(hrs / 24);
-  return days === 1 ? 'yesterday' : `${days} days ago`;
-}
+/* money / ago / hdStoreUrl / displayTitle / statesLine live in lib/deal-ui.ts,
+   shared with the penny detail page. */
 
 const STAGES = [
   { code: 's20', label: '20% off' },
@@ -176,17 +155,6 @@ function Ph() {
       <path d="M3 15l5-4 4 3 3-2 6 4" />
     </svg>
   );
-}
-
-/**
- * Append ?store=NNN to a homedepot.com URL so HD opens already in that store's
- * mode (header, pickup section, and stock state all switch — verified live
- * 2026-08-22). Non-HD URLs (e.g. a Slickdeals thread) pass through untouched.
- */
-function hdStoreUrl(url: string | null, storeNumber: string | null): string | null {
-  if (!url) return null;
-  if (!storeNumber || !/homedepot\.com/i.test(url)) return url;
-  return url + (url.includes('?') ? '&' : '?') + 'store=' + encodeURIComponent(storeNumber);
 }
 
 function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: boolean; onOpen: () => void; idx?: number }) {
@@ -306,16 +274,9 @@ export default function AllDeals() {
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
   const [pennyReports, setPennyReports] = useState<CommunityReport[]>([]);
   const [clearanceReports, setClearanceReports] = useState<CommunityReport[]>([]);
-  const [communitySel, setCommunitySel] = useState<CommunityDetail | null>(null);
-
-  // Click a penny card → the in-app detail page with EVERYTHING we know.
-  const openCommunity = useCallback(async (id: number) => {
-    try {
-      const r = await fetch(`/api/community-deals/${id}`);
-      const body = await r.json().catch(() => null);
-      if (r.ok && body) { setSel(null); setCommunitySel(body as CommunityDetail); }
-    } catch { /* leave the page as-is */ }
-  }, []);
+  // Penny cards navigate to their own PAGE (/app/p/:id) — founder-mandated;
+  // it also makes every penny a shareable URL.
+  const nav = useNavigate();
   // The nearest store's number for THIS ZIP — used only inside Home Depot
   // links (?store=NNN) so HD opens in the customer's store mode. Never shown.
   const [nearestStoreNum, setNearestStoreNum] = useState<string | null>(null);
@@ -585,6 +546,21 @@ export default function AllDeals() {
 
   return (
     <div className="dash">
+      {/* The activation moment must not be silent: a passive nudge (never a
+          modal) that focuses the header ZIP input. */}
+      {!appZip && (
+        <button
+          className="zip-nudge"
+          onClick={() => {
+            const el = document.querySelector<HTMLInputElement>('input[aria-label="ZIP code used for every stock check"]');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el?.focus();
+          }}
+        >
+          Set your ZIP to see stock near you →
+        </button>
+      )}
+
       {/* THE TAPE: one Find page, two spools. The header row is the toggle
           plus search; chips/sort/density controls are culled — the feed's
           default order IS the product's opinion. */}
@@ -616,7 +592,7 @@ export default function AllDeals() {
         </span>
       </div>
 
-      <div className={`deckwrap${sel || communitySel ? ' with-detail' : ''}`}>
+      <div className={`deckwrap${sel ? ' with-detail' : ''}`}>
         {/* Keyed by tab: switching spools tears the old tape off and prints
             the new one (CSS: .deck animation). */}
         <div className="deck" key={tab}>
@@ -657,7 +633,7 @@ export default function AllDeals() {
                   key={r.report_id}
                   className="card-deal invert"
                   style={{ '--i': Math.min(i, 16) } as CSSProperties}
-                  onClick={() => void openCommunity(r.report_id)}
+                  onClick={() => nav(`/app/p/${r.report_id}`)}
                 >
                   <div className="card-img">
                     <span className="badge-off">PENNY</span>
@@ -665,14 +641,14 @@ export default function AllDeals() {
                   </div>
                   <div className="card-body">
                     <span className="retailer">Home Depot</span>
-                    <p className="card-title">{r.title}</p>
+                    <p className="card-title">{displayTitle(r.title)}</p>
                     <div className="card-price">
                       <span className="now">$0.01</span>
                       {r.list_price !== null && <span className="was">Was <b>{money(Number(r.list_price))}</b></span>}
                     </div>
                     <div className="card-facts">
                       <span className="card-possible">
-                        Reported {r.state ? `in ${r.state}` : 'by the community'}
+                        Reported {r.state ? `in ${statesLine(r.state)}` : 'by the community'}
                         {r.store_number ? ` · Store #${r.store_number}` : ''}
                       </span>
                       <span>
@@ -711,7 +687,7 @@ export default function AllDeals() {
           {shown.map((c, i) => (
             <DealCard key={`${c.product_id}|${c.store_id}`} c={c} idx={i}
               selected={!!sel && sel.product_id === c.product_id && sel.store_id === c.store_id}
-              onOpen={() => { setCommunitySel(null); void open(c); }} />
+              onOpen={() => void open(c)} />
           ))}
 
           {/* Community deep-clearance reports — other crowds' store-specific
@@ -759,70 +735,6 @@ export default function AllDeals() {
             </>
           )}
         </div>
-
-        {communitySel && !sel && (
-          <div className="detail" key={communitySel.report_id} ref={(el) => {
-            // On narrow screens the detail stacks under the card grid — bring
-            // it into view on open, or the click looks like it did nothing.
-            if (el && !el.dataset.scrolled) { el.dataset.scrolled = '1'; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-          }}>
-            <h2>{communitySel.extras.brand && !communitySel.title.toLowerCase().startsWith(communitySel.extras.brand.toLowerCase())
-              ? `${communitySel.extras.brand} ` : ''}{communitySel.title}</h2>
-            <p className="sub">
-              Home Depot penny report
-              {communitySel.extras.tier ? ` · ${communitySel.extras.tier}` : ''}
-              {' · via '}{communitySel.source}
-            </p>
-
-            {communitySel.image_url && (
-              <img src={communitySel.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, margin: '8px 0' }} />
-            )}
-
-            {/* The $0.01 replay — the register moment, printed. Real data only:
-                the retail price, then the reported ring-up. (CSS staggers the
-                lines; reduced-motion shows them instantly.) */}
-            <div className="ring-replay">
-              {communitySel.list_price !== null && (
-                <div className="rr-line">RETAIL {money(Number(communitySel.list_price))}</div>
-              )}
-              <div className="rr-line rr-dots">REPORTED AT REGISTER</div>
-              <div className="rr-slam">$0.01</div>
-            </div>
-
-            <div className="grid">
-              <div className="cell"><div className="k">SKU</div><div className="v">{communitySel.sku ?? '—'}</div></div>
-              <div className="cell"><div className="k">Internet #</div><div className="v">{communitySel.item_id ?? '—'}</div></div>
-              <div className="cell"><div className="k">Model</div><div className="v">{communitySel.extras.model_number ?? '—'}</div></div>
-              <div className="cell"><div className="k">UPC</div><div className="v">{communitySel.extras.upc ?? '—'}</div></div>
-              <div className="cell"><div className="k">First reported</div><div className="v">{communitySel.extras.first_reported_at ? ago(communitySel.extras.first_reported_at) : '—'}</div></div>
-              <div className="cell"><div className="k">Last seen</div><div className="v">{communitySel.reported_at ? ago(communitySel.reported_at) : '—'}</div></div>
-            </div>
-
-            {communitySel.extras.locations && Object.keys(communitySel.extras.locations).length > 0 && (
-              <>
-                <h3 style={{ margin: '14px 0 6px' }}>Where it's been found</h3>
-                <p className="sub" style={{ margin: 0 }}>
-                  {Object.entries(communitySel.extras.locations).map(([st, cities]) =>
-                    `${st}: ${Object.entries(cities).map(([city, n]) => `${city} ×${n}`).join(', ')}`
-                  ).join(' · ')}
-                </p>
-              </>
-            )}
-
-            <p className="sub" style={{ marginTop: 12 }}>
-              Penny status is store-specific and never guaranteed. It won't show as
-              $0.01 online — scan the SKU or UPC in store to confirm.
-            </p>
-
-            <p style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
-              {communitySel.product_url && (
-                <a className="btn" href={hdStoreUrl(communitySel.product_url, nearestStoreNum) ?? communitySel.product_url}
-                  target="_blank" rel="noreferrer">Open at your store on Home Depot</a>
-              )}
-              <button className="btn" onClick={() => setCommunitySel(null)}>Close</button>
-            </p>
-          </div>
-        )}
 
         {sel && (
           <div className="detail">

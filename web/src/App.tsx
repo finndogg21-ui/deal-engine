@@ -16,6 +16,7 @@ import { SignIn, SignUp, Forgot, Reset, ConfirmDelete } from './pages/site/Auth.
 
 import Welcome from './pages/app/Welcome.js';
 import AllDeals from './pages/AllDeals.js';
+import PennyDealPage from './pages/PennyDealPage.js';
 import Admin from './pages/app/Admin.js';
 
 /** Placeholder. One constant, one edit when the real name is picked. */
@@ -66,6 +67,8 @@ export default function App() {
       <Route path="/app" element={<AppShell />}>
         <Route index element={<AllDeals />} />
         <Route path="penny" element={<Navigate to="/app?tab=penny" replace />} />
+        {/* Every penny report is its own shareable page. */}
+        <Route path="p/:reportId" element={<PennyDealPage />} />
         <Route path="admin" element={<Admin />} />
         {/* Alert and penny-watch deep links land here. On a phone this is a
             pushed route rather than a squeezed side panel (F10). */}
