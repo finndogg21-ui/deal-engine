@@ -176,6 +176,7 @@ import { rebuild } from '../../engine/rebuild.js';
 import { refreshNearbyFeed } from '../../engine/project-inventory.js';
 import { verifyTopDeals } from '../../engine/verify-deals.js';
 import { ingestCommunity } from '../../ingest/community.js';
+import { seedDiscovery, pendingChecks, recordVerdicts, type HdVerdictInput } from '../../engine/discovery.js';
 
 /**
  * Triggers the daily pipeline (scan, then score rebuild) inside THIS process.
@@ -236,6 +237,37 @@ admin.post('/admin/scan', route(async (req, res) => {
   })();
 
   res.status(202).json({ status: 'started' });
+}));
+
+/* ------------------------------------------------- discovery pool + publish */
+
+/**
+ * The scheduled checker's three calls. Home Depot blocks our SERVER (Akamai,
+ * verified: HTTP 206 "Generic errors") but answers a browser, so the agent
+ * runs the HD calls itself and posts the facts back here. The server owns the
+ * pool and the judgement; the browser is only the messenger.
+ */
+
+/** POST /api/admin/discovery/seed — sweep + community candidates into the pool. */
+admin.post('/admin/discovery/seed', route(async (req, res) => {
+  if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
+  res.json(await seedDiscovery(await getDb()));
+}));
+
+/** GET /api/admin/discovery/pending?n= — what to ask Home Depot about next. */
+admin.get('/admin/discovery/pending', route(async (req, res) => {
+  if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
+  const nRaw = Number(req.query.n ?? 25);
+  const n = Math.min(Math.max(Number.isFinite(nRaw) ? nRaw : 25, 1), 100);
+  res.json({ items: await pendingChecks(await getDb(), n) });
+}));
+
+/** POST /api/admin/discovery/verdicts — HD's answers; publishes or rejects. */
+admin.post('/admin/discovery/verdicts', route(async (req, res) => {
+  if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
+  const body = req.body as { verdicts?: HdVerdictInput[] };
+  if (!Array.isArray(body?.verdicts)) return res.status(400).json({ error: 'verdicts[] required.' });
+  res.json(await recordVerdicts(await getDb(), body.verdicts.slice(0, 200)));
 }));
 
 /**

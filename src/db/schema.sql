@@ -599,3 +599,48 @@ CREATE TABLE IF NOT EXISTS community_reports (
   UNIQUE (source, dedupe_key)
 );
 CREATE INDEX IF NOT EXISTS idx_community_kind ON community_reports (kind, reported_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- DISCOVERY POOL — every deal we have ever found, from any source, BEFORE it
+-- is allowed in front of a customer.
+--
+-- The rule this table enforces: nothing reaches the feed on a scraper's word.
+-- A row lands here as `pending`, a checker later asks Home Depot's own
+-- store-level endpoint what the price and shelf quantity really are, and only
+-- then does the row become `published` (real + worth a drive) or `rejected`
+-- (the markdown was fabricated, or it is not worth the gas).
+--
+-- Every prior fabrication this project shipped — the $7.03 strip light, the
+-- "138 in stock" fridge packages, the 1,006-unit washer, RebelSavings' whole
+-- synthetic catalog — would have died in this table instead of on the site.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS discovery (
+  discovery_id BIGSERIAL PRIMARY KEY,
+  retailer     TEXT NOT NULL DEFAULT 'homedepot',
+  item_id      TEXT NOT NULL,              -- HD internet number: the verify key
+  sku          TEXT,
+  title        TEXT,
+  image_url    TEXT,
+  product_url  TEXT,
+  source       TEXT NOT NULL,              -- 'apify' | 'pennycentral' | 'slickdeals' | 'hd-search'
+  found_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  -- What the SOURCE claimed (never shown as fact).
+  claimed_price     NUMERIC(10,2),
+  claimed_list      NUMERIC(10,2),
+  claimed_discount  NUMERIC(5,2),
+
+  -- What HOME DEPOT said, per store (the truth layer).
+  status        TEXT NOT NULL DEFAULT 'pending',  -- pending | published | rejected | unreachable
+  checked_at    TIMESTAMPTZ,
+  hd_price      NUMERIC(10,2),
+  hd_list       NUMERIC(10,2),
+  hd_discount   NUMERIC(5,2),
+  hd_store_id   TEXT,                      -- the store the quantity belongs to
+  hd_quantity   INTEGER,
+  reject_reason TEXT,
+  publish_at    TIMESTAMPTZ,
+  UNIQUE (retailer, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_discovery_status ON discovery (status, found_at DESC);
+CREATE INDEX IF NOT EXISTS idx_discovery_pending ON discovery (checked_at NULLS FIRST) WHERE status = 'pending';
