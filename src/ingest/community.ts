@@ -293,17 +293,53 @@ export async function fetchRebelSavings(): Promise<CommunityReport[]> {
 
 /* ------------------------------------------------------------------- runner */
 
+/**
+ * looksFabricated, community edition. RebelSavings passed every surface check
+ * (open robots, free site, plausible-looking records) and was still 100%
+ * synthetic — proven 2026-08-22: its item IDs 404 on Home Depot, the brand in
+ * each product URL contradicts the brand in the title ("Husky" wrench linking
+ * to /p/Glacier-Bay-…), cities are paired with wrong states, coordinates plot
+ * in Mexico. The tell that needs no HD call: on a REAL record the product-URL
+ * slug is built from the product's own title, so their tokens overlap; on the
+ * fake they share nothing. Require overlap on every HD-linked row, and if most
+ * of a batch fails, reject the whole source.
+ */
+function slugMatchesTitle(productUrl: string | null | undefined, title: string): boolean | null {
+  if (!productUrl || !/homedepot\.com\/p\//i.test(productUrl)) return null; // not checkable
+  const m = productUrl.match(/\/p\/(?:[^/]*\/)?([A-Za-z0-9-]+?)(?:\/\d+)?(?:[?#]|$)/);
+  if (!m) return null;
+  const slugTokens = new Set(m[1]!.toLowerCase().split('-').filter((t) => t.length >= 3 && !/^\d+$/.test(t)));
+  if (slugTokens.size === 0) return null; // bare-id URL (our own hdUrl fallback) — nothing to compare
+  const titleTokens = title.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
+  const overlap = titleTokens.filter((t) => slugTokens.has(t)).length;
+  return overlap >= Math.min(2, slugTokens.size);
+}
+
 export async function ingestCommunity(db: Db): Promise<Array<{ source: string; fetched: number; kept: number; error?: string }>> {
   const sources: Array<[string, () => Promise<CommunityReport[]>]> = [
     ['pennycentral', fetchPennyCentral],
     ['slickdeals', fetchSlickdeals],
-    ['rebelsavings', fetchRebelSavings],
+    // rebelsavings REMOVED 2026-08-22: its entire dataset is synthetic (see
+    // slugMatchesTitle above). The adapter stays in the file as evidence and
+    // in case they ever ship real data, but it must not feed the app.
   ];
   const out: Array<{ source: string; fetched: number; kept: number; error?: string }> = [];
 
   for (const [name, fetcher] of sources) {
     try {
-      const reports = await fetcher();
+      let reports = await fetcher();
+
+      // Batch-level fabrication gate: score checkable rows; if most fail the
+      // slug↔title consistency test, the SOURCE is lying — drop everything.
+      const checks = reports.map((r) => slugMatchesTitle(r.productUrl, r.title)).filter((v): v is boolean => v !== null);
+      const failRate = checks.length > 0 ? checks.filter((v) => !v).length / checks.length : 0;
+      if (checks.length >= 5 && failRate > 0.5) {
+        out.push({ source: name, fetched: reports.length, kept: 0, error: `REFUSED — ${Math.round(failRate * 100)}% of product URLs contradict their titles (fabrication signature)` });
+        continue;
+      }
+      // Row-level: drop individual rows that fail the same test.
+      reports = reports.filter((r) => slugMatchesTitle(r.productUrl, r.title) !== false);
+
       let kept = 0;
       for (const r of reports) {
         // Clearance hearsay must still clear the tiered floor; unknown-discount
