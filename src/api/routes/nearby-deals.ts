@@ -28,6 +28,8 @@ import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
 import { nearbyStores, type NearbyStore } from '../../geo/nearby.js';
+import { EXCLUDE_BUNDLES_SQL } from '../../engine/bundle.js';
+import { tieredFloorSql } from '../../engine/deal-floor.js';
 
 export const nearbyDeals = Router();
 
@@ -122,6 +124,11 @@ nearbyDeals.get(
          JOIN products p ON p.product_id = s.product_id
         WHERE COALESCE(s.last_discount, 0) >= $1
           AND ($2::text IS NULL OR p.retailer = $2)
+          -- Price-tiered floor: cheap items must be marked down harder to be a
+          -- real reseller deal. See deal-floor.ts.
+          AND ${tieredFloorSql('s.last_price', 's.last_discount')}
+          -- Delivery-only bundles have no real shelf stock; hide them. See bundle.ts.
+          AND ${EXCLUDE_BUNDLES_SQL}
         ORDER BY s.product_id, s.last_discount DESC NULLS LAST`,
       [minDiscount, retailer],
     );

@@ -12,6 +12,8 @@ import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getDb } from '../db/client.js';
 import { confidenceLabel } from '../engine/score.js';
+import { EXCLUDE_BUNDLES_SQL } from '../engine/bundle.js';
+import { tieredFloorSql } from '../engine/deal-floor.js';
 import { cookies, loadUser, requireAuth, requirePlan, rateLimit, route } from './middleware.js';
 import { auth } from './routes/auth.js';
 import { contact } from './routes/contact.js';
@@ -173,6 +175,11 @@ app.get('/api/candidates', ...paid, async (req, res) => {
         WHERE s.penny_score >= $1
           AND COALESCE(s.last_discount, 0) >= $2
           AND ($3::text IS NULL OR s.stage = $3)
+          -- Price-tiered floor: cheap items must be marked down harder to be a
+          -- real reseller deal. See deal-floor.ts.
+          AND ${tieredFloorSql('s.last_price', 's.last_discount')}
+          -- Delivery-only bundles have no real shelf stock; hide them. See bundle.ts.
+          AND ${EXCLUDE_BUNDLES_SQL}
           AND ($5::boolean IS NOT TRUE
                -- Walked the ladder, delisted, stock still on the shelf.
                OR s.stage = 'penny_candidate'

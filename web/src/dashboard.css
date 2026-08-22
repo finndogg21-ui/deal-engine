@@ -328,3 +328,5 @@
 /* A card is a claim about a PRICE, never about a shelf. Stock is only ever
    stated after a live check for the user's own ZIP. */
 .card-possible { color: var(--accent-text); font-weight: 600; }
+/* The per-ZIP stock line that appears under the hedge the moment a ZIP is set. */
+.card-stock { font-weight: 500; }

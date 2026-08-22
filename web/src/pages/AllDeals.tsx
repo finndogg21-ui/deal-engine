@@ -4,6 +4,7 @@ import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
 import { useAuth } from '../lib/auth.js';
+import { getLocalZip, onZipChange } from '../lib/zip.js';
 import '../dashboard.css';
 
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
@@ -177,14 +178,12 @@ function DealCard({ c, selected, onOpen }: { c: Candidate; selected: boolean; on
             invites a wasted drive. Stock is resolved on the detail page, for
             the ZIP the person actually types. */}
         <div className="card-facts">
-          {c.near_stock ? (
-            <span className="card-possible">{stockText(c.near_stock)}</span>
-          ) : (
-            <>
-              <span className="card-possible">Possible deal · check your store</span>
-              <span>seen {ago(c.last_seen_at)}</span>
-            </>
-          )}
+          {/* The hedge always leads; when a ZIP is set, the local stock line
+              appears right under it, instantly, for every card (no click). */}
+          <span className="card-possible">Possible deal · check your store</span>
+          {c.near_stock
+            ? <span className="card-stock">{stockText(c.near_stock)}</span>
+            : <span>seen {ago(c.last_seen_at)}</span>}
         </div>
 
         <span className="card-cta">
@@ -239,7 +238,16 @@ export default function AllDeals() {
   const { productId, storeId } = useParams();
 
   const { me } = useAuth();
-  const appZip = me?.zip ?? null;
+  // Effective ZIP for the "Closest to me" feed: the signed-in account ZIP if we
+  // have one, otherwise the locally-entered ZIP (PUBLIC_PREVIEW has no
+  // persistable account). Reactive to same-tab ZIP saves, so the feed loads the
+  // moment a visitor sets a ZIP — with or without an account.
+  const [appZip, setAppZip] = useState<string | null>(me?.zip ?? getLocalZip());
+  useEffect(() => {
+    const sync = () => setAppZip(me?.zip ?? getLocalZip());
+    sync();
+    return onZipChange(sync);
+  }, [me?.zip]);
 
   const [rows, setRows] = useState<Candidate[]>([]);
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
@@ -374,12 +382,28 @@ export default function AllDeals() {
   useEffect(() => { void loadStats(); }, [loadStats]);
   useEffect(() => { if (appZip) void loadNear(appZip); }, [appZip, loadNear]);
 
+  /**
+   * INSTANT STOCK ON EVERY CARD. The moment a ZIP is set, nearRows (already
+   * fetched for "Closest to me") carries this ZIP's per-store stock for every
+   * catalog deal. Index it by product so ALL tabs can show the stock line
+   * under "Possible deal · check your store" with no extra click and no
+   * vendor call — the Hidden Clearances behavior.
+   */
+  const nearStockByProduct = useMemo(() => {
+    const m = new Map<string, Candidate['near_stock']>();
+    for (const c of nearRows) if (c.near_stock) m.set(c.product_id, c.near_stock);
+    return m;
+  }, [nearRows]);
+
   /* Filtering happens here, against data already fetched. No user action ever
    * triggers a vendor call, which is why cost stays flat as users grow. */
   const shown = useMemo(() => {
     // "Closest to me" is the national catalog with local stock (from nearby);
-    // the other tabs filter the store-level candidate list.
-    let out = tab === 'near' ? nearRows : rows;
+    // the other tabs filter the store-level candidate list — enriched with the
+    // same per-ZIP stock line so it shows instantly everywhere.
+    let out = tab === 'near'
+      ? nearRows
+      : rows.map((c) => c.near_stock ? c : { ...c, near_stock: nearStockByProduct.get(c.product_id) });
     // The store chips carry lib slugs like "home-depot", but the API's
     // `retailer` field is the hyphen-less "homedepot". Compare both forms, or
     // the Home Depot chip silently filters to zero deals.
@@ -418,7 +442,7 @@ export default function AllDeals() {
     sorted.sort((a, b) => goneLast(a) - goneLast(b));
 
     return sorted;
-  }, [rows, nearRows, store, tab, q, sort]);
+  }, [rows, nearRows, nearStockByProduct, store, tab, q, sort]);
 
   const counts = useMemo(() => ({
     all: rows.length,

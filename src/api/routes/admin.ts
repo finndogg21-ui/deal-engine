@@ -205,18 +205,33 @@ admin.post('/admin/scan', route(async (req, res) => {
   if (scanInFlight) return res.status(409).json({ error: 'A scan is already running.' });
 
   scanInFlight = true;
-  try {
-    const scan = await runScan();
-    // Score rebuild after every scan — pages read sku_state, not raw history,
-    // so skipping this would make a successful scan invisible in the app.
-    const scored = await rebuild();
-    // Project the current state into store_inventory (+ seed store geo) so the
-    // "Closest to me" nearby feed reflects this scan without a live call.
-    const nearby = await refreshNearbyFeed(await getDb());
-    res.json({ scan, scored, nearby });
-  } finally {
-    scanInFlight = false;
-  }
+
+  // Run the pipeline DETACHED and answer immediately (202). The full sweep
+  // (Apify crawl + rebuild + nearby projection) runs several minutes — longer
+  // than the platform's HTTP edge timeout — so answering synchronously 502s the
+  // caller even on success. Worse, the cron's `curl --retry` would then fire a
+  // SECOND scan (double Apify spend) once the first finishes. Detaching fixes
+  // both: the caller gets an instant, clean success and the request never hangs
+  // (so the platform won't recycle the container mid-run), while progress and
+  // results land in scan_runs, visible on the admin overview. The scanInFlight
+  // guard still turns a concurrent trigger into a safe 409, not a double run.
+  void (async () => {
+    try {
+      const scan = await runScan();
+      // Pages read sku_state, not raw history, so a scan is invisible until this.
+      const scored = await rebuild();
+      // Project current state into store_inventory so the "Closest to me" feed
+      // reflects this scan without a live call.
+      const nearby = await refreshNearbyFeed(await getDb());
+      console.log(`[scan] pipeline complete: ${JSON.stringify({ scan, scored, nearby })}`);
+    } catch (err) {
+      console.error('[scan] pipeline failed:', err);
+    } finally {
+      scanInFlight = false;
+    }
+  })();
+
+  res.status(202).json({ status: 'started' });
 }));
 
 /**

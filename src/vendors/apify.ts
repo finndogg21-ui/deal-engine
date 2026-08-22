@@ -267,6 +267,66 @@ const API = 'https://api.apify.com/v2';
 /** Actor ids use a tilde in API paths, a slash in the UI. */
 const actorPath = (id: string) => id.replace('/', '~');
 
+const TERMINAL = new Set(['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT']);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Run the actor and read its dataset the ASYNC way: start the run, poll until it
+ * finishes, then page the dataset.
+ *
+ * TRAP (2026-08-22): the synchronous `run-sync-get-dataset-items` endpoint
+ * streams the ENTIRE dataset back as one HTTP response. It worked at maxResults
+ * 150 (~22s, small payload) but returned 502 Bad Gateway at 1000 — and, being
+ * synchronous, left the actor running ORPHANED, burning ~$1.22 while we read
+ * nothing and the scan wrote 0 rows. Since deal variety requires a high cap (the
+ * actor crawls category by category, so 150 only ever reached ~3 categories),
+ * the sync endpoint is a dead end. Polling + pagination has no size ceiling.
+ */
+async function runActor(token: string, zip: string, maxResults: number): Promise<HdItem[]> {
+  const start = await fetch(`${API}/acts/${actorPath(ACTOR_ID)}/runs?token=${token}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zipcode: zip, maxResults, parallelRequests: 3 }),
+  });
+  if (!start.ok) {
+    throw new Error(`Apify start failed for ZIP ${zip}: ${start.status} ${start.statusText}. Actor ${ACTOR_ID}.`);
+  }
+  const run = ((await start.json()) as { data: { id: string; defaultDatasetId: string; status: string } }).data;
+
+  // Poll to completion. The 150-item crawl took ~22s; 1000 runs a few minutes.
+  // Cap the wait so a hung run fails the scan visibly — and abort it so a
+  // timeout on our side does not leave the actor billing in the background.
+  const deadline = Date.now() + 8 * 60_000;
+  let status = run.status;
+  while (!TERMINAL.has(status)) {
+    if (Date.now() > deadline) {
+      await fetch(`${API}/actor-runs/${run.id}/abort?token=${token}`, { method: 'POST' }).catch(() => {});
+      throw new Error(`Apify run ${run.id} for ZIP ${zip} exceeded 8m — aborted.`);
+    }
+    await sleep(5_000);
+    const poll = await fetch(`${API}/actor-runs/${run.id}?token=${token}`);
+    status = (((await poll.json()) as { data: { status: string } }).data).status;
+  }
+  if (status !== 'SUCCEEDED') {
+    throw new Error(`Apify run ${run.id} for ZIP ${zip} ended ${status}.`);
+  }
+
+  // Page the dataset. clean=1 yields the same item shape run-sync returned.
+  const items: HdItem[] = [];
+  const LIMIT = 500;
+  for (let offset = 0; ; offset += LIMIT) {
+    const page = await fetch(
+      `${API}/datasets/${run.defaultDatasetId}/items?token=${token}&clean=1&limit=${LIMIT}&offset=${offset}`,
+    );
+    if (!page.ok) throw new Error(`Apify dataset read failed for ZIP ${zip}: ${page.status} ${page.statusText}.`);
+    const batch = (await page.json()) as HdItem[];
+    if (!Array.isArray(batch)) throw new Error(`Apify returned a non-array dataset page for ZIP ${zip}.`);
+    items.push(...batch);
+    if (batch.length < LIMIT) break;
+  }
+  return items;
+}
+
 export async function fetchDeals(opts: ApifyOptions): Promise<DealEvent[]> {
   if (!apifyReady()) notWired('apify', ENV);
 
@@ -278,27 +338,7 @@ export async function fetchDeals(opts: ApifyOptions): Promise<DealEvent[]> {
   // One run per ZIP: the actor takes a single zipcode, and per-ZIP runs mean
   // one blocked ZIP cannot take down the rest of the sweep.
   for (const zip of opts.zips) {
-    const res = await fetch(
-      `${API}/acts/${actorPath(ACTOR_ID)}/run-sync-get-dataset-items?token=${token}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zipcode: zip, maxResults, parallelRequests: 3 }),
-      },
-    );
-
-    if (!res.ok) {
-      throw new Error(
-        `Apify run failed for ZIP ${zip}: ${res.status} ${res.statusText}. ` +
-        `Actor ${ACTOR_ID}.`,
-      );
-    }
-
-    const items = (await res.json()) as HdItem[];
-    if (!Array.isArray(items)) {
-      throw new Error(`Apify returned a non-array payload for ZIP ${zip}.`);
-    }
-
+    const items = await runActor(token, zip, maxResults);
     for (const item of items) {
       for (const e of toDealEvents(item, observedAt, opts.retailer ?? 'homedepot')) {
         events.push({ ...e, zip });

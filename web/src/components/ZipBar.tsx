@@ -9,16 +9,24 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { api, useAuth } from '../lib/auth.js';
+import { getLocalZip, setLocalZip, onZipChange } from '../lib/zip.js';
 
 export default function ZipBar() {
   const { me, refresh } = useAuth();
-  const saved = me?.zip ?? '';
+  // Account ZIP wins; fall back to the locally-saved ZIP so a preview visitor
+  // with no persistable account still keeps the ZIP they entered.
+  const saved = me?.zip ?? getLocalZip() ?? '';
 
   const [zip, setZip] = useState(saved);
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, forceTick] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // `saved` reads getLocalZip(), which isn't reactive. Re-render when the local
+  // ZIP changes so `dirty` clears and the "Saved" badge shows after a preview save.
+  useEffect(() => onZipChange(() => forceTick((t) => t + 1)), []);
 
   // Another surface (the Welcome survey, the FindStock fallback) can change
   // the account ZIP; mirror it here — but never while the person is mid-edit,
@@ -33,15 +41,21 @@ export default function ZipBar() {
     if (!dirty || busy || !/^\d{5}$/.test(zip)) return;
     setBusy(true);
     setError(null);
+    // Keep the ZIP client-side first, so the nearby feed works even when the
+    // account can't persist it (PUBLIC_PREVIEW). This also drives the same-tab
+    // 'zip-changed' event the feed listens for.
+    setLocalZip(zip);
     try {
+      // Best-effort account write. In preview this no-ops server-side; the local
+      // ZIP above already made the change take, so a failure here is not fatal.
       await api('/api/auth/me/zip', { method: 'PATCH', body: JSON.stringify({ zip }) });
       // refresh() re-reads /me, which resets `saved` and clears the dirty state.
       await refresh();
+    } catch {
+      /* preview / offline — local ZIP still applied, so don't surface an error */
+    } finally {
       setConfirmed(true);
       window.setTimeout(() => setConfirmed(false), 2500);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
       setBusy(false);
     }
   }

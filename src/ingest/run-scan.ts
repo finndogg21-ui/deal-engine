@@ -26,6 +26,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb, type Db } from '../db/client.js';
 import type { DealEvent } from '../vendors/contracts.js';
 import { fetchDeals, apifyReady } from '../vendors/apify.js';
+import { isBundle } from '../engine/bundle.js';
 
 const DRY = process.argv.includes('--dry');
 
@@ -178,6 +179,20 @@ export async function runScan(): Promise<{ runId: string; rows: number; status: 
   if (fabricated) {
     fetchError = `REFUSED TO WRITE — ${fabricated}. Nothing was saved.`;
     events = [];
+  }
+
+  // Drop appliance PACKAGES / washer-dryer SETS. They are delivery-only bundles
+  // with no per-store shelf count, so the sweep's stock number for them is
+  // fabricated (the "138 in stock" / "1,156 in stock" burn). Real single-SKU
+  // rows are kept. Logged, never silent — see src/engine/bundle.ts.
+  let bundlesDropped = 0;
+  if (events.length > 0) {
+    const before = events.length;
+    events = events.filter((e) => !isBundle(e));
+    bundlesDropped = before - events.length;
+    if (bundlesDropped > 0) {
+      console.log(`  dropped ${bundlesDropped} bundle listing(s) (packages/sets) before write`);
+    }
   }
 
   let rows = 0;
