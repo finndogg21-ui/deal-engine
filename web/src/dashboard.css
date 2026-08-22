@@ -447,6 +447,9 @@
   text-shadow: 0 0 1px color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
+/* Long mono values (SKUs, internet numbers) must never clip in cells. */
+.cell .v { font-size: 15px; overflow-wrap: anywhere; }
+
 /* ---- Discipline ---- */
 
 @media (prefers-reduced-motion: reduce) {

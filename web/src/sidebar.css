@@ -11,14 +11,20 @@
   background: var(--paper);
   border-bottom: 2px solid var(--ink);
 }
-/* The perforation: a serrated strip just under the header's hard rule. */
+/* The perforation: the header's bottom edge is CUT into serration (clip-path
+   on a paper strip), so scrolling content passes cleanly behind the teeth
+   instead of peeking through gradient notches. */
 .tape-head::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
-  background:
-    linear-gradient(-45deg, transparent 70%, var(--paper) 71%),
-    linear-gradient(45deg, transparent 70%, var(--paper) 71%);
-  background-size: 12px 8px;
-  background-repeat: repeat-x;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 100% 15%, 0 15%);
+  pointer-events: none;
+}
+.tape-head::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+  background: var(--paper);
+  -webkit-mask: conic-gradient(from 135deg at 50% 0, #000 90deg, transparent 0) top / 12px 8px repeat-x;
+  mask: conic-gradient(from 135deg at 50% 0, #000 90deg, transparent 0) top / 12px 8px repeat-x;
   pointer-events: none;
 }
 
