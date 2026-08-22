@@ -659,7 +659,7 @@ export default function AllDeals() {
         </span>
       </div>
 
-      <div className={`deckwrap${sel ? ' with-detail' : ''}`}>
+      <div className={`deckwrap${sel || communitySel ? ' with-detail' : ''}`}>
         <div className="deck">
           {loading && <div className="empty">Loading deals</div>}
 
@@ -800,7 +800,11 @@ export default function AllDeals() {
         </div>
 
         {communitySel && !sel && (
-          <div className="detail">
+          <div className="detail" key={communitySel.report_id} ref={(el) => {
+            // On narrow screens the detail stacks under the card grid — bring
+            // it into view on open, or the click looks like it did nothing.
+            if (el && !el.dataset.scrolled) { el.dataset.scrolled = '1'; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          }}>
             <h2>{communitySel.extras.brand ? `${communitySel.extras.brand} ` : ''}{communitySel.title}</h2>
             <p className="sub">
               Home Depot penny report
