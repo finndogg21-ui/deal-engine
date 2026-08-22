@@ -22,6 +22,7 @@ interface CommunityReport {
   title: string;
   price: string | number | null;
   list_price: string | number | null;
+  discount_pct: string | number | null;
   state: string | null;
   city: string | null;
   store_number: string | null;
@@ -29,6 +30,8 @@ interface CommunityReport {
   source_url: string | null;
   image_url: string | null;
   reported_at: string | null;
+  /** Reported shelf count at the reported store (clearance rows). */
+  stock_reported: number | null;
 }
 
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
@@ -287,6 +290,7 @@ export default function AllDeals() {
   const [rows, setRows] = useState<Candidate[]>([]);
   const [nearRows, setNearRows] = useState<Candidate[]>([]);
   const [pennyReports, setPennyReports] = useState<CommunityReport[]>([]);
+  const [clearanceReports, setClearanceReports] = useState<CommunityReport[]>([]);
   // The nearest store's number for THIS ZIP — used only inside Home Depot
   // links (?store=NNN) so HD opens in the customer's store mode. Never shown.
   const [nearestStoreNum, setNearestStoreNum] = useState<string | null>(null);
@@ -430,6 +434,11 @@ export default function AllDeals() {
         const r = await fetch('/api/community-deals?kind=penny&limit=100');
         const body = await r.json().catch(() => null);
         if (r.ok && body && Array.isArray(body.reports)) setPennyReports(body.reports as CommunityReport[]);
+      } catch { /* section simply doesn't render */ }
+      try {
+        const r = await fetch('/api/community-deals?kind=clearance&limit=60');
+        const body = await r.json().catch(() => null);
+        if (r.ok && body && Array.isArray(body.reports)) setClearanceReports(body.reports as CommunityReport[]);
       } catch { /* section simply doesn't render */ }
     })();
   }, []);
@@ -715,6 +724,50 @@ export default function AllDeals() {
               selected={!!sel && sel.product_id === c.product_id && sel.store_id === c.store_id}
               onOpen={() => void open(c)} />
           ))}
+
+          {/* Community deep-clearance reports — other crowds' store-specific
+              finds (via rebelsavings). Labeled hearsay: the store, shelf count
+              and discount are THEIR report, not our sweep. The link opens HD
+              already in the REPORTED store's mode. */}
+          {tab === 'all' && clearanceReports.length > 0 && (
+            <>
+              <div className="community-head">
+                <h3>Community clearance reports</h3>
+                <p>
+                  Store-specific deep clearance reported around the country. Not our scan —
+                  confirm in store; the link opens Home Depot in the reported store's view.
+                </p>
+              </div>
+              {clearanceReports.map((r) => (
+                <button
+                  key={r.report_id}
+                  className="card-deal"
+                  onClick={() => { const u = r.product_url ?? r.source_url; if (u) window.open(u, '_blank', 'noopener'); }}
+                >
+                  <div className="card-img">
+                    {r.discount_pct !== null && <span className="badge-off">{Math.round(Number(r.discount_pct))}% off</span>}
+                    {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <Ph />}
+                  </div>
+                  <div className="card-body">
+                    <span className="retailer">Home Depot</span>
+                    <p className="card-title">{r.title}</p>
+                    <div className="card-price">
+                      <span className="now">{money(r.price !== null ? Number(r.price) : null)}</span>
+                      {r.list_price !== null && <span className="was">Was <b>{money(Number(r.list_price))}</b></span>}
+                    </div>
+                    <div className="card-facts">
+                      <span className="card-possible">
+                        {r.stock_reported !== null ? `${r.stock_reported} reported on the shelf` : 'Reported'}
+                        {r.city && r.state ? ` · ${r.city}, ${r.state}` : r.state ? ` · ${r.state}` : ''}
+                      </span>
+                      <span>via {r.source}{r.reported_at ? ` · ${ago(r.reported_at)}` : ''}</span>
+                    </div>
+                    <span className="card-cta">Check on Home Depot</span>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
         </div>
 
         {sel && (

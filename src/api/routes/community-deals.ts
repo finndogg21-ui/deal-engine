@@ -33,7 +33,9 @@ communityDeals.get(
     const { rows } = await db.query<Record<string, unknown>>(
       `SELECT report_id, source, kind, sku, item_id, title, price, list_price,
               discount_pct, state, city, store_number, product_url, source_url,
-              image_url, reported_at, fetched_at
+              image_url, reported_at, fetched_at,
+              -- Reported shelf count at the reported store (rebelsavings rows).
+              NULLIF(raw->>'stock', '')::int AS stock_reported
          FROM community_reports
         WHERE kind = $1 ${floor}
         ORDER BY COALESCE(reported_at, fetched_at) DESC

@@ -215,51 +215,78 @@ export async function fetchSlickdeals(): Promise<CommunityReport[]> {
 
 /* ------------------------------------------------------------ rebelsavings */
 
-/** EXPERIMENTAL — page structure is undocumented; parse embedded JSON deal
- *  arrays if present, otherwise return [] and let the run report it. */
+/**
+ * RebelSavings runs an open, unauthenticated search API (found by reading the
+ * public JS bundle 2026-08-22): POST /api/search with
+ * {retailer:'home-depot', query:'*', sortBy:'dateAdded:desc', page, perPage}
+ * → {hits:[{document:{...}}]}. ~3.3M records; each carries STORE-SPECIFIC
+ * data — store number, city/state, lat/lng, shelf `stock` count, `discount`,
+ * `price`, `is_clearance`, UPC, image, and a link whose `url` param is the HD
+ * product page already in ?store= mode.
+ *
+ * We take a bounded, polite slice per run: the newest 2 pages (500 rows),
+ * tiered-floor-filtered downstream. Their robots.txt is fully open and the
+ * site is free/no-paywall; still, cache-don't-hammer — this runs once per
+ * scan cadence. Attribution: cards show "via rebelsavings".
+ */
 export async function fetchRebelSavings(): Promise<CommunityReport[]> {
-  const html = await get('https://www.rebelsavings.com/');
   const reports: CommunityReport[] = [];
-  const scripts = [...html.matchAll(/<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/gi)]
-    .map((m) => m[1]!);
-  const looksDeal = (o: Record<string, unknown>) =>
-    ('price' in o || 'currentPrice' in o || 'salePrice' in o) &&
-    ('title' in o || 'name' in o || 'productName' in o);
-  const found: Record<string, unknown>[] = [];
-  const walk = (node: unknown, depth = 0) => {
-    if (depth > 12 || node === null || typeof node !== 'object') return;
-    if (Array.isArray(node)) {
-      const objs = node.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x));
-      if (objs.length >= 3 && objs.every(looksDeal)) { found.push(...objs); return; }
-      for (const x of node) walk(x, depth + 1);
-      return;
+  for (let page = 1; page <= 2; page++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 30_000);
+    let json: { hits?: Array<{ document?: Record<string, unknown> }> };
+    try {
+      const res = await fetch('https://www.rebelsavings.com/api/search', {
+        method: 'POST',
+        signal: ctl.signal,
+        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: JSON.stringify({
+          retailer: 'home-depot', query: '*', sortBy: 'dateAdded:desc', page, perPage: 250,
+        }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      json = (await res.json()) as typeof json;
+    } finally {
+      clearTimeout(timer);
     }
-    for (const v of Object.values(node)) walk(v, depth + 1);
-  };
-  for (const blob of scripts) {
-    try { walk(JSON.parse(blob)); if (found.length) break; } catch { /* skip */ }
-  }
-  for (const r of found) {
-    const title = String(r.title ?? r.name ?? r.productName ?? '').trim();
-    if (!title) continue;
-    const price = num(r.price ?? r.currentPrice ?? r.salePrice);
-    const listPrice = num(r.originalPrice ?? r.listPrice ?? r.wasPrice ?? r.retailPrice);
-    const discountPct = num(r.discountPct ?? r.percentOff)
-      ?? (price !== null && listPrice !== null && listPrice > price
-        ? Math.round(((listPrice - price) / listPrice) * 100) : null);
-    const sku = r.sku != null ? String(r.sku) : null;
-    const itemId = (r.internetNumber ?? r.itemId) != null ? String(r.internetNumber ?? r.itemId) : null;
-    reports.push({
-      source: 'rebelsavings', kind: 'clearance',
-      dedupeKey: sku ?? itemId ?? title,
-      sku, itemId, title, price, listPrice, discountPct,
-      state: r.state != null ? String(r.state) : null,
-      city: r.city != null ? String(r.city) : null,
-      productUrl: hdUrl(itemId),
-      sourceUrl: 'https://www.rebelsavings.com/',
-      imageUrl: typeof r.imageUrl === 'string' ? r.imageUrl : null,
-      raw: r,
-    });
+    const hits = json.hits ?? [];
+    for (const h of hits) {
+      const d = (h.document ?? h) as Record<string, unknown>;
+      const title = String(d.title ?? '').trim();
+      const itemId = d.id != null ? String(d.id) : null;
+      if (!title || !itemId) continue;
+      const price = num(d.price);
+      const discountPct = num(d.discount);
+      // Their price is the CURRENT price and discount is %; derive the "was".
+      const listPrice = price !== null && discountPct !== null && discountPct > 0 && discountPct < 100
+        ? Math.round((price / (1 - discountPct / 100)) * 100) / 100
+        : null;
+      // Their link wraps the HD product URL (already ?store=NNN) in a tracking
+      // redirect; store the DIRECT HD url for the card, theirs as source_url.
+      let productUrl = hdUrl(itemId);
+      const link = typeof d.link === 'string' ? d.link : null;
+      if (link) {
+        try {
+          const wrapped = new URL(link).searchParams.get('url');
+          if (wrapped && /homedepot\.com/i.test(wrapped)) productUrl = wrapped;
+        } catch { /* keep hdUrl fallback */ }
+      }
+      reports.push({
+        source: 'rebelsavings', kind: 'clearance',
+        // Store-specific rows: the same SKU at two stores is two reports.
+        dedupeKey: `${itemId}:${d.store ?? ''}`,
+        sku: itemId, itemId, title, price, listPrice, discountPct,
+        state: d.state != null ? String(d.state) : null,
+        city: d.city != null ? String(d.city) : null,
+        storeNumber: d.store != null ? String(d.store) : null,
+        productUrl,
+        sourceUrl: link ?? 'https://www.rebelsavings.com/home-depot',
+        imageUrl: typeof d.image_url === 'string' ? d.image_url : null,
+        reportedAt: typeof d.dateAdded === 'number' ? new Date(d.dateAdded * 1000) : null,
+        raw: { ...d, stock: d.stock ?? null },
+      });
+    }
+    if (hits.length < 250) break;
   }
   return reports;
 }
