@@ -4,281 +4,282 @@ Maintained by the Ideator/Blueprints sector. BUILD executes from the top down.
 Each run: re-read the code, open PRs/branches, and competitor state before
 rewriting this file — don't re-propose shipped or in-flight work.
 
-**Last pass:** 2026-08-21 (17:05 UTC run)
+**Scope note:** this file covers marketing/UI/pricing/positioning. The
+scan/score/verify data-method track now has its own file,
+`company/penny-blueprints.md` (a separate pass, 2026-08-22) — don't duplicate
+its backlog here; its #1 item (proving the store-confirm vendor call actually
+works) is the real prerequisite behind this file's #2 (freshness bar), so
+read both before assuming either is ready to ship.
+
+**Last pass:** 2026-08-22
 
 ## Market snapshot (as of this pass)
 
-- **New this pass — Penny (pennydeals.app)**, a real iOS app, is a sharper
-  threat than the brief's original competitor list: free tier + Pro
-  $14.99/mo + **VIP $29.99/mo**, monitors 65+ stores, and VIP specifically
-  adds "local Home Depot clearance with aisle and bay" location. On close
-  read, though, its in-store aisle/bay data is **crowdsourced, not
-  machine-swept** — the app's own copy says "you scan in store to confirm"
-  and locations show only "where available." It's community data wearing
-  scanner branding. Same pattern as **PennyCentral** (140k+ member
-  community penny list, free). Neither is a real per-store inventory scan;
-  both are exactly the "stale scraped/community leads" category
-  deal-engine is built to beat — but their marketing reads as if they scan,
-  so a casual comparison shopper won't tell the difference from a landing
-  page alone. This raises the stakes on Blueprint 2 (public freshness
-  proof) — it's no longer just a nice differentiator, it's the only thing
-  that distinguishes a real scan from a crowdsourced one to an outside
-  visitor.
-- **Scavenger** (~$47/mo) is the one rival whose own copy explicitly claims
-  automated inventory reads ("scans every Home Depot within 25 miles... 24/7"),
-  so it's the closest thing to a genuine scanning competitor, not just a
-  pricing one. Still broad-radius, not per-store-verified-fresh the way
-  `Admin.tsx`'s scan-run data already is.
-- **Hidden Clearances** — free, scans/aggregates across Amazon, HD, Lowe's,
-  Walmart, Costco, Target (7 retailers). Breadth over depth: a general
-  scanner watching seven chains surfaces far fewer $0.01 finds per chain
-  than a scanner pointed at one. Still the free alternative every prospect
-  compares us to first.
-- **Deal Soldier** — $35–44/mo depending on source, HD/Lowe's/Walmart/Target,
-  runs inside Discord, bundles reseller-education content/community over a
-  standalone app.
+- **New this pass — BrickSeek** now runs a paid reseller tier too: Premium
+  $14.99/mo, Extreme $29.99/mo, on top of its long-standing free basic
+  lookups. Another entrant between Endless ($9.99) and Deal Soldier/Scavenger
+  ($44-47) — the mid-tier is filling in, not thinning out.
+- **New this pass — Scavenger now offers a free preview scan with no signup
+  required**, ahead of its $47/mo paywall. This is the same shape as
+  deal-engine's own `PUBLIC_PREVIEW` flag (see Blueprint 1, below) — a
+  competitor treating "browse free, pay to keep using it" as a deliberate
+  funnel confirms the mechanic is sound *if scoped on purpose*. deal-engine's
+  version currently isn't scoped at all, which is the problem Blueprint 1
+  raises.
+- **Penny (pennydeals.app)**, free tier + Pro $14.99/mo + VIP $29.99/mo
+  (65+ stores; VIP's HD aisle/bay data is crowdsourced — "you scan in store
+  to confirm," "where available," not a machine scan) and **PennyCentral**
+  (140k+ member free community list) remain the sharpest "looks automated,
+  isn't" threats — still the strongest reason Blueprint 3 (public freshness
+  proof) matters, once the data behind it is real (see
+  `penny-blueprints.md` Blueprint 1-2).
+- **Scavenger** (~$47/mo) still the one rival whose own copy claims genuine
+  automated inventory reads ("scans every Home Depot within 25 miles...
+  24/7") — closest thing to a real scanning competitor, still broad-radius
+  rather than per-store-verified-fresh.
+- **Hidden Clearances** — free, 6-7 retailers (Amazon, HD, Lowe's, Walmart,
+  Costco, Target), feed "refreshes every minute" per its own copy. Breadth
+  over depth, still the free comparison every prospect reaches for first.
+- **Deal Soldier** — $44/mo, HD/Lowe's/Walmart/Target, Discord-based,
+  7-day free trial now advertised on its own site.
 - **Endless** — $9.99/mo, lower-end general clearance tool.
-- **Rebel Savings** — free, no paywall, store-level radius map for
-  HD/Lowe's/Walmart, explicitly community-sourced.
-- Realistic paying market: ~30k–150k US penny/clearance hunters total, San
-  Antonio's share is roughly 50–200 people. Tiny, winner-take-most local
-  market, not a growth-at-all-costs SaaS market. More players than last
-  pass (Penny, PennyCentral) confirms this niche is getting crowded on the
-  free/cheap/community end — reinforces that deal-engine's only durable
-  lane is *provably real, per-store, timestamped* data, not price or
-  breadth.
+- **Rebel Savings** — free, community-sourced store-level radius map.
+- Realistic paying market unchanged: ~30k-150k US penny/clearance hunters
+  total, San Antonio's share roughly 50-200 people. More paid mid-tier
+  entrants (BrickSeek) this pass reinforces the same conclusion as last
+  pass: this niche competes on trust in the data, not on price or breadth,
+  because there isn't room for a volume play.
+- **Shipped since last pass, changes the picture:** the "possible deals"
+  feed (`/api/deals/nearby`) now works for **any US ZIP nationwide**, not
+  just San Antonio (`src/geo/load-zip-centroids.ts`, `nearby-deals.ts`),
+  and there's a public-preview mode that lets anonymous visitors browse it
+  without an account. That's a bigger move than anything in this backlog
+  last pass — see Blueprint 1, it changes what Blueprint 7 (out-of-metro
+  capture) still needs to do.
 
-**Standing correction (from prior pass, still true):** the operating brief
-describes deal-engine as "the priciest option at $75/mo." The actual code
-(`src/vendors/stripe.ts`, `web/src/pages/site/Pricing.tsx`,
-`web/src/pages/app/Welcome.tsx`) prices two tiers: **Consumer $9.99/mo**
-and **Reseller $19/mo** (founding rate, capped at 30 seats). At those
-prices deal-engine undercuts Deal Soldier, Scavenger, and now Penny VIP
-($29.99) too — cheapest genuine-scan-claiming reseller tool in the set.
-(BUILD: if `$75/mo` shows up anywhere in code or copy, that's a bug, not a
-strategy — flag it, don't ship it.)
+**Standing correction (still true, still worth restating so it doesn't
+regress):** pricing is **Consumer $9.99/mo** and **Reseller $19/mo**
+(founding rate, 30 seats), not "$75/mo" — confirmed again this pass in
+`src/vendors/stripe.ts`, `Pricing.tsx`, `Welcome.tsx`. Cheapest
+genuine-scan-claiming reseller tool against Deal Soldier, Scavenger, BrickSeek
+Extreme, and Penny VIP. (BUILD: `$75/mo` anywhere in code/copy is a bug.)
 
-## What's already shipped that the brief's "strategic bets" list overlaps with
+## What's already shipped that overlaps with the brief's "strategic bets"
 
-- **Profit/margin layer** — done. `web/src/pages/app/Profit.tsx` +
-  `src/resell/fees.ts` + `/api/profit` already compute net (not gross),
-  ROI%, by-month/store/category breakdowns from real order rows.
-- **Scan freshness / health tracking** — done, but *internal only*.
-  `src/api/routes/admin.ts` + `web/src/pages/app/Admin.tsx` already track
-  last-scan time, staleness (>26h flag), rows written, trailing average.
-  Nothing about this is customer-facing yet — see Blueprint 2 below, now
-  the single highest-leverage item in this backlog given this pass's
-  competitor research (see market snapshot above).
-- **Metro-gating honesty** — done. `src/coverage.ts` already refuses to
-  show meaningful penny scores until 14+ days of price history exist for a
-  ZIP, with honest copy explaining why. Good foundation, currently a dead
-  end for anyone outside San Antonio (see Blueprint 7).
-- **Founding-seat scarcity** — done, but only visible mid-checkout. See
-  Blueprint 5.
+- **Profit/margin layer** — done (`Profit.tsx`, `src/resell/fees.ts`,
+  `/api/profit`). Resale-comp suggestions (bigger bet #10, below) still open.
+- **Public live-scan freshness bar** — code-complete in PR #2, not merged.
+  See Blueprint 1.
+- **Nationwide deal browsing** — done, shipped since last pass (see market
+  snapshot). Reduces Blueprint 7 to a narrower ask.
+- **Founding-seat scarcity** — done on `/pricing`, still missing from
+  `Welcome.tsx`. See Blueprint 6.
+- **Metro-gating honesty for scores** — done (`src/coverage.ts`, 14-day
+  floor), now sitting alongside a nationwide *browse* feed that isn't
+  metro-gated at all — worth making sure the copy is consistent about which
+  parts of the product are national and which are San-Antonio-only.
 
 ## In flight — do not re-propose
 
-- **PR #1** (`company/night-2026-08-21` → `main`): wires the contact form
-  to the existing `/api/contact` endpoint. Status: `in-pr`, still open and
-  unmerged as of this pass, no new commits since it was opened.
+- **PR #1** (`company/night-2026-08-21` → `main`): wires the contact form to
+  `/api/contact`. Still open, draft, no new commits since last pass.
+- **PR #2** (`company/night-2026-08-21-freshness-bar` → `main`): implements
+  the public freshness bar (`FreshnessBar.tsx`, wired into `SiteLayout.tsx`).
+  Still open, draft. **Do not merge yet** — `penny-blueprints.md` Blueprint 3
+  gates this on real `scan_runs` history existing first; shipping it against
+  test/empty data would be the exact "unverifiable claim" this backlog exists
+  to avoid.
 
 ---
 
 ## Ranked backlog
 
-### 1. Public live-scan freshness bar (the provable-freshness widget)
-**status:** todo — promoted to #1 this pass
-**problem:** the single believable differentiator deal-engine has —
-genuine machine-swept per-store stock counts with fresh timestamps — is
-invisible to anyone who hasn't signed up. `Admin.tsx` already computes
-exactly this (`last scan Xh ago`, rows written, stale flag) but it's gated
-behind the admin route. This pass's competitor research raises the
-urgency: **Penny (pennydeals.app) and PennyCentral now market
-crowdsourced/community aisle data in language that reads as automated
-scanning** ("you scan in store to confirm", "where available" — i.e. not
-guaranteed, not timestamped), and Scavenger explicitly claims 24/7
-automated reads too. A skeptical prospect landing on any of these sites
-cannot currently tell "real per-store scan" from "community tip dressed as
-one" — including on deal-engine's own site, where the proof exists in the
-database but not on the page.
-**what to build:** a small, honest status strip — "Last scan: 47 min ago ·
-5 San Antonio stores · 1,842 SKUs checked" — reusing the existing scan-run
-data, on the landing page and in the footer of every marketing page. Same
-red/stale treatment `Admin.tsx` already has (reuse the >26h stale
-threshold and copy pattern). No new backend logic, just a public read of
-data that already exists.
-**why it beats today:** turns "trust us, it's fresh" into a number a
-skeptical reseller can watch update in real time — a crowdsourced
-competitor cannot fake a live per-store timestamp without actually
-building the scanner. This is now a defensive move, not just an upsell:
-it's the only thing standing between deal-engine and being lumped in with
-Penny/PennyCentral/Rebel Savings by anyone comparison-shopping fast.
+### 1. Decide `PUBLIC_PREVIEW` on purpose — funnel or leak
+**status:** todo — new top priority this pass
+**problem:** `src/api/middleware.ts`'s `loadUser` grants any anonymous
+visitor a full logged-in **reseller-plan** identity when
+`PUBLIC_PREVIEW=1` — no signup, no paywall, same feed a $19/mo subscriber
+gets. The code comment calls it "TEMPORARY" and says to "unset and
+redeploy" to restore the paywall, but there's no record of whether it's
+currently set in production, no expiry, and no scoping (it's not even
+listed in `.env.example`). If it's live on Railway right now, every visitor
+already has full paid access for free — that's not a growth lever, that's
+the entire subscription revenue at risk, for a product whose realistic
+total paying market is already only 50-200 people. On the other hand, this
+pass's research found **Scavenger now runs almost the identical mechanic on
+purpose** — a free preview scan, no signup, ahead of its paywall — so the
+idea itself isn't wrong, only the fact that deal-engine's version looks
+unscoped and undecided.
+**what to build:** (a) confirm today whether `PUBLIC_PREVIEW=1` is actually
+set on the production deploy — a same-day check, not a build; (b) if kept
+as a deliberate funnel, bound it the way a real free tier is bounded (e.g.
+delayed feed, capped results, or fewer alerts/day than `PREVIEW_USER`
+currently gets, matching the delay-based pattern Penny's own free tier
+uses) and add a visible upgrade prompt at the point preview runs out; (c) if
+it's leftover from testing, unset it and redeploy; (d) either way, write the
+decision down (dated) so it isn't an open toggle again next pass.
+**why it beats today:** right now it's the worst of both — unbounded free
+access with no upsell path *and* an undocumented decision. Either fix turns
+a silent risk into either a real funnel or a closed gap.
+**effort:** S to check and decide; M if scoping a bounded preview tier.
+**success metric:** dated decision recorded in this file or a company note;
+if kept, preview traffic is visibly capped vs. paid with a measurable
+preview→paid conversion path.
+
+### 2. Public live-scan freshness bar — ship once real data backs it
+**status:** in-pr (PR #2) — code done, merge gated
+**problem:** unchanged from last pass in substance — this is still the one
+differentiator (genuine machine-swept, timestamped per-store data) that
+Penny/PennyCentral's crowdsourced-dressed-as-scanned copy and Scavenger's
+"24/7 scans" claim can't be told apart from without proof on the page. The
+build side is done; what's missing is real `scan_runs` history behind it,
+tracked in `penny-blueprints.md` Blueprint 1-2 (store-confirm vendor
+reliability, then turning the sweep on for real).
+**what to build:** nothing new on the frontend. BUILD: merge PR #2 only
+after `penny-blueprints.md` Blueprint 2's 14-day real-data clock has run.
+Ideator note for next pass: check `penny-blueprints.md`'s dated vendor-probe
+results before re-promoting this.
+**why it beats today:** a live, updating timestamp is something no
+crowdsourced competitor can fake without becoming an actual scanner — but
+only once it's showing real numbers.
+**effort:** S (a merge) once unblocked.
+**success metric:** freshness bar live in production showing a real,
+sub-26h timestamp, ≥95% of days.
+
+### 3. Make the landing hero prove itself with real data
+**status:** todo
+**problem:** `Landing.tsx`'s hero ("Someone paid $0.01... this morning, 1.4
+miles away, 62 still on the shelf") is still hardcoded, unchanged since last
+pass. For a product whose whole pitch is "real scan, not stale scraped
+leads," a fake live example on the homepage is the exact failure mode being
+sold against.
+**what to build:** small public endpoint (or `/api/candidates?penny=1`
+filtered, unauthenticated, stripped to title/discount/relative-distance-
+bucket/relative-time only) returning the most recent confirmed/high-
+confidence penny find. Hero renders it when available; falls back to
+today's static copy, clearly labeled as an example, only when there's
+genuinely nothing yet.
+**why it beats today:** pairs with Blueprint 2 (also gated on the same real
+scan data) — together they turn the hero from a claim into a live demo.
 **effort:** M
-**success metric:** freshness bar visible on landing + pricing; time-since-
-scan stays under the existing 26h stale threshold ≥95% of days (this also
-functions as an internal SLA once it's public).
+**success metric:** hero renders a real find on ≥80% of loads during active
+scan hours; zero "the example never changes" reports.
 
-### 2. Make the landing hero prove itself with real data
-**status:** todo
-**problem:** `web/src/pages/Landing.tsx` hero — "Someone paid $0.01 for a
-100 ft contractor garden hose, this morning, 1.4 miles away, 62 still on
-the shelf" — is hardcoded copy, not a real finding. It never changes. For a
-product whose entire pitch is "genuine machine-swept data, not stale
-scraped leads," a fake live example is the single worst thing that could
-be sitting on the homepage — it's the exact failure mode we accuse Penny/
-PennyCentral/Rebel Savings of.
-**what to build:** a small public endpoint (or reuse `/api/candidates`
-filtered to `penny=1`, non-authenticated, stripped to only
-title/discount/relative-distance-bucket/relative-time — no store number or
-exact address, matching existing card constraints enforced elsewhere) that
-returns the single most recent confirmed or high-confidence penny find.
-Landing hero renders that when available; falls back to today's static
-copy, clearly framed as an example, only when there's genuinely nothing
-yet (new/quiet metro).
-**why it beats today:** pairs naturally with Blueprint 1 — together they
-turn the hero from a claim into a live demo, which is the one thing none
-of the crowdsourced competitors can replicate without becoming an actual
-scanner.
-**effort:** M
-**success metric:** hero renders a real find on ≥80% of page loads during
-active scan hours; zero reports of "the example never changes."
+### 4. Remove the "Amazon Warehouse" claim
+**status:** todo — still present, unchanged since last pass
+**problem:** `Landing.tsx:103`, `Pricing.tsx:29`, and `Welcome.tsx:40` all
+still promise "Amazon Warehouse and clearance deals." The live scan covers
+Home Depot + Lowe's only (`web/DESIGN_AUDIT.md` P2-5). Hidden Clearances
+genuinely does cover Amazon, so this gap is visible to anyone comparing —
+and now that BrickSeek and Penny both list retailer coverage prominently
+too, the mismatch is one comparison-shop away from being noticed by a payer,
+not just a reviewer.
+**what to build:** delete the line in all three files; replace with an
+accurate claim already true today (e.g. "Watch any product by name across
+Home Depot and Lowe's") or drop the bullet.
+**why it beats today:** removes a live false-advertising/chargeback risk for
+a five-minute, three-file, copy-only edit.
+**effort:** S — single PR.
+**success metric:** grep for "Amazon" in `web/src` returns nothing outside
+`Terms.tsx`'s trademark disclaimer.
 
-### 3. Remove the "Amazon Warehouse" claim
+### 5. Answer "why pay when it's free/cheap elsewhere?" head-on
 **status:** todo
-**problem:** `Landing.tsx`, `Pricing.tsx`, and `Welcome.tsx` all promise
-"Amazon Warehouse and clearance deals" in the consumer plan's feature list.
-The live scan covers Home Depot + Lowe's only — flagged in
-`web/DESIGN_AUDIT.md` (P2-5, confirmed still present this pass) and
-explicitly left unfixed there as "a marketing/roadmap copy decision...
-left for the product owner." That's this backlog. Selling a plan on a
-retailer we don't scan is a false-advertising / chargeback risk, not a
-style nit — and this pass's research shows Hidden Clearances genuinely
-does cover Amazon, so the gap is visible to anyone who compares.
-**what to build:** delete the line in all three files (`Landing.tsx` who
-card, `Pricing.tsx` TIERS features, `Welcome.tsx` PathPicker consumer
-list). Replace with an accurate claim already true today — e.g. "Watch any
-product by name across Home Depot and Lowe's" — or leave the bullet count
-at four instead of inventing a fifth.
-**why it beats today:** removes a live legal/trust liability for a
-five-minute edit; also frees up the roadmap to *actually* promise Amazon
-later once it's real, without walking back a claim already made to payers.
-**effort:** S — single PR, three files, copy-only.
-**success metric:** zero live references to unscanned retailers anywhere
-in `web/src`; grep for "Amazon" in `web/src` returns nothing outside
-comments/roadmap notes.
-
-### 4. Answer "why pay when it's free/cheap elsewhere?" head-on — and name the crowdsourcing gap
-**status:** todo
-**problem:** every prospect's first move is to check for a free tool.
-This pass turned up more free/cheap options than the standing brief lists
-(Hidden Clearances, Rebel Savings, Penny free tier, PennyCentral) plus
-Scavenger running comparison-SEO content ("7 best penny finder apps") to
-win exactly this search. `Faq.tsx` currently doesn't mention any
-competitor at all.
+**problem:** `Faq.tsx` still names zero competitors. The free/cheap field
+keeps growing (Hidden Clearances, Rebel Savings, Penny free tier,
+PennyCentral, now BrickSeek's free basic tier and Scavenger's free preview)
+— every one of them a "why not just use the free one" objection nobody on
+the site currently answers.
 **what to build:** one direct FAQ entry (or a short `/compare` page linked
-from Pricing and FAQ) that names the tradeoff honestly and specifically:
-most alternatives (Hidden Clearances, Rebel Savings, Penny, PennyCentral)
-are broad, crowdsourced, or community-confirmed — genuinely useful, but
-not a per-store automated scan, and their own product copy hedges this
-("where available," "scan in store to confirm"). deal-engine covers 2
-retailers deeply with a machine-swept, timestamped, per-store scan and a
-score checked against confirmed outcomes weekly (`src/engine/reputation.ts`
-/ "Members confirm" in `HowItWorks.tsx`). Own "narrower but real" instead
-of avoiding the comparison — and this can link directly to the freshness
-bar from Blueprint 1 as proof.
-**why it beats today:** silence on the objection means the prospect
-answers it themselves, usually by leaving. Naming the crowdsourcing gap
-specifically (not just "we're better") is a claim competitors can't easily
-copy without exposing their own data source.
-**effort:** S–M
-**success metric:** page/FAQ entry shipped; track via analytics (if wired)
-whether visitors who read it convert at a higher rate than baseline.
+from Pricing and FAQ) naming the tradeoff specifically: most alternatives
+are broad, crowdsourced, or community-confirmed — genuinely useful, but not
+a per-store automated scan, and their own copy hedges this ("where
+available," "scan in store to confirm"). deal-engine covers 2 retailers
+deeply with a machine-swept, timestamped scan, checked against confirmed
+outcomes (`src/engine/reputation.ts`). Link to the freshness bar (Blueprint
+2) as proof once it's live with real data.
+**why it beats today:** silence on the objection means the prospect answers
+it themselves, usually by leaving.
+**effort:** S-M
+**success metric:** page/FAQ entry shipped; track conversion delta for
+visitors who read it, if analytics are wired.
 
-### 5. Surface founding-seat scarcity before checkout, not during it
-**status:** todo
-**problem:** `Pricing.tsx` already fetches real `seats_left` out of 30 for
-the reseller plan and shows it — but only once someone lands on `/pricing`.
-`Welcome.tsx`'s PathPicker (the earlier, higher-traffic decision point)
-still shows static "$9.99/$19" with no scarcity signal at all.
+### 6. Surface founding-seat scarcity before checkout, not during it
+**status:** todo — unchanged since last pass
+**problem:** `Pricing.tsx` shows real `seats_left` out of 30 for the
+reseller plan; `Welcome.tsx`'s PathPicker — the earlier, higher-traffic
+decision point — still shows static "$9.99/$19" with no scarcity signal
+(confirmed again this pass: no `seats_left` reference in `Welcome.tsx`).
 **what to build:** thread the same `/api/billing/plans` seats-left number
-into `Welcome.tsx`'s reseller card, and consider a small ambient mention on
-`Landing.tsx` ("30 founding reseller seats, X left" near the pricing CTA).
-Reuse the existing fetch/format logic from `Pricing.tsx` verbatim.
-**why it beats today:** real, server-verified scarcity (not a countdown
-timer trick) is a strong local-market lever precisely because the market
-really is that small — 30 seats against ~50-200 realistic SA payers is a
-meaningful fraction, worth saying out loud earlier in the funnel.
+into `Welcome.tsx`'s reseller card, verbatim reuse of `Pricing.tsx`'s
+fetch/format logic; optionally a small ambient mention on `Landing.tsx` too.
+**why it beats today:** real, server-verified scarcity is a strong lever in
+a market this small — 30 seats against ~50-200 realistic SA payers.
 **effort:** S
-**success metric:** seats-left visible at both Welcome and Landing; no
-mismatch with the Pricing page's number (single source of truth via the
-same endpoint).
+**success metric:** seats-left visible at both Welcome and Landing, no
+mismatch with Pricing's number.
 
-### 6. Small design-debt cleanup left open by the last audit
-**status:** todo
-**problem:** `web/DESIGN_AUDIT.md` left two P2 items unfixed as
-out-of-scope for that pass (confirmed still open this pass): RetailerDeals
-`<img>` has no `onError` fallback (P2-6, shows a broken-image icon instead
-of the placeholder AllDeals already uses), and a handful of dead CSS rules
-(`.card-store*`, `.card-compare`, `.icon-btn`, `.sb-group`, `.sb-caret`,
-`.sb-group-head`) plus an unrouted `Palettes.tsx` scratch page.
-**what to build:** add the same `onError` → placeholder swap
-`AllDeals.tsx` already uses to `RetailerDeals.tsx`; delete the confirmed-
-dead CSS rules; delete or explicitly route `Palettes.tsx`.
-**why it beats today:** cheap, zero-risk cleanup bundled as one PR;
-prevents the broken-image state from ever being a new user's first
-impression of a retailer deals page.
+### 7. Close out the last design-debt items
+**status:** todo — narrower than last pass, some of it already cleaned up
+**problem:** the dead CSS rules flagged last pass (`.card-store*`,
+`.card-compare`, `.icon-btn`, `.sb-group*`) are gone — no longer present in
+`site.css`, so that part is done. Two items remain open: `RetailerDeals.tsx`
+still has no `onError` fallback on its `<img>` (confirmed this pass, line
+104) — shows a broken-image icon instead of the placeholder `AllDeals.tsx`
+already uses; and `Palettes.tsx` is still an unrouted scratch page.
+**what to build:** add the same `onError` → placeholder swap from
+`AllDeals.tsx` to `RetailerDeals.tsx`; delete or explicitly route
+`Palettes.tsx`.
+**why it beats today:** small, zero-risk, prevents a broken-image state
+from being a new user's first impression of a retailer deals page.
 **effort:** S
-**success metric:** no broken-image icon reachable in `/app/deals/:retailer`;
-`tsc --noEmit` and a CSS-usage grep both clean.
+**success metric:** no broken-image icon reachable in
+`/app/deals/:retailer`; `Palettes.tsx` no longer an orphaned file.
 
-### 7. Capture demand outside San Antonio instead of just turning it away
-**status:** todo
-**problem:** `src/coverage.ts` already returns a good, honest "we don't
-cover you yet" message for any ZIP outside the 782xx prefix — but it's a
-dead end. Nothing captures who asked, so there's no data to decide which
-metro to scan next, and no way to notify that person when it's live.
-**what to build:** when `coverageFor()` returns `covered: false`, show a
-lightweight "tell us where you are, we'll email you when we cover it"
-capture (ZIP + optional email) on the welcome/onboarding flow, writing to
-a simple table. Surface a rollup on `Admin.tsx` (top requested ZIP
-prefixes) so expansion is a data decision, not a guess.
-**why it beats today:** turns every out-of-market visitor — currently pure
-loss — into a lead for the next metro, and de-risks the "coverage takes
-weeks to spin up" constraint already documented in `coverage.ts` by giving
-BUILD lead time driven by real demand instead of a hunch.
+### 8. Capture demand outside San Antonio's *scored* coverage
+**status:** todo — narrowed by this pass's discovery that browsing is now national
+**problem:** `coverage.ts` still gates meaningful penny *scores* to 782xx
+ZIPs with 14+ days of history — that part is unchanged and still correct.
+What's new: the "possible deals" browse feed (`/api/deals/nearby`) now works
+for any US ZIP nationwide, so out-of-market visitors are no longer a dead
+end the way they were last pass — they can already browse. What's still
+missing is capturing *who* wants full scored/verified coverage in their
+metro, so expansion is a data decision instead of a guess.
+**what to build:** when a visitor is outside 782xx and hits the
+coverage-gated score view (not the national browse feed, which already
+works), show a lightweight "tell us where you are, we'll email you when
+scored coverage arrives" capture (ZIP + optional email). Roll up top
+requested ZIP prefixes on `Admin.tsx`.
+**why it beats today:** turns the *remaining* dead end (no scored coverage,
+not "no access at all" anymore) into lead data for the next metro pick.
 **effort:** M
-**success metric:** waitlist table populated; a ranked list of next-metro
-candidates exists after 30 days of capture.
+**success metric:** waitlist table populated; ranked next-metro candidate
+list exists after 30 days.
 
 ---
 
 ## Bigger strategic bets (not one-PR items — for planning, not immediate build)
 
-### 8. Multi-metro expansion
-**status:** todo (blocked on Blueprint 7's demand data + weeks of lead-time
-scanning per `coverage.ts`'s own documented constraint)
-Expansion is infrastructure + lead time, not a config flag: a new metro
-needs the scan running for ~14+ days before anyone there can be sold a
-plan honestly. Sequence this after Blueprint 7 tells us which metro to
-pick, and treat the lead time as a hard scheduling constraint, not
-something to shortcut.
+### 9. Multi-metro expansion
+**status:** todo (blocked on Blueprint 8's demand data + the lead-time
+constraint documented in `coverage.ts` and reinforced in
+`penny-blueprints.md` Blueprint 2 — new metro scoring needs ~14+ days of
+real scan history before it can be sold honestly). Note the browse feed
+(market snapshot, above) already reaches new metros; only *scored*
+expansion is gated.
 
-### 9. Reposition pricing/marketing around "cheapest verified data," not premium
+### 10. Reposition pricing/marketing around "cheapest verified data," not premium
 **status:** todo
-Given the corrected pricing reality above (we're $9.99/$19, not $75, and
-now cheaper than Deal Soldier, Scavenger, *and* Penny VIP), the marketing
-thesis should shift from "worth paying more for" to "the cheapest tool
-that's actually verified fresh" — a materially different story than a
-$75/mo positioning would need. This touches Landing, Pricing, and How It
-Works copy simultaneously and should be scoped as its own review rather
-than folded into the smaller copy fixes above.
+Unchanged thesis from last pass: at $9.99/$19, deal-engine already undercuts
+Deal Soldier, Scavenger, BrickSeek Extreme, and Penny VIP — the marketing
+story should be "cheapest tool that's actually verified fresh," not "worth
+paying more for." Touches Landing, Pricing, How It Works simultaneously;
+scope as its own review, not folded into the smaller copy fixes above.
 
-### 10. Deepen the profit layer with resale-comp suggestions
+### 11. Deepen the profit layer with resale-comp suggestions
 **status:** todo
-`Profit.tsx` and `src/resell/fees.ts` already compute real net/ROI from
-stored orders. The natural next step — suggesting an expected resale price
-range at find-time (before purchase), not just reporting after the sale —
-would close the loop from "here's a penny find" to "here's whether it's
-worth your gas money," which none of the named competitors do. Needs a
-resale-comp data source decision before this can be scoped as buildable
-PRs.
+`Profit.tsx` / `src/resell/fees.ts` compute real net/ROI after the sale. The
+open step is suggesting an expected resale range at find-time, before
+purchase — closing the loop from "here's a penny find" to "here's whether
+it's worth your gas money," which none of the named competitors do. Needs a
+resale-comp data source decision before this is buildable as PRs.
