@@ -37,7 +37,7 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
             <p className="who">For everyday shopping.</p>
             <ul>
               <li>Watch any product, type "blender", we cover every brand</li>
-              <li>Amazon Warehouse and clearance deals</li>
+              <li>Clearance from Home Depot and Lowe's</li>
               <li>Alerts only when the price actually drops</li>
               <li>A running total of what you've saved</li>
             </ul>

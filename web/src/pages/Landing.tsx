@@ -100,7 +100,7 @@ export default function Landing() {
             <ul>
               <li>Watch any product, “blender”, not a model number</li>
               <li>Alerts when it actually drops</li>
-              <li>Amazon Warehouse and clearance included</li>
+              <li>Home Depot and Lowe's clearance included</li>
               <li>A running total of what you have saved</li>
             </ul>
           </div>

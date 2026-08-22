@@ -26,7 +26,7 @@ const TIERS = [
     who: 'For everyday shopping.',
     features: [
       'Watch any product by name, not by model number',
-      'Amazon Warehouse and clearance deals',
+      'Clearance from Home Depot and Lowe’s',
       'Alerts only when the price actually drops',
       'A running total of what you have saved',
       'Cancel in one tap, from inside the app',
