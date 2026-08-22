@@ -132,21 +132,54 @@ export default function PennyDealPage() {
           <div className="cell"><div className="k">Last seen</div><div className="v">{r.reported_at ? ago(r.reported_at) : '—'}</div></div>
         </div>
 
-        {r.extras.locations && Object.keys(r.extras.locations).length > 0 && (
-          <>
-            <h3 style={{ margin: '14px 0 6px' }}>Where it's been found</h3>
-            <p className="sub" style={{ margin: 0 }}>
-              {Object.entries(r.extras.locations).map(([st, cities]) =>
-                `${st}: ${Object.entries(cities).map(([city, n]) => `${city} ×${n}`).join(', ')}`
-              ).join(' · ')}
-            </p>
-          </>
-        )}
+        <div className="pp-context">
+          {r.extras.locations && Object.keys(r.extras.locations).length > 0 && (
+            <div className="pp-found">
+              <h3>Where it's been found</h3>
+              <ul className="found-list">
+                {Object.entries(r.extras.locations)
+                  .map(([st, cities]) => ({
+                    st,
+                    total: Object.values(cities).reduce((a, b) => a + b, 0),
+                    cities: Object.entries(cities)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([city, n]) => (n > 1 ? `${city} ×${n}` : city))
+                      .join(', '),
+                  }))
+                  .sort((a, b) => b.total - a.total)
+                  .map((row) => (
+                    <li key={row.st} className="found-row">
+                      <span className="found-state">{row.st}</span>
+                      <span className="found-count">×{row.total}</span>
+                      <span className="found-cities">{row.cities}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
 
-        <p className="sub" style={{ marginTop: 12 }}>
-          Penny status is store-specific and never guaranteed. It won't show as
-          $0.01 online — scan the SKU or UPC in store to confirm.
-        </p>
+          {/* The side explainer — the one concept that stops a stranger from
+              trusting the report: online availability is NOT shelf reality. */}
+          <aside className="pp-why">
+            <div className="why-eyebrow">What a penny report means</div>
+            <p>
+              Shoppers reported this item ringing up <b>$0.01</b> at the places
+              listed. Penny items have been pulled from sale — stores are
+              supposed to take them off the floor and send them back.
+            </p>
+            <p>
+              That's why Home Depot's site can still say stock is available
+              (even hundreds "ready to ship") while the shelves show none:
+              that's warehouse stock, not the store floor. If you physically
+              find one in a store, it should ring up $0.01.
+            </p>
+            <p>
+              Never guaranteed — penny status is store-specific, and the
+              register is the only truth. Scan the SKU or UPC at a price
+              checker before you celebrate.
+            </p>
+          </aside>
+        </div>
 
         <p style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
           {r.product_url && (

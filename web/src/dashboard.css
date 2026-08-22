@@ -486,6 +486,39 @@
 }
 .pp-cta-line { margin: 0; font-size: 15px; max-width: 40ch; }
 
+/* Sightings, organized: one row per state (sorted by count), mono state code,
+   cities behind it. Beside it, the explainer that decodes what a report IS. */
+.pp-context {
+  display: grid; grid-template-columns: minmax(0, 1fr) 250px;
+  gap: var(--s5); margin-top: var(--s4); align-items: start;
+}
+@media (max-width: 680px) { .pp-context { grid-template-columns: 1fr; } }
+
+.pp-found h3 { margin: 0 0 var(--s3); }
+.found-list { list-style: none; margin: 0; padding: 0; }
+.found-row {
+  display: grid; grid-template-columns: 34px 40px minmax(0, 1fr);
+  gap: var(--s2); align-items: baseline;
+  padding: var(--s2) 0; border-top: 1px solid var(--rule);
+}
+.found-row:first-child { border-top: 2px solid var(--ink); }
+.found-state { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+.found-count { font-family: var(--mono); font-size: 13px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.found-cities { font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
+
+.pp-why {
+  border: 1px solid var(--ink); background: var(--paper-sunk);
+  padding: var(--s4); font-size: 14px; line-height: 1.55;
+}
+.pp-why p { margin: 0 0 var(--s3); }
+.pp-why p:last-child { margin-bottom: 0; }
+.why-eyebrow {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--ink); padding-bottom: var(--s2);
+  margin-bottom: var(--s3);
+}
+
 /* Buttons inside .detail: the legacy `.detail a { color: var(--accent-text) }`
    rule outranks `.btn`, which in dark mode painted near-white text on the
    near-white button — invisible (founder screenshot, 2026-08-22). These
