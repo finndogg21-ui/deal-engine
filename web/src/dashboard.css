@@ -333,5 +333,123 @@
 
 /* Community penny reports — the crowd's finds, labeled as such, on the penny tab. */
 .community-head { grid-column: 1 / -1; margin: 0 0 var(--s2); }
-.community-head h3 { margin: 0 0 4px; }
+.community-head h3 { margin: 0 0 4px; font-family: var(--display); font-weight: 800; letter-spacing: 0.01em; text-transform: uppercase; font-size: 15px; }
 .community-head p { margin: 0; font-size: 13.5px; opacity: 0.75; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE TAPE — redesign layer (company/redesign-blueprint.md).
+   Black & white; meaning by inversion and weight; motion encodes change.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.dash { padding-top: var(--s5); }
+
+/* ---- The spool toggle (All deals / Penny deals) ---- */
+
+.spools {
+  display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
+  padding-bottom: var(--s5);
+}
+.spool {
+  font-family: var(--display); font-weight: 800; font-size: 16px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+  background: var(--paper); color: var(--ink);
+  border: 2px solid var(--ink); padding: var(--s2) var(--s4); min-height: 46px;
+  cursor: pointer; transition: background 0.12s ease, color 0.12s ease;
+}
+.spool.on { background: var(--ink); color: var(--paper); }
+.spool .count {
+  font-family: var(--mono); font-weight: 600; font-size: 13px;
+  margin-left: var(--s2); opacity: 0.8; font-variant-numeric: tabular-nums;
+}
+.spools .searchbox { flex: 1 1 200px; min-width: 170px; border: 1px solid var(--ink); border-radius: 0; }
+.spools .health {
+  margin-left: auto; font-family: var(--mono); font-size: 12.5px;
+  border: 1px solid var(--rule); border-radius: 0; color: var(--ink-faint);
+}
+
+/* ---- Cards: fixed-slot triage rows ---- */
+
+.card-deal {
+  border: 1px solid var(--ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.card-deal:hover {
+  border-color: var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.card-deal.sel { box-shadow: 4px 4px 0 var(--ink); border-color: var(--ink); }
+
+.card-price .now { font-family: var(--mono); font-weight: 700; }
+.card-title { font-size: 15.5px; }
+
+.badge-off { border-radius: 0; font-family: var(--mono); font-weight: 700; }
+.badge-gone { border-radius: 0; }
+.card-cta { border-radius: 0; font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; font-size: 14px; }
+.card-save { border-radius: 0; font-family: var(--mono); }
+
+/* ---- Inverted penny cards: a different species at any scroll speed ---- */
+
+.card-deal.invert { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.card-deal.invert .card-img { background: var(--paper); border-bottom-color: var(--ink); }
+.card-deal.invert .card-title { color: var(--paper); }
+.card-deal.invert .retailer { color: var(--paper); border-color: var(--paper); opacity: 0.8; }
+.card-deal.invert .card-price .now { color: var(--paper); }
+.card-deal.invert .card-price .was { color: var(--paper); opacity: 0.7; }
+.card-deal.invert .card-facts { color: var(--paper); }
+.card-deal.invert .card-facts .card-possible { color: var(--paper); }
+.card-deal.invert .card-cta { background: var(--paper); color: var(--ink); }
+.card-deal.invert .badge-off { background: var(--paper); color: var(--ink); }
+.card-deal.invert:hover { box-shadow: 4px 4px 0 var(--ink-faint); }
+
+/* ---- Motion: the tape prints; nothing decorates arrival twice ---- */
+
+/* Switching spools remounts .deck (keyed by tab): the new spool prints
+   downward — reveal + a hair of feed-jitter. */
+@keyframes tape-print {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(-6px); }
+  to   { clip-path: inset(0 0 0% 0); transform: none; }
+}
+.deck { animation: tape-print 0.22s ease-out both; }
+
+/* Cards print in sequence on mount — 35ms/slot, capped by --i in JSX. */
+@keyframes card-print {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+.deck .card-deal { animation: card-print 0.2s ease-out both; animation-delay: calc(var(--i, 0) * 35ms); }
+
+/* ---- The $0.01 replay (penny detail) — real data, printed in sequence ---- */
+
+.ring-replay {
+  font-family: var(--mono); border: 1px solid var(--ink);
+  background: var(--paper); padding: var(--s4); margin-bottom: var(--s4);
+  text-align: center;
+}
+@keyframes rr-print { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.rr-line {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: var(--ink-faint);
+  animation: rr-print 0.18s ease-out both;
+}
+.rr-line + .rr-line { margin-top: var(--s1); animation-delay: 0.25s; }
+.rr-dots::after { content: ' · · · · · ·'; letter-spacing: 0.2em; }
+@keyframes rr-slam {
+  0% { opacity: 0; transform: scale(1.25); filter: blur(3px); }
+  60% { opacity: 1; transform: scale(0.98); filter: blur(0.4px); }
+  100% { opacity: 1; transform: scale(1); filter: none; }
+}
+.rr-slam {
+  font-size: clamp(44px, 9vw, 64px); font-weight: 700; line-height: 1.1;
+  margin-top: var(--s2); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  animation: rr-slam 0.45s ease-out 0.55s both;
+  /* Faint thermal bleed. */
+  text-shadow: 0 0 1px color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+/* ---- Discipline ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .deck, .deck .card-deal, .rr-line, .rr-slam { animation: none !important; }
+  .card-deal, .spool, .tape-out { transition: none !important; }
+}

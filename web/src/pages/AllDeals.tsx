@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
@@ -189,12 +189,13 @@ function hdStoreUrl(url: string | null, storeNumber: string | null): string | nu
   return url + (url.includes('?') ? '&' : '?') + 'store=' + encodeURIComponent(storeNumber);
 }
 
-function DealCard({ c, selected, onOpen }: { c: Candidate; selected: boolean; onOpen: () => void }) {
+function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: boolean; onOpen: () => void; idx?: number }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = c.image_url && !imgFailed;
 
   return (
-    <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`} onClick={onOpen}>
+    <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`}
+      style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
         {c.stock_qty === 0 && <span className="badge-gone">Gone</span>}
         {c.discount_pct !== null && <span className="badge-off">{pct(c.discount_pct)} off</span>}
@@ -536,9 +537,11 @@ export default function AllDeals() {
 
   const counts = useMemo(() => ({
     all: rows.length,
-    penny: rows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
+    // The penny spool = community reports + our ladder candidates. The badge
+    // must count what the tab actually shows (the "Penny track 0" bug).
+    penny: pennyReports.length + rows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
     near: nearRows.length,
-  }), [rows, nearRows]);
+  }), [rows, nearRows, pennyReports]);
 
   const openById = useCallback(async (pid: string, sid: string) => {
     // A failed detail fetch must not set a malformed object as `sel` — the
@@ -581,86 +584,42 @@ export default function AllDeals() {
   }
 
   return (
-    <div className={`dash${compact ? ' compact' : ''}`}>
-      <div className="dash-top">
-        <div>
-          <p className="dash-eyebrow">Find</p>
-          <h1>All deals</h1>
-        </div>
-
-        <div className="zipbar">
-          {/* The ZIP chip that sat here moved to the shell's top bar, which is
-              now the one place the app-level ZIP is shown and edited. */}
-          <label className="searchbox">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
-            </svg>
-            <input type="search" placeholder="Search deals, products, stores"
-              value={q} onChange={(e) => setQ(e.target.value)}
-              aria-label="Search deals" />
-          </label>
-        </div>
-      </div>
-
-      <div className="storebar">
-        <span className="lbl">Shop a store</span>
-        <button className={`storechip${store === null ? ' on' : ''}`} onClick={() => setStore(null)}>
-          Every store
+    <div className="dash">
+      {/* THE TAPE: one Find page, two spools. The header row is the toggle
+          plus search; chips/sort/density controls are culled — the feed's
+          default order IS the product's opinion. */}
+      <div className="spools" role="tablist">
+        <button role="tab" aria-selected={tab !== 'penny'}
+          className={`spool${tab !== 'penny' ? ' on' : ''}`}
+          onClick={() => setTab('all')}>
+          All deals <span className="count">{counts.all}</span>
         </button>
-        {RETAILERS.filter((r) => r.coverage !== 'planned').map((r) => (
-          <button key={r.slug}
-            className={`storechip${store === r.slug ? ' on' : ''}`}
-            onClick={() => setStore(store === r.slug ? null : r.slug)}>
-            {r.name}
-          </button>
-        ))}
-      </div>
+        <button role="tab" aria-selected={tab === 'penny'}
+          className={`spool${tab === 'penny' ? ' on' : ''}`}
+          onClick={() => setTab('penny')}>
+          Penny deals <span className="count">{counts.penny}</span>
+        </button>
 
-      <div className="tabs" role="tablist">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id}
-            className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}<span className="count">{counts[t.id]}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="toolbar">
-        <label htmlFor="sort">Sort by</label>
-        <select id="sort" value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="score">Most likely to be a penny</option>
-          <option value="discount">Biggest discount</option>
-          <option value="saves">Most saved</option>
-          <option value="distance">Closest</option>
-          <option value="newest">Most recently seen</option>
-        </select>
-
-        <label className="densitybox">
-          <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
-          Fit more on screen
+        <label className="searchbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input type="search" placeholder="Search deals"
+            value={q} onChange={(e) => setQ(e.target.value)}
+            aria-label="Search deals" />
         </label>
 
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--s4)', alignItems: 'center', flexWrap: 'wrap' }}>
-          {hit && (
-            <span className="hitrate">
-              Prediction accuracy{' '}
-              <b>{hit.hit_rate === null ? 'not measured yet' : `${hit.hit_rate}%`}</b>
-              {hit.total > 0 && ` (${hit.found} of ${hit.total})`}
-            </span>
-          )}
-          <span className={`health${health?.stale ? ' stale' : ''}`}>
-            <span className="dot" />
-            {health?.last_run
-              ? `Updated ${health.hours_since}h ago`
-              : 'No scan yet'}
-            {/* Staleness must not be signalled by red colour alone. */}
-            {health?.stale && ' · stale'}
-          </span>
+        <span className={`health${health?.stale ? ' stale' : ''}`}>
+          {health?.last_run ? `Updated ${health.hours_since}h ago` : 'No scan yet'}
+          {/* Staleness must not be signalled by colour alone. */}
+          {health?.stale && ' · stale'}
         </span>
       </div>
 
       <div className={`deckwrap${sel || communitySel ? ' with-detail' : ''}`}>
-        <div className="deck">
+        {/* Keyed by tab: switching spools tears the old tape off and prints
+            the new one (CSS: .deck animation). */}
+        <div className="deck" key={tab}>
           {loading && <div className="empty">Loading deals</div>}
 
           {/* The paywall is the product boundary, so it gets a real screen
@@ -693,10 +652,11 @@ export default function AllDeals() {
                   store-specific and never guaranteed — scan the SKU in store.
                 </p>
               </div>
-              {pennyReports.map((r) => (
+              {pennyReports.map((r, i) => (
                 <button
                   key={r.report_id}
-                  className="card-deal"
+                  className="card-deal invert"
+                  style={{ '--i': Math.min(i, 16) } as CSSProperties}
                   onClick={() => void openCommunity(r.report_id)}
                 >
                   <div className="card-img">
@@ -748,8 +708,8 @@ export default function AllDeals() {
             </div>
           )}
 
-          {shown.map((c) => (
-            <DealCard key={`${c.product_id}|${c.store_id}`} c={c}
+          {shown.map((c, i) => (
+            <DealCard key={`${c.product_id}|${c.store_id}`} c={c} idx={i}
               selected={!!sel && sel.product_id === c.product_id && sel.store_id === c.store_id}
               onOpen={() => { setCommunitySel(null); void open(c); }} />
           ))}
@@ -767,10 +727,11 @@ export default function AllDeals() {
                   confirm in store; the link opens Home Depot in the reported store's view.
                 </p>
               </div>
-              {clearanceReports.map((r) => (
+              {clearanceReports.map((r, i) => (
                 <button
                   key={r.report_id}
                   className="card-deal"
+                  style={{ '--i': Math.min(i, 16) } as CSSProperties}
                   onClick={() => { const u = r.product_url ?? r.source_url; if (u) window.open(u, '_blank', 'noopener'); }}
                 >
                   <div className="card-img">
@@ -817,9 +778,18 @@ export default function AllDeals() {
               <img src={communitySel.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, margin: '8px 0' }} />
             )}
 
+            {/* The $0.01 replay — the register moment, printed. Real data only:
+                the retail price, then the reported ring-up. (CSS staggers the
+                lines; reduced-motion shows them instantly.) */}
+            <div className="ring-replay">
+              {communitySel.list_price !== null && (
+                <div className="rr-line">RETAIL {money(Number(communitySel.list_price))}</div>
+              )}
+              <div className="rr-line rr-dots">REPORTED AT REGISTER</div>
+              <div className="rr-slam">$0.01</div>
+            </div>
+
             <div className="grid">
-              <div className="cell"><div className="k">Rings up</div><div className="v">$0.01</div></div>
-              <div className="cell"><div className="k">Retail</div><div className="v">{communitySel.list_price !== null ? money(Number(communitySel.list_price)) : '—'}</div></div>
               <div className="cell"><div className="k">SKU</div><div className="v">{communitySel.sku ?? '—'}</div></div>
               <div className="cell"><div className="k">Internet #</div><div className="v">{communitySel.item_id ?? '—'}</div></div>
               <div className="cell"><div className="k">Model</div><div className="v">{communitySel.extras.model_number ?? '—'}</div></div>

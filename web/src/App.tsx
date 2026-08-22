@@ -16,13 +16,6 @@ import { SignIn, SignUp, Forgot, Reset, ConfirmDelete } from './pages/site/Auth.
 
 import Welcome from './pages/app/Welcome.js';
 import AllDeals from './pages/AllDeals.js';
-import Watchlist from './pages/app/Watchlist.js';
-import Inventory from './pages/app/Inventory.js';
-import Orders from './pages/app/Orders.js';
-import Profit from './pages/app/Profit.js';
-import PennyWatch from './pages/app/PennyWatch.js';
-import RetailerDeals from './pages/app/RetailerDeals.js';
-import StockCheck from './pages/app/StockCheck.js';
 import Admin from './pages/app/Admin.js';
 
 /** Placeholder. One constant, one edit when the real name is picked. */
@@ -67,21 +60,17 @@ export default function App() {
           and no menu to a product that is not configured yet. */}
       <Route path="/welcome" element={<Welcome />} />
 
+      {/* THE TAPE: the app is ONE page — Find, with two spools (All deals /
+          Penny deals). Every culled route redirects rather than 404s so old
+          links, alerts, and bookmarks keep working. */}
       <Route path="/app" element={<AppShell />}>
         <Route index element={<AllDeals />} />
-        <Route path="penny" element={<PennyWatch />} />
-        {/* The queue merged into My watchlist; keep old links working. */}
-        <Route path="queue" element={<Navigate to="/app/watchlist" replace />} />
-        <Route path="deals/:retailer" element={<RetailerDeals />} />
-        <Route path="watchlist" element={<Watchlist />} />
-        <Route path="stock/:retailer" element={<StockCheck />} />
-        <Route path="inventory" element={<Inventory />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="profit" element={<Profit />} />
+        <Route path="penny" element={<Navigate to="/app?tab=penny" replace />} />
         <Route path="admin" element={<Admin />} />
         {/* Alert and penny-watch deep links land here. On a phone this is a
             pushed route rather than a squeezed side panel (F10). */}
         <Route path="deal/:productId/:storeId" element={<AllDeals />} />
+        <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>
 
       <Route path="/dashboard" element={<AppShell />}>
