@@ -9,6 +9,7 @@ import '../dashboard.css';
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
 interface NearbyDeal {
   product_id: string;
+  store_id: string | null;
   retailer: string;
   title: string | null;
   category: string | null;
@@ -331,7 +332,9 @@ export default function AllDeals() {
       if (!r.ok || !body || !Array.isArray(body.deals)) { setNearRows([]); return; }
       const mapped: Candidate[] = (body.deals as NearbyDeal[]).map((d) => ({
         product_id: String(d.product_id),
-        store_id: '',
+        // The max-stock store this deal is showing — clicking opens ITS detail,
+        // so the number on the card and the number on the detail are the same.
+        store_id: d.store_id ?? '',
         title: d.title ?? '',
         category: d.category ?? null,
         retailer: d.retailer,

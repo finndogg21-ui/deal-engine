@@ -77,8 +77,17 @@ nearbyDeals.get(
 
     const limit = Math.min(Number(req.query.limit ?? 100) || 100, 200);
 
-    // 1. Place the ZIP and find the stores around it.
-    const { anchor, stores } = await nearbyStores(db, { zip, radiusMi, retailer });
+    // 1. Place the ZIP, then take the NEAREST 5 STORES (within a generous
+    //    radius so a rural ZIP still gets stores). Per deal we later pick which
+    //    of these 5 to show — the one that actually has the most stock, not the
+    //    closest one, because the closest store is often the one with 0 left.
+    const NEAREST_N = 5;
+    const { anchor, stores } = await nearbyStores(db, {
+      zip,
+      radiusMi: MAX_RADIUS_MI,
+      retailer,
+      limit: NEAREST_N,
+    });
 
     // ZIP we cannot place yet. Be honest — this is a data gap, not "no deals".
     // (Until a ZIP-centroid source is wired in, this is any ZIP with no store
@@ -134,9 +143,14 @@ nearbyDeals.get(
         const pid = String(r.product_id);
         const store = byId.get(String(r.store_id));
         if (!store) continue;
+        const qty = num(r.last_stock);
         const prev = stockByProduct.get(pid);
-        if (!prev || store.distance_mi < prev.store.distance_mi) {
-          stockByProduct.set(pid, { qty: num(r.last_stock), store });
+        // Show the store with the MOST stock among the nearest 5; break ties by
+        // distance. A treated-as -1 lets a real 0 still beat "no record".
+        const q = qty ?? -1;
+        const pq = prev ? (prev.qty ?? -1) : -2;
+        if (!prev || q > pq || (q === pq && store.distance_mi < prev.store.distance_mi)) {
+          stockByProduct.set(pid, { qty, store });
         }
       }
     }
@@ -152,6 +166,10 @@ nearbyDeals.get(
       const local = stockByProduct.get(pid);
       return {
         product_id: pid,
+        // The specific store this card's stock belongs to, so the detail screen
+        // opens the SAME store and its numbers match the card. Null when no
+        // nearby store has a record for this deal.
+        store_id: local ? local.store.store_id : null,
         retailer: r.retailer,
         title: r.title ?? null,
         category: r.category ?? null,
