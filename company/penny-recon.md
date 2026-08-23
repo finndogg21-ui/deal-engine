@@ -1,6 +1,13 @@
 # Penny-Method Recon — technical & competitive survey
 
-**Run date:** 2026-08-22 (scheduled recon, WebSearch only)
+**Run date:** 2026-08-22, updated 2026-08-23 (scheduled recon, WebSearch only)
+**2026-08-23 update note:** This pass targeted the five open questions left by
+the 2026-08-22 run (Costco feasibility, Lowe's data method, Apify actor real
+pricing/cadence, competitor changes) rather than re-doing the full survey.
+New findings are appended as **Part D** and the Open Questions list below is
+revised to reflect what got resolved vs. what's still open. Nothing in Parts
+A–C below was found to be contradicted by this pass — see Part D for the one
+material update to Part C's recommendation (Costco).
 **Method note:** This research used ONLY web search (no site visits, no
 network/API inspection, no logged-in access). Every claim below is tagged:
 `[verified: 2+ independent sources]`, `[single source]`, or `[inference]`.
@@ -468,32 +475,158 @@ sunk work.
 
 ---
 
+## Part D — 2026-08-23 update: closing (and reopening) the open questions
+
+### D1. Costco feasibility — RESOLVED: much harder than Home Depot, different method entirely
+
+**[verified: 2+ independent sources]** No official Costco API exists;
+Costco.com is scrape-only, same as Home Depot/Lowe's, and also sits behind
+**Akamai** bot protection **[verified: 2+ sources, vendor pages naming
+Akamai directly]**. But the critical difference is upstream of scraping
+difficulty: **[verified: 2+ independent, non-competitor sources]**
+Costco's actual clearance signal — in-warehouse "manager markdowns"
+(tags ending .97/.00) — is **warehouse-specific and does not reliably
+appear on Costco.com at all**; the same item can be full price online and
+marked down in a specific warehouse, and if it isn't listed online you
+cannot see it there even if it's on the shelf. This is a structurally
+different problem than Home Depot, where store-specific pricing *is*
+exposed through the online catalog. **[single source, but mechanism-
+consistent]** The one existing consumer tool found (CostLow: Warehouse
+Clearance) works by **members photographing price tags in-store and
+submitting them manually** — i.e. the working model in the wild is
+crowdsourcing, not scraping. **[inference, absence-based]** No evidence
+was found that any vendor (BigBox API/TrajectData, SerpApi, or others)
+offers a Costco-specific pricing/inventory endpoint at all, unlike Home
+Depot and Lowe's where multiple vendors compete.
+
+**Action on Part C:** amend Recommendation #5 (and the paid-tier roadmap)
+— **Costco should not be planned as a third scrape-vendor integration
+alongside Home Depot/Lowe's.** If Costco ships at all, it needs its own
+crowdsourced-report feature (closer to PennyCentral's model, Part A.5)
+rather than the Apify/Unwrangle sweep-and-confirm pattern this recon
+recommends for Home Depot and Lowe's. This is worth flagging before
+Costco is promised on a pricing page.
+
+### D2. Lowe's feasibility — RESOLVED: roughly as feasible as Home Depot, via the same vendor pattern, with two real gaps
+
+**[verified: vendor's own docs, 2+ pages]** Unwrangle already sells a live
+Lowe's Product/Search/Reviews API today ($99/mo+). **[verified: multiple
+Apify listings]** Several Apify actors cover Lowe's, including one
+(`pulsewatch`-style listing) explicitly marketed as **"Home Depot & Lowe's
+Price Tracker with Penny Detection API"** — i.e. bundled HD+Lowe's penny
+detection already exists as a product in the wild. **[verified: single
+primary source, Lowe's own ToU]** Lowe's Terms of Use prohibit scraping,
+comparable in strength to Home Depot's — same legal-exposure profile as
+D-item below.
+
+Two gaps vs. Home Depot: **[no public evidence found]** which bot-
+mitigation vendor protects Lowes.com (unlike Home Depot's confirmed
+Akamai) — unknown rigor, treat as at-least-as-hard until proven otherwise.
+And **[single source]** Lowe's penny/clearance culture is real (~50%→75%→
+90%→$0.01 markdown cascade over ~6 weeks, active Slickdeals threads) but
+**thinner and less systematized** than Home Depot's — no confirmed public
+tag-ending heuristic equivalent, and confirming true $0.01 status
+reportedly needs an in-store scan rather than a shelf-tag read.
+
+**Action on Part C:** Recommendation #1 (finish the Apify+Unwrangle
+two-vendor architecture) extends cleanly to Lowe's — Unwrangle already has
+a live Lowe's endpoint. But Recommendation #2's scoring model may need to
+lean more on Unwrangle's normalized data and less on tag-ending heuristics
+for Lowe's specifically, since that signal is less documented there.
+
+### D3. Apify actor pricing/cadence — STILL OPEN, and one new diligence flag
+
+**[no data found]** Real per-run/per-compute-unit pricing for either
+named Apify actor could not be confirmed independently this pass —
+search only resurfaces the same marketing-page figures already flagged
+as unverified yesterday (the "$0.50–$1.50/store" number, and a
+"$0.00005 per actor start" figure that reads like generic Apify
+boilerplate, not an actor-specific cost). **[no data found]** No
+real-world run-time, cost, or cadence case study (Reddit r/webscraping,
+Apify community forum) was found for Home Depot scraping specifically —
+this question cannot be closed via search; it requires an actual trial
+run against the Apify actor's Pricing tab, which needs direct access this
+recon method cannot provide.
+
+**New flag:** **[single source, but specific and concerning]** search
+results describing `pulsewatch/dealwatch-scraper`'s internals mentioned
+"stores results in SQLite," "Telegram bot," and "run
+`app/scripts/test_scraper.py`" — details that read like a hobby-grade
+GitHub script wrapped as a paid Apify actor rather than a maintained,
+production-grade scraping product. This could be a search-conflation
+artifact, but it's specific enough to warrant real diligence (read actual
+reviews/run-history on the Apify actor page directly, not just search
+snippets) before this repo's vendor wiring (Recommendation #1) commits to
+that specific actor over the alternative HD scrapers surfaced this pass
+(`ecomscrape/homedepot-product-details-scraper`,
+`scraptivo/homedepot-scraper`, and others — none confirmed
+clearance/penny-specific, but worth a side-by-side trial).
+
+### D4. Competitor landscape — no shutdowns; one funding data point; two new entrants; accuracy signal filled in
+
+**[single source, PitchBook]** Scavenger.ai has reportedly raised $4.12M
+across 13 investors — if accurate, this is a materially better-funded
+competitor than yesterday's "no visible funding signal" inference
+assumed; that inference in Part A.1/A.2 should be treated as **weakened**,
+not confirmed wrong (still only one source). **[verified: 2+ independent
+sources, new since yesterday]** Scavenger.ai's billing complaints
+(trial-to-$47 conversion, cancellation difficulty) are corroborated
+again by a second source (ScamAdviser, June 2026) — same pattern, more
+confirmed. **[single source each, no shutdowns/major changes found]**
+Hidden Clearances, Deal Soldier, Endless, and PennyCentral show no
+material changes since yesterday.
+
+**Accuracy signal (gap-filled from yesterday):** **[single source, but a
+concrete complaint pattern]** Deal Soldier users report leads are "not
+accurate a lot of the time," with in-store tags not matching what the
+tool showed — this is the first direct evidence in this recon of a
+named competitor's leads failing to convert in-store, and it validates
+this doc's core thesis (Part B.5/Part C) that lead quality, not lead
+volume, is the differentiator. Scavenger.ai's complaints, by contrast,
+cluster on billing/cancellation, not lead accuracy — its underlying data
+may be comparatively solid even though its business practices draw
+criticism.
+
+**New entrants found (not previously profiled):** RebelSavings.com/
+rebelsavings.net (free, HD/Lowe's/Walmart/Walgreens, markets explicitly
+against BrickSeek's paywall) — possibly the same operation as "Rebel
+Savings" in Part A.6 under a different domain, not independently
+resolved this pass, flag for a naming check. And a new iOS app, "Penny:
+Deal Scanner & Alerts" (pennydeals.app), covering Home Depot with
+aisle/bay location plus Dollar General/Dollar Tree/Family Dollar weekly
+lists — worth a closer look next pass since aisle/bay-level detail is
+a specific UX claim this recon hasn't seen matched elsewhere except
+Hidden Clearances' [claim].
+
+---
+
 ## Open questions for the 5AM blueprint run
 
-1. **Vendor cost at scale**: Apify's ~$0.50–$1.50/store/scan figure is a
-   marketplace listing claim, not independently verified — get an actual
-   quote/trial run against San Antonio's current store count before
-   committing to scan cadence in the freshness-bar copy (Blueprint 1).
-2. **Refresh cadence we can honestly claim**: none of the competitor
-   cadence numbers (hourly, "every minute," 24/7) were verifiable from
-   outside — what cadence can *we* actually sustain against Apify/
-   Unwrangle rate limits and cost, and is it faster or slower than what
-   competitors claim (even if their claims are themselves unverified)?
-3. **Legal exposure**: Home Depot's ToS prohibits automated collection
-   (Part B.1) — this applies to every vendor in this space, including
-   ours via Apify/Unwrangle. Is that risk already accepted/scoped
-   elsewhere in this project, or does it need an explicit decision?
-4. **Scoring model signals**: do we have (or can Unwrangle/Apify's
-   response payloads actually surface) the specific fields needed for
-   the multi-signal score in Recommendation #2 — reverted-price +
-   out-of-stock-for-store, tag-ending, dwell time, markdown-history
-   depth — or only a subset?
-5. **Paid-tier expansion (Lowe's, Costco)**: this recon was scoped to
-   Home Depot method research per the product vision (HD free hook →
-   paid adds Lowe's + Costco). A follow-up pass should specifically
-   check whether Costco's stock/pricing data is exposed through any
-   comparable public/reverse-engineered surface at all — several
-   competitor sites listed here cover Walmart/Target/Lowe's but **none
-   surfaced in this pass's searches claim Costco coverage**, which may
-   mean Costco is a harder or unprecedented data problem worth flagging
-   before it's promised on a pricing page.
+1. ~~Vendor cost at scale~~ — **still unresolved after a second pass**
+   (see D3): search cannot surface real Apify per-run economics. This
+   needs a live trial run against the actual Apify Pricing tab (direct
+   access, not search) before committing to scan cadence in the
+   freshness-bar copy (Blueprint 1). Treat as blocked-on-direct-access,
+   not blocked-on-more-research.
+2. **New diligence item**: before wiring `pulsewatch/dealwatch-scraper`
+   specifically (vs. an alternative HD scraper), verify it isn't a
+   thin/hobby-grade wrapper (D3 flag) — check its actual Apify review
+   history and run count directly.
+3. **Refresh cadence we can honestly claim**: unchanged from yesterday —
+   still no verifiable outside cadence numbers for any competitor to
+   benchmark against; still depends on resolving #1 above.
+4. **Legal exposure**: unchanged — Home Depot's and Lowe's ToS both
+   prohibit automated collection (Part B.1, D2); still an accepted-risk
+   decision this recon can flag but not resolve.
+5. **Scoring model signals**: unchanged from yesterday — do Unwrangle/
+   Apify's actual response payloads surface reverted-price,
+   out-of-stock-for-store, tag-ending, dwell time, and markdown-history
+   depth, or only a subset?
+6. **Costco path — RESOLVED to a decision question**: not "is it
+   feasible via scraping" (no, per D1) but "do we want to build a
+   crowdsourced-report feature for Costco at all, and if so on what
+   timeline relative to Lowe's" — this changes the paid-tier roadmap
+   shape, not just its sequencing.
+7. **Rebel Savings vs. RebelSavings.com/rebelsavings.net naming
+   collision** (D4): confirm whether these are the same company before
+   citing either in competitive copy.
