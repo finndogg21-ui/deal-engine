@@ -537,3 +537,162 @@
   .deck, .deck .card-deal, .rr-line, .rr-slam { animation: none !important; }
   .card-deal, .spool, .tape-out { transition: none !important; }
 }
+
+/* ── THE STORE LEDGER ─────────────────────────────────────────────────────
+   A receipt is a line-item list, so the ledger IS the aesthetic — no new
+   colors, no chips, no logo grid. Leader dots carry the eye across, the total
+   rules off after a tear line. Everything is drawn from existing tokens, so
+   light and dark both come free. */
+
+.ledger {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+}
+
+.ledger-head {
+  display: flex;
+  justify-content: space-between;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 10px;
+  color: var(--ink-faint);
+  padding-bottom: var(--s2);
+}
+
+.ledger-row,
+.ledger-total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: 3px 0;
+  color: var(--ink);
+}
+
+.ledger-store { white-space: nowrap; }
+
+.ledger-mi {
+  font-style: normal;
+  color: var(--ink-faint);
+  margin-left: var(--s2);
+  font-size: 11px;
+}
+
+/* The leader dots. Pure decoration, hidden from assistive tech. */
+.ledger-dots {
+  flex: 1 1 auto;
+  min-width: var(--s4);
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-3px);
+}
+
+.ledger-qty {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* PRINT THE ZEROS — struck through, never hidden. Absence is what makes a
+   real count mean something. */
+.ledger-row.out { color: var(--ink-faint); }
+.ledger-row.out .ledger-store,
+.ledger-row.out .ledger-qty { text-decoration: line-through; }
+
+/* No reading at all. Unknown is not zero, so it is not struck through — it
+   is simply blank. */
+.ledger-row.unknown { color: var(--ink-faint); }
+.ledger-row.more { color: var(--ink-faint); }
+
+.ledger-total {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px dashed var(--rule-strong);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ledger-stamp {
+  margin: var(--s2) 0 0;
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Inverted cards (penny) flip the ledger's ink so it stays legible. */
+.card-deal.invert .ledger,
+.invert .ledger {
+  border-top-color: rgba(250, 250, 247, 0.28);
+}
+.invert .ledger-row,
+.invert .ledger-total,
+.invert .ledger-qty { color: var(--on-accent); }
+.invert .ledger-head,
+.invert .ledger-stamp,
+.invert .ledger-mi,
+.invert .ledger-row.out,
+.invert .ledger-row.unknown,
+.invert .ledger-row.more { color: rgba(250, 250, 247, 0.62); }
+.invert .ledger-dots { border-bottom-color: rgba(250, 250, 247, 0.3); }
+.invert .ledger-total { border-top-color: rgba(250, 250, 247, 0.6); }
+
+@media (max-width: 480px) {
+  .ledger { font-size: 11px; }
+  .ledger-mi { display: none; }
+}
+
+/* ── IN-STORE CLEARANCE REVEAL ────────────────────────────────────────────
+   Home Depot puts the clearance price behind a click because the markdown is
+   per store. The card mirrors that: an obviously pressable control sits in the
+   price slot, and the number replaces it in place.
+
+   It is a span, not a button — the whole card is already a <button>, and
+   nesting one inside another is invalid HTML that browsers silently mangle. */
+
+.clr-reveal {
+  display: inline-block;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule-strong);
+  background: var(--sticker);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 120ms linear;
+}
+
+.clr-reveal:hover { opacity: 0.82; }
+
+.clr-reveal:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Flagged, but no number for the store we checked. Sized down from `.now`
+   because it is a statement, not a price — it must not read as one. */
+.now.clr-unknown {
+  font-size: 19px;
+  letter-spacing: 0.01em;
+  color: var(--ink-faint);
+}
+
+/* On an inverted (penny) card the control flips so it stays visible. */
+.card-deal.invert .clr-reveal,
+.invert .clr-reveal {
+  background: var(--on-accent);
+  color: var(--sticker);
+  border-color: var(--on-accent);
+}
+.invert .now.clr-unknown { color: rgba(250, 250, 247, 0.68); }
+
+@media (prefers-reduced-motion: reduce) {
+  .clr-reveal { transition: none; }
+}

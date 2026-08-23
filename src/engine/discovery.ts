@@ -23,9 +23,20 @@
 import type { Db } from '../db/client.js';
 import { meetsTieredFloor } from './deal-floor.js';
 
+/** Reject reasons name the retailer that actually answered. */
+const RETAILER_LABEL: Record<string, string> = {
+  homedepot: 'Home Depot',
+  'home-depot': 'Home Depot',
+  target: 'Target',
+  lowes: "Lowe's",
+  walmart: 'Walmart',
+};
+
 /** One item the checker should ask Home Depot about. */
 export interface PendingCheck {
   discovery_id: number;
+  /** Which retailer's API to ask. Home Depot and Target use different ones. */
+  retailer: string;
   item_id: string;
   title: string | null;
   claimed_price: number | null;
@@ -36,6 +47,12 @@ export interface PendingCheck {
 export interface HdVerdictInput {
   discovery_id: number;
   reachable: boolean;
+  /**
+   * Which retailer answered. The pool is multi-retailer now, and a reject
+   * reason that says "at Home Depot" on a Target row is a lie in the audit
+   * trail. Defaults to Home Depot for rows written before Target existed.
+   */
+  retailer?: string | null;
   price?: number | null;
   list_price?: number | null;
   discount_pct?: number | null;
@@ -52,6 +69,16 @@ export interface HdVerdictInput {
    * while ordinary full-price items at the same store read alt=false.
    */
   alt_price_display?: boolean | null;
+  /**
+   * HD's `pricing.clearance` — THE ACTUAL IN-STORE CLEARANCE PRICE, per store.
+   * Verified 2026-08-22: the Rubbermaid bucket reads clearance.value 2.40 /
+   * 88% off at Fairbanks and 2.00 / 90% off at Bitters Rd, matching what a
+   * competitor's in-store feed showed. `alternatePriceDisplay` alone is NOT
+   * proof of a deal (an item can carry the flag with percentageOff 0) — the
+   * real test is a clearance price BELOW the shelf price.
+   */
+  clearance_price?: number | null;
+  clearance_pct?: number | null;
 }
 
 /**
@@ -99,7 +126,7 @@ export async function seedDiscovery(db: Db): Promise<{ from_sweep: number; from_
  */
 export async function pendingChecks(db: Db, limit = 25): Promise<PendingCheck[]> {
   const { rows } = await db.query<Record<string, unknown>>(
-    `SELECT discovery_id, item_id, title, claimed_price, claimed_discount
+    `SELECT discovery_id, retailer, item_id, title, claimed_price, claimed_discount
        FROM discovery
       WHERE status IN ('pending', 'unreachable')
          OR (status = 'published' AND checked_at < now() - INTERVAL '12 hours')
@@ -109,6 +136,7 @@ export async function pendingChecks(db: Db, limit = 25): Promise<PendingCheck[]>
   );
   return rows.map((r) => ({
     discovery_id: Number(r.discovery_id),
+    retailer: String(r.retailer ?? 'homedepot'),
     item_id: String(r.item_id),
     title: (r.title as string) ?? null,
     claimed_price: r.claimed_price === null ? null : Number(r.claimed_price),
@@ -131,33 +159,56 @@ export function judge(v: HdVerdictInput): {
   reason: string | null;
   kind: 'markdown' | 'hidden_clearance' | null;
 } {
-  if (!v.reachable) return { status: 'unreachable', reason: 'Home Depot did not answer', kind: null };
-  if (v.discontinued) return { status: 'rejected', reason: 'discontinued at Home Depot', kind: null };
+  const who = RETAILER_LABEL[String(v.retailer ?? 'homedepot')] ?? 'the retailer';
+  if (!v.reachable) return { status: 'unreachable', reason: `${who} did not answer`, kind: null };
+  if (v.discontinued) return { status: 'rejected', reason: `discontinued at ${who}`, kind: null };
 
   const price = v.price ?? null;
   const disc = v.discount_pct ?? 0;
 
   /**
-   * THE CATALOG IS NATIONAL. A clearance markdown is a chain-wide fact about a
-   * SKU, not a fact about one building — so publishing must NOT require stock
-   * at whichever store we happened to check. Stock is the per-ZIP overlay,
-   * resolved for the visitor's own stores at read time.
-   *
-   * (Founder correction, 2026-08-22: "it's a global website, not Bitters
-   * Deals." The earlier gate rejected 17 real clearance-flagged items purely
-   * because one San Antonio store had none on the shelf.)
+   * THE CATALOG IS NATIONAL. A markdown is a chain-wide fact about a SKU, not
+   * a fact about one building, so publishing never requires stock at whichever
+   * store we happened to check. Stock is the per-ZIP overlay at read time.
+   * (Founder: "it's a global website, not Bitters Deals.")
    */
 
-  // HIDDEN CLEARANCE — the category this product is named after. HD shows no
-  // online markdown but flags an in-store clearance price it will not print.
-  // No floor can apply (the register price is unknown) and we never invent
-  // one: the card says "in-store clearance price - scan it".
-  if (disc <= 0 && v.alt_price_display === true) {
+  // HIDDEN CLEARANCE — HD does not print this price on the page, but its own
+  // pricing.clearance field carries it. This is the real thing: a per-store
+  // clearance price BELOW the shelf price.
+  //
+  // `alternatePriceDisplay` is Home Depot's own tell: it is what puts the
+  // "See In-Store Clearance Price" button on their page. The number exists —
+  // HD simply puts it behind a click — so a flagged item IS a real find and
+  // stays in the feed. What the card must never do is print the bare word
+  // "Clearance" in the price slot; it shows a reveal control instead, and the
+  // number arrives from pricing.clearance once a check has fetched it.
+  const clr = v.clearance_price ?? null;
+  const clrPct = v.clearance_pct ?? 0;
+  if (clr !== null && price !== null && clr < price && clrPct > 0) {
+    // Same floor as any deal: a 9%-off clearance is still not worth a drive.
+    if (!meetsTieredFloor(clr, clrPct)) {
+      return { status: 'rejected', reason: `clearance ${Math.round(clrPct)}% off $${clr.toFixed(2)} is under the floor`, kind: null };
+    }
     return { status: 'published', reason: null, kind: 'hidden_clearance' };
   }
 
-  if (price === null) return { status: 'rejected', reason: 'no price at Home Depot', kind: null };
-  if (disc <= 0) return { status: 'rejected', reason: 'no markdown at Home Depot', kind: null };
+  if (price === null) return { status: 'rejected', reason: `no price at ${who}`, kind: null };
+
+  /**
+   * FLAGGED, NOT YET PRICED.
+   *
+   * The item carries the in-store-clearance flag but no number has been
+   * fetched for it yet. That is a gap in OUR data, not evidence the deal is
+   * fake — rejecting it throws away the exact category this product is named
+   * after. It publishes as a hidden clearance whose price is revealed on the
+   * card once a check fills `clearance_price` in.
+   */
+  if (v.alt_price_display === true) {
+    return { status: 'published', reason: null, kind: 'hidden_clearance' };
+  }
+
+  if (disc <= 0) return { status: 'rejected', reason: `no markdown at ${who}`, kind: null };
   if (!meetsTieredFloor(price, disc)) {
     return { status: 'rejected', reason: `${Math.round(disc)}% off $${price.toFixed(2)} is under the floor`, kind: null };
   }
@@ -170,13 +221,32 @@ export async function recordVerdicts(
   verdicts: HdVerdictInput[],
 ): Promise<{ published: number; rejected: number; unreachable: number; hidden_clearance: number }> {
   const out = { published: 0, rejected: 0, unreachable: 0, hidden_clearance: 0 };
+
+  // The caller need not know which retailer a row belongs to — the pool does.
+  // Look it up so reject reasons name the right store even when the checker
+  // omits it.
+  const ids = verdicts.map((v) => v.discovery_id);
+  const known = new Map<number, string>();
+  if (ids.length > 0) {
+    const { rows } = await db.query<Record<string, unknown>>(
+      `SELECT discovery_id, retailer FROM discovery WHERE discovery_id = ANY($1::int[])`,
+      [ids],
+    );
+    for (const r of rows) known.set(Number(r.discovery_id), String(r.retailer ?? 'homedepot'));
+  }
+
   for (const v of verdicts) {
-    const { status, reason, kind } = judge(v);
+    const { status, reason, kind } = judge({
+      ...v,
+      retailer: v.retailer ?? known.get(v.discovery_id) ?? 'homedepot',
+    });
     out[status]++;
     if (kind === 'hidden_clearance') out.hidden_clearance++;
     await db.query(
       `UPDATE discovery
           SET status = $2, reject_reason = $3, checked_at = now(), deal_kind = $9,
+              clearance_price = $10, clearance_pct = $11,
+              alt_price_display = $12,
               hd_price = $4, hd_list = $5, hd_discount = $6,
               hd_store_id = $7, hd_quantity = $8,
               publish_at = CASE WHEN $2 = 'published' THEN COALESCE(publish_at, now()) ELSE publish_at END
@@ -185,6 +255,11 @@ export async function recordVerdicts(
         v.discovery_id, status, reason,
         v.price ?? null, v.list_price ?? null, v.discount_pct ?? null,
         v.store_id ?? null, v.quantity ?? null, kind,
+        v.clearance_price ?? null, v.clearance_pct ?? null,
+        // Persisted so a row that IS a hidden clearance stays identifiable even
+        // before we have fetched its number. Without this the flag was read,
+        // used once, and thrown away.
+        v.alt_price_display ?? null,
       ],
     );
   }
@@ -194,9 +269,9 @@ export async function recordVerdicts(
 /** What the app should show: only HD-verified, in-stock, floor-clearing deals. */
 export async function publishedDeals(db: Db, limit = 200) {
   const { rows } = await db.query<Record<string, unknown>>(
-    `SELECT discovery_id, item_id, sku, title, image_url, product_url,
+    `SELECT discovery_id, retailer, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
-            checked_at, source, deal_kind
+            checked_at, source, deal_kind, clearance_price, clearance_pct
        FROM discovery
       WHERE status = 'published'
       -- Hidden clearance first (the category this product is named after),

@@ -89,17 +89,21 @@ export const RETAILERS: Retailer[] = [
     slug: 'target',
     name: 'Target',
     badge: 'TG',
-    coverage: 'planned',
-    lede: 'Planned. Strong clearance cycles, unconfirmed stock data.',
+    coverage: 'in-store',
+    lede: 'Live. Clearance price and exact shelf counts, per store.',
     howItWorks: [
       'Target runs clearance on a weekly schedule by department, and the percentages step down predictably.',
       'End caps and seasonal resets drive most of the deep markdowns.',
+      'A clearance sticker is store-specific. The same item can be cleared at one store and sit at full price at another.',
     ],
     weSee: [
-      'Nothing yet. This retailer is not live.',
+      'The clearance price itself — marked as clearance by Target, not guessed from a discount.',
+      'The exact number of units on a given store shelf: a real count, not "in stock".',
+      'Which nearby stores have none, so a zero is visible instead of quietly dropped.',
     ],
     weCannot: [
-      'Confirm per-store quantity yet. Same blocker as Walmart.',
+      'Promise the count is live. It is the number we last read, and it is always stamped with when.',
+      'See the aisle or endcap. Target does not publish a location inside the store.',
     ],
   },
 ];

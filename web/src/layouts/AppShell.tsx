@@ -1,5 +1,6 @@
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import ZipBar from '../components/ZipBar.js';
+import Sidebar from '../components/Sidebar.js';
 import { useAuth } from '../lib/auth.js';
 import { BRAND } from '../App.js';
 import '../sidebar.css';
@@ -37,9 +38,14 @@ export default function AppShell() {
         <Link to="/signup" className="tape-trial">Start free trial</Link>
         <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
       </header>
-      <main className="app-main">
-        <Outlet />
-      </main>
+      {/* The rail is the only nav: Home Depot and Target. On a phone it lies
+          flat under the header instead of eating a third of the width. */}
+      <div className="tape-body">
+        <Sidebar />
+        <main className="app-main">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

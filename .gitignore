@@ -25,3 +25,6 @@ proxies*.txt
 # Corrupted-DB backups (any .data variant is database, never committed)
 .data*/
 logs/
+
+# Local prod data dumps (regenerate with scripts/dump-prod-hd.mts)
+hd-prod.json

@@ -1,4 +1,5 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import LedgerPreview from './pages/LedgerPreview.js';
 import SiteLayout from './layouts/SiteLayout.js';
 import AppShell from './layouts/AppShell.js';
 
@@ -54,6 +55,8 @@ export default function App() {
         <Route path="/reset" element={<Reset />} />
         <Route path="/account/delete/confirm" element={<ConfirmDelete />} />
         <Route path="/stores/:slug" element={<RetailerPage />} />
+        {/* Design review surface for the store ledger. Not linked in nav. */}
+        <Route path="/design/ledger" element={<LedgerPreview />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 

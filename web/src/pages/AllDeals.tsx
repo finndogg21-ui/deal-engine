@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { money, ago, hdStoreUrl, displayTitle, statesLine } from '../lib/deal-ui.js';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
+import StoreLedger from '../components/StoreLedger.js';
 import { useAuth } from '../lib/auth.js';
 import { getLocalZip, onZipChange } from '../lib/zip.js';
 import '../dashboard.css';
@@ -82,6 +83,13 @@ interface Candidate {
   near_stock?: { qty: number | null; store: string | null; distance_mi: number | null } | null;
   /** HD flags an in-store clearance price it will not print online. */
   hidden_clearance?: boolean;
+  /** The ACTUAL in-store clearance price, when the retailer gave us one.
+   *  Null means we know a clearance exists but not its number — say exactly
+   *  that, never guess a figure. */
+  clearance_price?: number | null;
+  clearance_pct?: number | null;
+  /** Exact units per store — the ledger. Empty when we have never counted. */
+  stores?: Array<{ store: string; qty: number | null; distance_mi: number | null }>;
 }
 
 interface HistoryPoint {
@@ -163,6 +171,35 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = c.image_url && !imgFailed;
 
+  /**
+   * Home Depot puts its clearance price behind a "See In-Store Clearance Price"
+   * click, because the markdown is per STORE — the same SKU can be cleared at
+   * one building and full price at the next. We mirror that: the card advertises
+   * the find, and the number is one click away.
+   */
+  const [revealed, setRevealed] = useState(false);
+
+  /**
+   * A clearance price only counts when it is actually BELOW the shelf price.
+   * HD returns some items with clearance.value equal to the shelf price and
+   * percentageOff 0 — flagged, but not marked down. Printing that as a
+   * clearance price would invent a saving that does not exist.
+   */
+  const clearedPrice =
+    c.hidden_clearance &&
+    typeof c.clearance_price === 'number' &&
+    typeof c.price === 'number' &&
+    c.clearance_price < c.price
+      ? c.clearance_price
+      : null;
+
+  const reveal = (e: { stopPropagation: () => void; preventDefault: () => void }) => {
+    // The whole card is a button; without this the click opens the deal instead.
+    e.stopPropagation();
+    e.preventDefault();
+    setRevealed(true);
+  };
+
   return (
     <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`}
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
@@ -184,14 +221,33 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         <p className="card-title">{c.title}</p>
 
         <div className="card-price">
+          {/* THE PRICE SLOT NEVER HOLDS THE BARE WORD "CLEARANCE".
+              Either a number, or a control that produces one. */}
           {c.hidden_clearance ? (
-            <>
-              {/* HD hides the register price. We show its ONLINE price and say
-                  plainly that the store price is lower and unknown - never a
-                  number we made up. */}
-              <span className="now">Clearance</span>
-              <span className="was">Online <b>{money(c.price)}</b></span>
-            </>
+            !revealed ? (
+              <span
+                className="clr-reveal"
+                role="button"
+                tabIndex={0}
+                onClick={reveal}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') reveal(e); }}
+              >
+                See in-store clearance price
+              </span>
+            ) : clearedPrice !== null ? (
+              <>
+                <span className="now">{money(clearedPrice)}</span>
+                <span className="was">In store · online <b>{money(c.price)}</b></span>
+              </>
+            ) : (
+              /* Flagged by Home Depot, but no number for the store we checked.
+                 Say that plainly rather than inventing one — the markdown may
+                 still be live at a different store. */
+              <>
+                <span className="now clr-unknown">Varies by store</span>
+                <span className="was">Online <b>{money(c.price)}</b></span>
+              </>
+            )
           ) : (
             <>
               <span className="now">{money(c.price)}</span>
@@ -218,9 +274,13 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           {/* The hedge always leads; when a ZIP is set, the local stock line
               appears right under it, instantly, for every card (no click). */}
           <span className="card-possible">
-            {c.hidden_clearance
-              ? 'In-store clearance price · scan the SKU to see it'
-              : 'Possible deal · check your store'}
+            {!c.hidden_clearance
+              ? 'Possible deal · check your store'
+              : !revealed
+                ? 'Home Depot hides this one · tap to see it'
+                : clearedPrice !== null
+                  ? `In-store clearance${c.clearance_pct ? ` · ${Math.round(c.clearance_pct)}% off` : ''} · scan to confirm`
+                  : 'Clearance is per store · scan the SKU in yours'}
           </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>
@@ -313,9 +373,34 @@ export default function AllDeals() {
     const q = new URLSearchParams(window.location.search).get('tab');
     return q === 'all' || q === 'near' || q === 'penny' ? q : 'penny';
   });
-  const [store, setStore] = useState<string | null>(null);
+  /**
+   * ?store=<slug> scopes the feed to one retailer — this is what the sidebar's
+   * Home Depot / Target entries link to.
+   *
+   * It has to be a QUERY PARAM, not a route: THE TAPE redesign culled
+   * /app/deals/:retailer and /app/stock/:retailer, so those paths now redirect
+   * to /app and the old sidebar links quietly did nothing.
+   */
+  const [store, setStore] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('store'),
+  );
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('score');
+
+  /**
+   * Keep the retailer scope in step with the URL.
+   *
+   * Home Depot and Target are the same route with a different query, so React
+   * Router does not remount this page when you move between them — without
+   * this, the second click would change the address bar and nothing else.
+   */
+  const { search } = useLocation();
+  useEffect(() => {
+    const p = new URLSearchParams(search);
+    setStore(p.get('store'));
+    const t = p.get('tab');
+    if (t === 'all' || t === 'near' || t === 'penny') setTab(t);
+  }, [search]);
 
   const [compact, setCompact] = useState(() => {
     const saved = localStorage.getItem('compact');
@@ -370,12 +455,19 @@ export default function AllDeals() {
         const list = !hidden && price !== null && disc !== null && disc > 0 && disc < 100
           ? Math.round((price / (1 - disc / 100)) * 100) / 100
           : null;
+        // The pool is multi-retailer. Take the retailer from the ROW — hardcoding
+        // it here made every Target row render as Home Depot.
+        const slug = String(d.retailer ?? 'homedepot');
+        const clr = d.clearance_price === null || d.clearance_price === undefined
+          ? null : Number(d.clearance_price);
+        const clrPct = d.clearance_pct === null || d.clearance_pct === undefined
+          ? null : Number(d.clearance_pct);
         return {
-          product_id: `hd:${String(d.item_id)}`,
+          product_id: `${slug}:${String(d.item_id)}`,
           store_id: String(d.hd_store_id ?? ''),
           title: String(d.title ?? ''),
           category: null,
-          retailer: 'homedepot',
+          retailer: slug,
           image_url: (d.image_url as string) ?? null,
           store_name: '',
           store_number: null,
@@ -395,6 +487,11 @@ export default function AllDeals() {
           last_seen_at: (d.checked_at as string) ?? new Date().toISOString(),
           product_url: (d.product_url as string) ?? null,
           hidden_clearance: hidden,
+          clearance_price: clr,
+          clearance_pct: clrPct,
+          stores: Array.isArray(d.stores)
+            ? (d.stores as Candidate['stores'])
+            : [],
         } as Candidate;
       });
       setRows(mapped);
@@ -575,8 +672,56 @@ export default function AllDeals() {
     if (body && typeof body === 'object') setSel(body as Detail);
   }, []);
 
+  /**
+   * Build a Detail from a row we already hold.
+   *
+   * Verified-pool deals (Home Depot and Target alike) do not exist in the
+   * `candidates` table, so /api/candidates/:pid/:sid 404s for them and the
+   * panel silently never opened — the fetch failure is swallowed by design so
+   * a malformed object can't crash the panel. The row itself already carries
+   * everything the panel shows, so fall back to it instead of showing nothing.
+   */
+  function detailFromRow(c: Candidate): Detail {
+    return {
+      ...c,
+      sku: c.product_id.split(':')[1] ?? c.product_id,
+      stage_entered_at: c.last_seen_at,
+      store: {
+        name: c.store_name || 'Your store',
+        address: null,
+        distance_mi: c.distance_mi,
+        maps_url: null,
+      },
+      // No history for a pool row: we have one reading, not a series. An empty
+      // array renders an empty chart, which is honest; a fabricated line is not.
+      price_history: [],
+      prior_finds: [],
+    };
+  }
+
   async function open(c: Candidate) {
-    await openById(c.product_id, c.store_id);
+    const isPoolRow = !c.stage && c.penny_score === 0;
+    if (!isPoolRow) {
+      await openById(c.product_id, c.store_id);
+      return;
+    }
+    // Try the rich endpoint anyway, but never leave the click doing nothing.
+    try {
+      const r = await fetch(
+        `/api/candidates/${encodeURIComponent(c.product_id)}/${encodeURIComponent(c.store_id)}`,
+      );
+      if (r.ok) {
+        const body = await r.json().catch(() => null);
+        if (body && typeof body === 'object') {
+          // Keep the ledger from the row: the detail endpoint has no stores.
+          setSel({ ...(body as Detail), stores: c.stores ?? [] });
+          return;
+        }
+      }
+    } catch {
+      /* fall through to the local row */
+    }
+    setSel(detailFromRow(c));
   }
 
   // Open the detail panel straight away when the page is reached by a deep link.
@@ -831,6 +976,18 @@ export default function AllDeals() {
                 href={hdStoreUrl(sel.product_url, sel.store_id?.split(':')[1] ?? nearestStoreNum) ?? sel.product_url}
                 target="_blank" rel="noreferrer">View on {retailerName(sel.retailer)}</a></>}
             </p>
+
+            {/* THE LEDGER — exact units per store, zeros printed.
+                Only rendered when we actually counted; an empty ledger shows
+                nothing rather than an empty frame implying we looked. */}
+            {sel.stores && sel.stores.length > 0 && (
+              <>
+                <div className="chartlabel" style={{ marginBottom: 'var(--s2)' }}>
+                  Units by store
+                </div>
+                <StoreLedger rows={sel.stores} readAt={sel.last_seen_at} />
+              </>
+            )}
 
             {/* Answers "is it near ME", which the sweep cannot: it only knows
                 the stores it happened to see. Uses the app-level ZIP from the

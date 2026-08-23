@@ -38,14 +38,38 @@ export interface HdStoreFact {
   quantity: number | null;
   inStock: boolean | null;
   discontinued: boolean | null;
+  /**
+   * HD's `alternatePriceDisplay` — the "See In-Store Clearance Price" tell.
+   * TRUE ALONE IS NOT A DEAL: an item can carry the flag with percentageOff 0.
+   */
+  altPriceDisplay: boolean | null;
+  /**
+   * `pricing.clearance` — THE ACTUAL REGISTER PRICE, per store. This is the
+   * number the card prints. Without it the UI can only say the word
+   * "clearance", which the founder correctly called useless.
+   */
+  clearancePrice: number | null;
+  clearancePct: number | null;
 }
 
-/** The exact query shape accepted by the gateway (field names verified). */
-const PRODUCT_QUERY = `query productClientOnlyProduct($itemId: String!, $storeId: String, $zipCode: String) {
+/**
+ * The exact query shape accepted by the gateway (field names verified).
+ *
+ * EXPORTED because the server cannot run it: HD's Akamai answers our server
+ * with HTTP 206 "Generic errors" and answers a real browser normally, so the
+ * scheduled browser agent executes this same string. One definition, so the
+ * browser path and the server path can never drift apart.
+ */
+export const PRODUCT_QUERY = `query productClientOnlyProduct($itemId: String!, $storeId: String, $zipCode: String) {
   product(itemId: $itemId, dataSource: "catalog") {
     itemId
     identifiers { productLabel storeSkuNumber modelNumber }
-    pricing(storeId: $storeId) { value original }
+    pricing(storeId: $storeId) {
+      value
+      original
+      alternatePriceDisplay
+      clearance { value percentageOff dollarOff }
+    }
     availabilityType { discontinued status type }
     fulfillment(storeId: $storeId, zipCode: $zipCode) {
       fulfillmentOptions {
@@ -130,6 +154,14 @@ export async function hdStoreFact(
       }
     }
 
+    // The hidden-clearance pair. `clearance.value` is the register price; the
+    // flag on its own proves nothing, so both are carried and the judge decides.
+    const clearance = (pricing.clearance ?? {}) as Record<string, unknown>;
+    const clearancePrice = num(clearance.value);
+    const clearancePct = num(clearance.percentageOff);
+    const altPriceDisplay =
+      typeof pricing.alternatePriceDisplay === 'boolean' ? pricing.alternatePriceDisplay : null;
+
     const price = num(pricing.value);
     const listPrice = num(pricing.original);
     const discountPct =
@@ -149,6 +181,9 @@ export async function hdStoreFact(
       storeName,
       quantity,
       inStock,
+      altPriceDisplay,
+      clearancePrice,
+      clearancePct,
       discontinued: typeof avail.discontinued === 'boolean' ? avail.discontinued : null,
     };
   } catch {

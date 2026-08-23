@@ -654,3 +654,8 @@ ALTER TABLE discovery ADD COLUMN IF NOT EXISTS deal_kind TEXT;
 -- HD's alternatePriceDisplay: the hidden-clearance tell (no online markdown,
 -- but the store has a clearance price HD will not print online).
 ALTER TABLE discovery ADD COLUMN IF NOT EXISTS alt_price_display BOOLEAN;
+
+-- The ACTUAL in-store clearance price from HD's pricing.clearance field, per
+-- store. This is what a card must show: "$2.00 in store (90% off)".
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_price NUMERIC(10,2);
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_pct NUMERIC(5,2);
