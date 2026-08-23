@@ -38,6 +38,15 @@
 .nav-links a:hover { color: var(--ink); background: var(--paper-sunk); }
 .nav-links a[aria-current="page"] { color: var(--ink); font-weight: 600; }
 
+/* A button inside the nav keeps the button's own ink. `.nav-links a` (0,1,1)
+   outranks `.btn` (0,1,0), so the solid CTA painted --ink-soft text onto a
+   --sticker ground: 1.4:1 in both themes — a button you cannot read. Measured
+   on the live site with getComputedStyle, not eyeballed. */
+.nav-links a.btn { color: var(--on-accent); }
+.nav-links a.btn:hover { color: var(--on-accent); background: var(--sticker-deep); }
+.nav-links a.btn-quiet { color: var(--ink); }
+.nav-links a.btn-quiet:hover { color: var(--ink); background: var(--paper-sunk); }
+
 /* ---- Buttons ---- */
 
 .btn {
