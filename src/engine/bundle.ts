@@ -49,3 +49,14 @@ export function isBundle(e: {
  * our data, so read-time filtering keys off it alone.
  */
 export const EXCLUDE_BUNDLES_SQL = `p.product_url NOT LIKE '%/p/sets/%'`;
+
+/**
+ * Anything Home Depot's own store-level check rejected must never appear in a
+ * feed again. The discovery pool records WHY (no markdown at HD, under the
+ * floor, nothing on the shelf); this predicate simply keeps those items out.
+ * Verified need, 2026-08-22: 20 of 23 live "deals" failed the HD check — the
+ * sweep had invented 50%-off tool deals by halving the real price.
+ */
+export const EXCLUDE_HD_REJECTED_SQL = `NOT EXISTS (
+  SELECT 1 FROM discovery d
+   WHERE d.item_id = p.item_id AND d.status = 'rejected')`;

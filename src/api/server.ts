@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { getDb } from '../db/client.js';
 import { confidenceLabel } from '../engine/score.js';
-import { EXCLUDE_BUNDLES_SQL } from '../engine/bundle.js';
+import { EXCLUDE_BUNDLES_SQL, EXCLUDE_HD_REJECTED_SQL } from '../engine/bundle.js';
 import { tieredFloorSql } from '../engine/deal-floor.js';
 import { cookies, loadUser, requireAuth, requirePlan, rateLimit, route } from './middleware.js';
 import { auth } from './routes/auth.js';
@@ -184,6 +184,8 @@ app.get('/api/candidates', ...paid, async (req, res) => {
           AND ${tieredFloorSql('s.last_price', 's.last_discount')}
           -- Delivery-only bundles have no real shelf stock; hide them. See bundle.ts.
           AND ${EXCLUDE_BUNDLES_SQL}
+          -- Home Depot said no; see bundle.ts + discovery pool.
+          AND ${EXCLUDE_HD_REJECTED_SQL}
           AND ($5::boolean IS NOT TRUE
                -- Walked the ladder, delisted, stock still on the shelf.
                OR s.stage = 'penny_candidate'

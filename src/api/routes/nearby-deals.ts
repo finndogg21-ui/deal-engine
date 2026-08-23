@@ -28,7 +28,7 @@ import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
 import { nearbyStores, type NearbyStore } from '../../geo/nearby.js';
-import { EXCLUDE_BUNDLES_SQL } from '../../engine/bundle.js';
+import { EXCLUDE_BUNDLES_SQL, EXCLUDE_HD_REJECTED_SQL } from '../../engine/bundle.js';
 import { tieredFloorSql } from '../../engine/deal-floor.js';
 
 export const nearbyDeals = Router();
@@ -129,6 +129,8 @@ nearbyDeals.get(
           AND ${tieredFloorSql('s.last_price', 's.last_discount')}
           -- Delivery-only bundles have no real shelf stock; hide them. See bundle.ts.
           AND ${EXCLUDE_BUNDLES_SQL}
+          -- Home Depot said no; see bundle.ts + discovery pool.
+          AND ${EXCLUDE_HD_REJECTED_SQL}
         ORDER BY s.product_id, s.last_discount DESC NULLS LAST`,
       [minDiscount, retailer],
     );
