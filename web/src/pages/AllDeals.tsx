@@ -313,8 +313,13 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
             $12 hook and 90% off a $134 floor are not the same errand. Set
             quietly — the percentage is already doing the shouting, and two
             loud things beside each other are neither. */}
+        {/* WHAT YOU CAN MAKE, honestly bounded.
+            This is retail minus your cost — the CEILING on a flip, not a
+            forecast. We have no market-price feed yet (src/vendors/keepa.ts is
+            still a stub), so a firm "you'll make $X" would be invented. "Up to"
+            is the strongest claim the data supports. */}
         {saved !== null && saved > 0 && (
-          <div className="card-save">You save {money(saved)}</div>
+          <div className="card-save">Margin up to {money(saved)}</div>
         )}
 
         {c.penny_score >= 70 && (
@@ -970,7 +975,12 @@ export default function AllDeals() {
                 return (
                 <button
                   key={r.report_id}
-                  className="card-deal invert is-grail"
+                  /* NOT `.invert`. That class flips the card to the opposite of
+                     the palette, which made every penny card render light on a
+                     dark page — they read as stray light-mode cards. Emphasis
+                     now comes from the grail tier, the same way it does for a
+                     90%-off clearance, so the spool matches the theme. */
+                  className="card-deal is-grail"
                   style={{ '--i': Math.min(i, 16) } as CSSProperties}
                   onClick={() => nav(`/app/p/${r.report_id}`)}
                 >
@@ -995,7 +1005,9 @@ export default function AllDeals() {
                       {list !== null && <span className="was">was <s>{money(list)}</s></span>}
                     </div>
 
-                    {saved !== null && <div className="card-save">You save {money(saved)}</div>}
+                    {saved !== null && (
+                      <div className="card-save">Margin up to {money(saved)}</div>
+                    )}
 
                     <div className="card-facts">
                       <span className="card-possible">

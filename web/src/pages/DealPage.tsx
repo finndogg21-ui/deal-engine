@@ -162,7 +162,16 @@ export default function DealPage() {
                   )}
                   {/* The dollar magnitude only — the percentage is already the
                       hero above, and saying it twice weakens both. */}
-                  {saves !== null && <div className="deal-save">You save {money(saves)}</div>}
+                  {saves !== null && (
+                    <>
+                      <div className="deal-save">Margin up to {money(saves)}</div>
+                      <p className="deal-margin-note">
+                        Retail minus your cost — the ceiling on a flip, not a forecast.
+                        Real resale usually lands below retail, and fees come out of
+                        whatever you sell for.
+                      </p>
+                    </>
+                  )}
                   {realClearance !== null && row.clearance_store && (
                     <p className="deal-where">
                       Cheapest at <b>{row.clearance_store}</b>

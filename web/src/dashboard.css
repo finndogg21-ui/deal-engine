@@ -1153,3 +1153,13 @@
 
 /* The empty state is a message, not a card. */
 .deck > .empty { grid-column: 1 / -1; }
+
+/* The margin figure is a ceiling, and the note under it says so. Small, so it
+   reads as a caveat rather than competing with the number it qualifies. */
+.deal-margin-note {
+  margin: var(--s2) 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 44ch;
+}
