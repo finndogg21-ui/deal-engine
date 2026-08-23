@@ -220,24 +220,22 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         <span className="retailer">{retailerName(c.retailer)}</span>
         <p className="card-title">{c.title}</p>
 
+        {/* BOTH PRICES, ALWAYS — and the saving is the loudest thing on the card.
+            The old version showed a lone reveal button with no numbers at all,
+            so a card advertised a deal without ever naming one. The regular
+            price is visible before the click; the click adds the clearance
+            price beside it and the amount saved underneath. */}
         <div className="card-price">
-          {/* THE PRICE SLOT NEVER HOLDS THE BARE WORD "CLEARANCE".
-              Either a number, or a control that produces one. */}
           {c.hidden_clearance ? (
             !revealed ? (
-              <span
-                className="clr-reveal"
-                role="button"
-                tabIndex={0}
-                onClick={reveal}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') reveal(e); }}
-              >
-                See in-store clearance price
-              </span>
+              <>
+                <span className="now pre-reveal">{money(c.price)}</span>
+                <span className="was">Regular price</span>
+              </>
             ) : clearedPrice !== null ? (
               <>
                 <span className="now">{money(clearedPrice)}</span>
-                <span className="was">In store · online <b>{money(c.price)}</b></span>
+                <span className="was">was <s>{money(c.price)}</s> in store</span>
               </>
             ) : (
               /* Flagged by Home Depot, but no number for the store we checked.
@@ -245,21 +243,41 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
                  still be live at a different store. */
               <>
                 <span className="now clr-unknown">Varies by store</span>
-                <span className="was">Online <b>{money(c.price)}</b></span>
+                <span className="was">Regular <b>{money(c.price)}</b></span>
               </>
             )
           ) : (
             <>
               <span className="now">{money(c.price)}</span>
               {c.list_price !== null && (
-                <span className="was">Was <b>{money(c.list_price)}</b></span>
+                <span className="was">was <s>{money(c.list_price)}</s></span>
               )}
             </>
           )}
         </div>
-        {c.saves !== null && c.saves > 0 && (
-          <div className="card-save">Save {money(c.saves)}</div>
-        )}
+
+        {/* THE SAVING — the reason to drive there, so it gets the loud slot. */}
+        {c.hidden_clearance && revealed && clearedPrice !== null && typeof c.price === 'number' ? (
+          <div className="card-save big">
+            Save {money(Math.round((c.price - clearedPrice) * 100) / 100)}
+            {c.clearance_pct ? ` · ${Math.round(c.clearance_pct)}% off` : ''}
+          </div>
+        ) : c.hidden_clearance && !revealed ? (
+          <span
+            className="clr-reveal"
+            role="button"
+            tabIndex={0}
+            onClick={reveal}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') reveal(e); }}
+          >
+            See in-store clearance price
+          </span>
+        ) : c.saves !== null && c.saves > 0 ? (
+          <div className="card-save big">
+            Save {money(c.saves)}
+            {c.discount_pct ? ` · ${Math.round(c.discount_pct)}% off` : ''}
+          </div>
+        ) : null}
 
         {c.penny_score >= 70 && (
           <div className="card-predict">May ring up at $0.01, not confirmed</div>
@@ -701,6 +719,16 @@ export default function AllDeals() {
 
   async function open(c: Candidate) {
     const isPoolRow = !c.stage && c.penny_score === 0;
+    if (isPoolRow) {
+      /* Verified deals get a real PAGE, not a side panel — the founder's call,
+         and the only form that can be shared or opened in a second tab. The
+         product_id is "<retailer>:<itemId>". */
+      const [slug, itemId] = c.product_id.split(':');
+      if (slug && itemId) {
+        nav(`/app/d/${encodeURIComponent(slug)}/${encodeURIComponent(itemId)}`);
+        return;
+      }
+    }
     if (!isPoolRow) {
       await openById(c.product_id, c.store_id);
       return;

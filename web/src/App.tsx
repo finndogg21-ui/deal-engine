@@ -1,5 +1,6 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import LedgerPreview from './pages/LedgerPreview.js';
+import DealPage from './pages/DealPage.js';
 import SiteLayout from './layouts/SiteLayout.js';
 import AppShell from './layouts/AppShell.js';
 
@@ -72,6 +73,9 @@ export default function App() {
         <Route path="penny" element={<Navigate to="/app?tab=penny" replace />} />
         {/* Every penny report is its own shareable page. */}
         <Route path="p/:reportId" element={<PennyDealPage />} />
+        {/* Every verified deal gets its own page — shareable, bookmarkable, and
+            openable in a second tab while standing in the aisle. */}
+        <Route path="d/:retailer/:itemId" element={<DealPage />} />
         <Route path="admin" element={<Admin />} />
         {/* Alert and penny-watch deep links land here. On a phone this is a
             pushed route rather than a squeezed side panel (F10). */}
