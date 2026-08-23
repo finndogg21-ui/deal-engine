@@ -2,328 +2,429 @@
 
 Maintained by the BLUEPRINTS sector. Scope: the DATA-METHOD and scan/score/
 verify engine specifically (not marketing/UI copy — see `company/blueprints.md`
-for that track). Built from `company/penny-recon.md` (2026-08-22 recon) plus a
-direct read of the current code, so this does not re-propose anything already
-shipped or already in an open PR.
+for that track). Built from `company/penny-recon.md` (2026-08-22 recon, Part D
+added 2026-08-23), `company/next-retailer.md` (2026-08-23, updated same day
+after Target shipped), `company/target-cracked.md`, `company/
+architecture-verdict.md`, plus a direct read of the current code — so this
+does not re-propose anything already shipped, already resolved by a later
+recon pass, or already sitting unused in the repo.
 
-**Last pass:** 2026-08-22
+**Last pass:** 2026-08-23 (this pass). Previous pass: 2026-08-22.
 
 **Product vision this backlog serves:** Home Depot penny deals = the free hook
 for the RESELLING tier; the PAID tier later adds Lowe's + Costco.
+
+**What changed since 2026-08-22, in one line:** Target shipped, and shipping
+it proved — a second time — that a live-browser session against a retailer's
+own internal API beats every paid vendor in this space for $0. That proof
+changes this file's #1 priority: the sharpest gap is no longer "we don't know
+which vendor to trust for store confirmation," it's "the $0 method that
+already works twice has no automation running it."
 
 ---
 
 ## KEY STRATEGIC DECISION — which data method to run with
 
-**Recommendation: keep the two-layer hybrid already coded in this repo — a
-broad Apify clearance/listing sweep for candidate discovery, plus a
-store-level confirm call for per-store stock — and do NOT switch to a
-direct-scrape build, a pure store-API-only design, or a penny-SKU
-crowdsourced corpus as the core method.**
+**Recommendation, updated: keep the two-layer sweep-plus-confirm hybrid, but
+promote the browser-direct internal-API call — proven free and accurate on
+BOTH Home Depot and Target — to the primary confirm method, ahead of both
+paid vendors (Unwrangle, Apify stock-lookup actors) this repo has been
+carrying as the default. Do not switch to a pure store-API-only design, a
+direct self-built scraper as the *discovery* layer, or a penny-SKU
+crowdsourced corpus as the core method — none of that changed this pass.**
 
-This is not a new architectural call. `src/vendors/README.md`, `apify.ts`,
-`unwrangle.ts`, `src/engine/stages.ts`, and `src/engine/score.ts` already
-implement exactly this shape — sweep generates a candidate (deep discount →
-delisted online while a prior scan showed stock, i.e. `stockDivergence` in
-`stages.ts`), a store-level call confirms it, the score never claims
-certainty. **Per the recon (Part C), this is also independently where every
-competitor researched converges, including the ones that market themselves as
-something more.** The gap is not "which method" — it's that the confirm
-layer isn't proven reliable yet (see below), and nothing is actually running
-with a real key.
+**What's new and why it moves the recommendation:** `src/vendors/
+hd-direct.ts` documents a live-verified 2026-08-22 result — item 312232605 @
+store 582 → $208.00 (was $289.00), quantity 2, in stock — read directly from
+Home Depot's own `federation-gateway` GraphQL endpoint from a real browser
+session, matching HD's own product page exactly, for $0. `company/
+target-cracked.md` repeats the exact same pattern on a second retailer one
+day later: Target's `redsky.target.com` endpoint, called from a browser,
+returned real per-store clearance flags and *exact* shelf quantities (10 /
+3 / 0 / 0 across four SKUs, statuses agreeing) — also $0, and explicitly
+*more* than Apify gives on Home Depot today (exact quantity, not just a
+discount flag). Two for two: every retailer this project has actually
+inspected live (not just WebSearched) turned out to have a free, accurate,
+directly-callable internal API. `company/next-retailer.md`'s own updated
+conclusion (2026-08-23) draws the same lesson and proposes the identical
+test for Lowe's before paying for it (see Blueprint 6, below) — this
+decision section adopts that lesson project-wide, not just for Lowe's.
 
-**Why the alternatives lose, honestly:**
+**The honest catch, and it's a real one: nothing runs this today.**
+`hd-direct.ts` and `src/vendors/target-direct.ts` both exist and are
+individually verified, but grep confirms neither is imported by `run-scan.ts`
+(which still only calls Apify), by `verify-deals.ts` (which still only calls
+Unwrangle), or by `stock-find.ts` (which still only calls the paid Apify
+`maplerope44/home-depot-product-lookup` actor). `package.json` has **no
+browser-automation dependency at all** — no Playwright, no Puppeteer. Every
+"verified live from a browser session" claim in `hd-direct.ts` and
+`target-cracked.md` describes a one-time manual check, not a running system.
+**Tag this precisely: the DATA METHOD is verified; the AUTOMATION to run it
+unattended does not exist yet.** That gap is this pass's new #1 (below).
 
-- **Direct GraphQL scrape, built and run ourselves** — rejected. Recon Part
-  B.1/B.3: every vendor in this space (Apify actors, SerpApi, BigBox,
-  Unwrangle) is reverse-engineering the *same* Home Depot GraphQL surface
-  behind Akamai. Building our own buys the identical data at the cost of
-  owning Akamai bot-mitigation engineering and eating the ToS exposure
-  directly instead of behind a vendor's terms. No upside identified.
+**Why the alternatives still lose, honestly (carried forward, re-checked
+this pass, nothing reversed):**
+
+- **Direct GraphQL/RedSky scrape, run ourselves, at volume** — still not
+  the recommendation, but the calculus shifted: this pass shows the *browser*
+  path (not a server-side raw-HTTP scrape) already works for the confirm
+  step at $0, for exactly the reason `hd-direct.ts` documents — HD and Target
+  both challenge server-origin requests (403 + captcha) but answer a real
+  browser session. The recommendation is still to route *broad discovery*
+  (thousands of SKUs) through vendor-run infrastructure (Apify) rather than
+  build our own bot-mitigation-evading crawler — Akamai/bot-blocking risk is
+  real and unchanged (Part B.1) — but the *low-volume, per-item confirm*
+  call is a different cost/risk shape than a broad crawl, and this pass's
+  evidence says do it ourselves, in a browser, for $0.
 - **Store-specific price/stock API alone, skipping the broad sweep** —
-  rejected. You cannot query per-store stock for a SKU you don't yet know is
-  a penny candidate. The sweep is the *discovery* layer; a store-level call
-  is a *confirm* step, never a substitute for one. This is a structural
-  reason, not a preference.
-- **Penny-SKU corpus / crowdsourced list (PennyCentral, Slickdeals-thread
-  style)** — rejected as the *core* method. Recon Part A.5/A.9 and Part C.5
-  are explicit: 100% human-typed reporting is exactly the "stale/community
-  leads" category this product is built to beat, and `src/engine/
-  reputation.ts` already treats member reports as a *validation/scoring
-  input* (corroboration weighting), correctly demoted below the machine
-  sweep — not promoted to replace it.
+  still rejected, same structural reason as last pass: you cannot query
+  per-store stock for a SKU you don't yet know is a candidate. Unchanged.
+- **Penny-SKU corpus / crowdsourced list as the core method** — still
+  rejected as the *core* method, same reasoning as last pass (recon Part
+  A.5/A.9, Part C.5); `reputation.ts`'s corroboration-weighting role is
+  correct and unchanged.
 
-**Honest tradeoffs, costs, and risks — carried forward, not softened:**
+**Honest tradeoffs, costs, and risks — updated, not softened:**
 
-1. **Cost scales with store count, not flat.** `.env.example` records one
-   vendor-reported figure: "17 monthly users, 98.7% success, $0.85/1k
-   results" for the current Apify actor — **[claim, vendor-reported, not yet
-   independently measured by us across a real multi-day run]**. At today's
-   scope (`SCAN_ZIPS=78232,78216,78248,78258`, ~5 San Antonio stores), this
-   tracks the recon's own estimate (Part B.2: ~$2.50–$22.50/day for 5–15
-   stores) — cheap. It will **not** stay cheap if store count grows for a
-   future metro; that's a linear cost line, not a fixed one, and nobody has
-   run the actual week-one credit spend to confirm the $0.85/1k figure
-   first-hand (see Blueprint 2).
-2. **Akamai/bot-mitigation risk is real and already materialized once**, not
-   theoretical: on 2026-08-16, the `pulsewatch/dealwatch-scraper` actor
-   returned fully fabricated rows (`SAMPLE-SCREWDRIVER`, identical prices
-   across the batch) while reporting a successful run. `run-scan.ts`'s
-   `looksFabricated()` guard exists *because of that exact incident* — a
-   good defense, but proof the vendor layer is not a solved problem, just a
-   monitored one.
-3. **The store-confirmation layer is NOT proven reliable yet — this is the
-   sharpest concrete risk this pass surfaced.** `src/vendors/
-   probe-unwrangle.ts`'s own header documents three earlier attempts through
-   Unwrangle's store-scoped parameters returning a fulfillment node in a
-   *different city each time* (Atlanta, Buffalo, Nashville — proxy rotation
-   being geolocated, not a real store answer), and a fourth explicit attempt
-   with `store_no=582&zipcode=78232` against a known-good item still came
-   back `"Product not found."` **No result of running this probe with a real
-   key is recorded anywhere in the repo.** Meanwhile `src/vendors/
-   store-lookup.ts` (actor `maplerope44/home-depot-product-lookup`) is
-   *already wired* into the live "Find Stock" button (`stock-find.ts`) as a
-   second, different store-confirmation path — and it's also unproven at
-   scale. Two unconfirmed confirm-layer candidates exist in the same repo;
-   nobody has run the comparison. This is a data question the recon did not
-   have repo access to see, and it changes the recon's own Open Question 4
-   from "which fields does the vendor expose" to "does either wired vendor's
-   store call actually work at all" — see Blueprint 1, the top item below.
-4. **Legal exposure is real, applies identically to every vendor in this
-   space, and is not written down as a decision anywhere in this repo.**
-   Home Depot's ToS prohibits automated collection (recon Part B.1); routing
-   it through Apify/Unwrangle changes who runs the request, not whether the
-   activity is against ToS. See Blueprint 5.
-5. **The $0.01-cannot-be-read-from-a-public-API limit is fully respected
-   already** — this is the one point where the codebase is ahead of the
-   recon's own caution. `score.ts`, `stages.ts`, and every public-facing page
-   checked this pass (`About.tsx`, `Faq.tsx`, `HowItWorks.tsx`, `Terms.tsx`,
-   `Privacy.tsx`, `Pricing.tsx`) already use "prediction," never "confirmed
-   live price." **This plan is lead-and-verify by construction, not by
-   promise** — nothing below proposes changing that.
+1. **Cost scales with store count, not flat — for the SWEEP, still true.**
+   The `$0.85/1k` Apify figure in `.env.example` is still **[claim,
+   vendor-reported, still not independently measured by us]**. At current
+   scope (~5 San Antonio HD stores) this is cheap; it will not stay cheap at
+   national scale. Unchanged from last pass.
+2. **The browser-direct confirm call is not automatically free of cost —
+   it trades a per-request vendor fee for infrastructure and maintenance
+   cost.** Running Playwright/Puppeteer unattended on a schedule needs
+   somewhere to run a real headless browser (a small VM or scheduled
+   container — realistically $5-20/mo of compute at this scale, well under
+   any vendor's per-request pricing, but not literally $0) and it is
+   **more fragile than a vendor SLA**: HD or Target can change their
+   internal endpoint, DOM, or bot-check at any time with zero notice and no
+   support line to call — `hd-direct.ts`'s own header already says this
+   ("HD can change or gate it at any time; every caller must treat failure
+   as 'unknown', never as 'no stock'"). A paid vendor's job is partly to
+   absorb that maintenance burden; choosing the free path means we absorb
+   it instead. Worth it at this cost gap, but not a free lunch.
+3. **Akamai/bot-mitigation risk is real and already materialized once** on
+   the discovery/sweep side: on 2026-08-16 the `pulsewatch/dealwatch-scraper`
+   Apify actor returned fabricated rows (`SAMPLE-SCREWDRIVER`, identical
+   prices) while reporting success. `run-scan.ts`'s `looksFabricated()`
+   guard and `src/vendors/apify.ts`'s own documented rejection of that actor
+   exist because of this exact incident. **Note for the record:**
+   `penny-recon.md` Part D3 (2026-08-23) independently flagged the same
+   actor as possibly "hobby-grade" from search results alone — this repo
+   already has the harder, first-hand evidence WebSearch could only guess
+   at. Nothing new to decide here; just confirming the two findings agree.
+4. **The store-confirmation layer's *paid-vendor* leg is still not proven
+   reliable — separate from the free leg above, which now clearly works.**
+   `probe-unwrangle.ts`'s header still documents three failed attempts
+   (wrong-city fulfillment nodes) plus a fourth "Product not found" on a
+   known-good item, and **no run with a real key is recorded anywhere in
+   this repo, still.** This matters less now that the free browser-direct
+   path is verified working — but Unwrangle/the Apify stock-lookup actor
+   remain useful as a fallback path if the browser automation proves
+   fragile in production, so the open probe question is downgraded from
+   "the" answer to "a fallback worth still resolving cheaply" (Blueprint 2).
+5. **Legal exposure is real, applies to Home Depot AND Target now, not
+   just Home Depot, and is still not written down anywhere in this repo as
+   an on-purpose decision.** `hd-direct.ts` names HD's ToS prohibition
+   explicitly; no equivalent note exists yet for Target's terms (not
+   checked this pass — flagged, not verified either way). See Blueprint 5.
+6. **The $0.01-cannot-be-read-from-a-public-API limit is still fully
+   respected in the codebase and in this recommendation.** Neither
+   `hd-direct.ts` nor `target-direct.ts` claims to read a live $0.01 —
+   they read real store-level price and quantity, which is genuinely more
+   than most competitors get, but per `penny-recon.md` Part B.5 the
+   register-level $0.01 state still does not exist in any online-readable
+   field anywhere, confirmed again this pass with no contradicting
+   evidence found for either retailer. **This plan remains lead-and-verify
+   by construction; nothing below proposes claiming a live penny price.**
 
-**Confidence:** the *shape* of the recommendation (sweep + confirm, not a
-corpus, not a self-built scraper) is well-supported by both the recon and an
-independent read of the code arriving at the same design. The *store-confirm
-vendor choice* (Unwrangle vs. the Apify stock-lookup actor) is explicitly
-**not yet settled by real evidence** — flagged honestly as the single most
-important open question, and cheaply testable (Blueprint 1) rather than
-guessable.
+**Confidence:** the *shape* (sweep for discovery, a confirm step before
+trusting a lead) is unchanged and still well-supported. The *promotion of
+browser-direct calls to the primary confirm method* is new this pass and
+rests on strong, first-hand, twice-repeated evidence (not inference) — but
+its *automation* is entirely unbuilt, which is exactly why it is Blueprint 1,
+not a fact already banked.
 
 ---
 
 ## Already shipped in this domain — not re-proposed
 
 - Two-vendor sweep+confirm architecture (`src/vendors/`, `README.md`),
-  matching the recon's own convergent recommendation.
-- Multi-signal, replayable scoring model (`score.ts`): markdown-ladder
-  progress, online/in-store divergence, price-ending code, dwell time,
-  scarcity — versioned (`SCORE_VERSION`) so weight changes can be replayed
-  over history instead of tuned by feel.
-- Markdown-stage/ladder detection and `penny_candidate` inference from
-  divergence (`stages.ts`).
-- Fabrication guard (`looksFabricated()` in `run-scan.ts`), born from a real
-  incident, not a hypothetical.
-- Append-only `price_observations` with a `scan_runs` row on every run,
-  including crashed ones, so a silent stop is always detectable.
-- Store-level verification pass against Unwrangle that overwrites hallucinated
-  discounts with real numbers (`verify-deals.ts`), run in parallel waves.
-- Spotter reputation / corroboration system (`reputation.ts`) — the
-  crowdsourced-validation layer recon Part C.5 recommends, correctly scoped
-  as a *check on* the machine scan, not a replacement for it.
-- Metro-scoped coverage gating with an honest "not enough history yet"
-  message (`coverage.ts`), and a documented 14-day `MEANINGFUL_DAYS` floor.
-- "Prediction, not a promise" language shipped consistently across every
-  public page checked (`About.tsx`, `Faq.tsx`, `HowItWorks.tsx`,
-  `Terms.tsx`, `Privacy.tsx`).
-- **PR #2** (open, draft): public freshness bar reading real `scan_runs` data
-  — code-complete, correctly gated on having real scan history behind it
-  before merge (see Blueprint 3).
-- **PR #1** (open, draft): contact form wiring — unrelated to the data
-  method, not part of this backlog.
-- On-demand async stock-lookup worker pattern (`store-lookup-async.ts`) for
-  queued per-item checks without blocking a request thread.
+  matching the recon's convergent recommendation. Unchanged from last pass.
+- **Target retailer module, shipped since last pass:** `target-direct.ts`
+  (RedSky price + exact per-store quantity, browser-verified across 5
+  stores), `target-search.ts`, `src/ingest/target-ingest.ts` (256 lines, not
+  a stub). Free — no vendor cost, beating the original `next-retailer.md`
+  cost estimate ($15-75/mo) entirely. `discovery.ts`, the schema, and
+  `nearby-deals.ts` are confirmed retailer-agnostic already (no migration
+  needed), so Target reused the pipeline rather than forking it.
+- **Home Depot direct-confirm call, verified but unwired** (see Blueprint 1):
+  `hd-direct.ts` — real store price/quantity, $0, browser-verified
+  2026-08-22. Listed here as "shipped" in the sense that the *code and the
+  verification* exist; listed as the top backlog item because *nothing calls
+  it yet*.
+- Multi-signal, replayable scoring model (`score.ts`), markdown-ladder/
+  stockDivergence detection (`stages.ts`), fabrication guard
+  (`looksFabricated()`), append-only `price_observations` + `scan_runs`,
+  parallel-wave store verification (`verify-deals.ts` — still Unwrangle-only,
+  see Blueprint 1), spotter reputation/corroboration (`reputation.ts`),
+  metro-scoped coverage gating (`coverage.ts`), consistent "prediction, not a
+  promise" copy across public pages. All unchanged from last pass — still
+  shipped, still not re-proposed.
+- On-demand async stock-lookup worker (`store-lookup-async.ts`).
+- **Costco data-method question, resolved (not built):** `penny-recon.md`
+  Part D1 (2026-08-23) confirms Costco's in-warehouse clearance is
+  structurally invisible online (not synced with costco.com, often no
+  online item ID at all) — this is a closed research question now, not an
+  open blueprint. See the "Decided, not building" section below instead of
+  a Costco todo item.
 
 ---
 
 ## Ranked backlog
 
-### 1. Resolve the store-confirmation layer with real numbers before trusting either vendor
-**status:** todo — top priority this pass
-**problem:** the entire lead→verified pipeline depends on a store-level
-confirm call, and neither wired candidate for that call has a recorded,
-successful real-key result. `probe-unwrangle.ts`'s own header documents
-repeated failures (wrong-city fulfillment nodes, "Product not found" on a
-known-good item). `store-lookup.ts` (a different Apify actor,
-`maplerope44/home-depot-product-lookup`) is live in the "Find Stock" button
-today with no equivalent reliability record either.
+### 1. Build the automation to run the $0 browser-direct confirm call that's already proven twice
+**status:** todo — new top priority this pass, supersedes last pass's framing
+of Blueprint 1
+**problem:** `hd-direct.ts` (HD) and `target-direct.ts` (Target) are each
+individually, first-hand verified to return correct store-level price and
+quantity for $0 — beating every paid vendor this repo has tried. But neither
+is called from anywhere: `run-scan.ts` only imports Apify, `verify-deals.ts`
+only calls Unwrangle, `stock-find.ts` only calls a paid Apify actor. There is
+no Playwright/Puppeteer dependency in `package.json` — the "scheduled
+browser agent" that `target-cracked.md` and `hd-direct.ts`'s comments refer
+to does not exist as running infrastructure; every verification recorded so
+far was a one-time manual browser session, not a system.
+**what to build:** a minimal headless-browser runner (Playwright is the
+natural fit — no existing dependency to conflict with) that, on a schedule,
+loads each target retailer's storefront in a real browser context (so
+cookies/credentials are present, matching `target-direct.ts`'s documented
+requirement for `credentials:'include'`), calls `hd-direct.ts`/
+`target-direct.ts`'s URL-builders for a batch of pending candidates, and
+writes results into the same tables `verify-deals.ts` currently writes to.
+Treat every failure as "unknown," never "no stock," exactly as `hd-direct.ts`
+already instructs. Keep Unwrangle/the Apify stock-lookup actor wired as a
+fallback path, not deleted — see Blueprint 2.
+**data-method:** cites `hd-direct.ts`'s own verified 2026-08-22 result,
+`target-cracked.md`'s verified 2026-08-23 result, and `next-retailer.md`'s
+"two-for-two, do the browser test before paying" conclusion, extended here
+from "the next retailer" to "the confirm layer generally."
+**why it beats today / beats Hidden Clearances:** turns a manually-verified
+fact into a running, free, accurate confirm layer — something no competitor
+in `penny-recon.md`'s survey is documented doing (every one of them is
+either scraping listing pages or crowdsourcing; none showed evidence of a
+direct internal-API browser call). It also directly fixes today's honesty
+gap: `verify-deals.ts` calling only Unwrangle means every Home Depot
+"verified" deal today is running through the one vendor path this repo's own
+probe script has never successfully confirmed works.
+**effort:** M-L — new infrastructure (a browser-automation dependency and a
+scheduled runner), not "run an existing script." Larger than last pass's
+version of this item, which assumed the work was just running two existing
+probe scripts.
+**cost:** no per-request API fee; realistic infra cost ~$5-20/mo for a small
+scheduled headless-browser runtime, well under Unwrangle's $99/mo+ tier or
+sustained Apify stock-lookup spend — plus ongoing engineering cost to notice
+and fix breakage when HD/Target change their endpoint or DOM, which a paid
+vendor would otherwise absorb.
+**success metric:** N consecutive days (recommend 7) of unattended, scheduled
+`hd-direct.ts` and `target-direct.ts` calls against known candidates,
+correct price+quantity spot-checked against a manual check, feeding real
+rows into `verify-deals.ts`'s output — not another one-off manual browser
+session.
+
+### 2. Keep the paid-vendor probes as a documented fallback, not the primary path
+**status:** todo — downgraded from last pass's "top priority," not dropped
+**problem:** `probe-unwrangle.ts`'s own header still documents three failed
+attempts (wrong-city fulfillment nodes) and a fourth "Product not found" on a
+known-good item; no run with a real key is recorded anywhere in this repo.
+`store-lookup.ts` (a different Apify actor) is live in the "Find Stock"
+button today with no equivalent reliability record either. Now that
+Blueprint 1 gives the confirm layer a proven-free primary path, this
+question matters less than last pass framed it — but a documented fallback
+still matters for resilience if the browser-direct method breaks or gets
+rate-limited.
 **what to build:** run `npm run probe:unwrangle` and `npm run probe:stock`
 against the documented ground-truth item (324308361 @ store 582 = 8 units,
-$7.03, 77% off) with real, funded API keys. Record the actual output —
-correct store, correct quantity, correct price, or not — in this file, dated.
-Standardize `verify-deals.ts` on whichever source (or fallback chain) the
-numbers actually support; if neither works reliably, say so and treat store
-confirmation as an open engineering problem rather than assuming it's solved.
-**data-method:** cites recon Part B.2/B.4 and Open Question 4 — but goes
-further than the recon could, since this depends on repo-only diagnostic
-scripts the recon (web-search-only) never had access to.
-**why it beats today / beats Hidden Clearances:** turns "we probably have a
-confirm layer" into a known, tested fact — the prerequisite for every
-downstream honesty claim (Faq.tsx's "we can [track accuracy], because members
-confirm finds" only holds if the machine-side confirm call is actually
-correct). No competitor researched discloses their confirm-layer reliability
-at all; we'd be the only one who could.
-**effort:** S — both scripts already exist; this is running them plus writing
-down the result.
+$7.03, 77% off) with real, funded API keys, once. Record the actual result,
+dated, in this file. Wire whichever (if either) works as the fallback path
+`verify-deals.ts` and `stock-find.ts` fall back to when the browser-direct
+path errors, rather than as the primary call.
+**data-method:** cites recon Part B.2/B.4, Open Question 4, and this repo's
+own unresolved probe scripts.
+**why it beats today / beats Hidden Clearances:** a documented, tested
+fallback is still more than any competitor discloses about their own
+reliability — but it's no longer this backlog's single point of failure.
+**effort:** S — both scripts already exist; this is running them once and
+wiring a fallback branch.
 **cost:** a handful of Unwrangle credits (~2.5/request) and one or two Apify
-actor runs — likely under $5 total.
-**success metric:** a dated, written answer in this file: which vendor (if
-either) returns correct store, quantity, and price against the known-good
-ground-truth item.
+actor runs — likely under $5 total, unchanged from last pass.
+**success metric:** a dated, written answer in this file on whether either
+vendor's store-confirm call works at all; if yes, it's wired as fallback
+behind Blueprint 1's browser-direct path, not ahead of it.
 
-### 2. Turn the sweep on for real and start the 14-day clock
-**status:** todo
-**problem:** `APIFY_TOKEN` and `UNWRANGLE_KEY` are blank in `.env.example`.
-Outside a handful of manual test runs (2026-08-16), no real append-only price
-history is accumulating. `coverage.ts` requires 14 days of history before
-scores mean anything, and `run-scan.ts`'s own comment is explicit: "getting
-yesterday's number wrong is recoverable; losing it is not" — every day this
-isn't running is a day of moat that can never be backfilled.
+### 3. Turn the sweep on for real and start the 14-day clock
+**status:** todo — unchanged from last pass
+**problem:** `APIFY_TOKEN` and `UNWRANGLE_KEY` are still blank in
+`.env.example`. Outside a handful of manual test runs, no real append-only
+price history is accumulating. `coverage.ts` requires 14 days before scores
+mean anything.
 **what to build:** subscribe to the Apify actor for real, set `SCAN_ZIPS` to
-the real San Antonio store set, wire the existing `SCAN_TRIGGER_TOKEN`
-scheduler path to run daily, and actively monitor the first two weeks of
-output for a repeat of the pulsewatch fabrication incident.
-**data-method:** cites recon Part B.2 and Part C's headline finding ("the gap
-is operational... not architectural").
-**why it beats today / beats Hidden Clearances:** this is the actual moat —
-genuine per-store timestamped history — but only from the moment it's
-actually running. Hidden Clearances' "9,000 stores, 24/7" is an unverified
-marketing claim (recon Part A.1); a real, small, running scan is a stronger
-claim than a big unverified one.
-**effort:** M — mostly ops and monitoring, not new code.
+the real San Antonio store set, wire the daily scheduler path, and actively
+monitor the first two weeks for a repeat of the pulsewatch fabrication
+incident. Extend to Target once Blueprint 1's browser confirm layer is
+running, so both retailers' history starts accumulating together rather than
+staggered.
+**data-method:** cites recon Part B.2 and Part C's headline finding.
+**why it beats today / beats Hidden Clearances:** the actual moat — genuine
+per-store timestamped history — only from the moment it's really running.
+**effort:** M — mostly ops and monitoring.
 **cost:** low single-digit dollars/day at current scope per the vendor's
-reported $0.85/1k figure — **unverified by us**; recommend checking actual
-week-one spend against that number rather than assuming it holds.
+reported (still unverified by us) $0.85/1k figure.
 **success metric:** 14 consecutive real `scan_runs` with zero fabrication
-flags and ≥1 row/store/day; `coverage.ts`'s `scores_meaningful` flips true
-for San Antonio.
+flags and ≥1 row/store/day for both Home Depot and Target;
+`coverage.ts`'s `scores_meaningful` flips true for San Antonio.
 
-### 3. Merge PR #2 (freshness bar) once real scan data exists behind it
-**status:** todo — blocked on Blueprint 2
-**problem:** PR #2 is code-complete but a public "last scan: X min ago"
-widget is either dishonest or embarrassing without real data behind it.
-This is a sequencing gap, not a code problem.
-**what to build:** nothing new — merge PR #2 once Blueprint 2 has produced a
-few real days of `scan_runs` history.
-**data-method:** cites recon Part C.4 — the one thing no competitor in the
-survey can produce, because none of their self-reported cadence numbers were
-independently verifiable (recon found zero verified refresh-cadence figures
-for any competitor).
+### 4. Merge the freshness bar once real scan data exists behind it
+**status:** todo — blocked on Blueprint 3, unchanged in substance from last
+pass
+**problem:** a public "last scan: X min ago" widget is either dishonest or
+embarrassing without real data behind it — still a sequencing gap, not a
+code problem.
+**what to build:** nothing new here — this item belongs to `company/
+blueprints.md`'s track once Blueprint 3 above has produced real days of
+`scan_runs` history; noted here only so this file's dependency chain stays
+accurate.
+**data-method:** cites recon Part C.4.
 **why it beats today / beats Hidden Clearances:** turns an unverifiable
-marketing claim category into a checkable number, on our own site.
-**effort:** S (a merge, gated on Blueprint 2).
+marketing-claim category into a checkable number, on our own site.
+**effort:** S (a merge, gated on Blueprint 3).
 **cost:** $0 incremental.
 **success metric:** freshness bar live in production showing a real,
 sub-26h timestamp.
 
-### 4. Close the score-calibration loop against real finds
-**status:** todo — blocked on Blueprints 1 & 2 producing real data
-**problem:** `score.ts` is explicit that weights should be "tuned against
-measured hit rate," via a `SCORE_VERSION` bump and replay over history,
-"never tune by feel" — but there is no real finds data yet to grade it
-against. Right now the scoring model is a well-reasoned guess, not yet a
-measured one.
-**what to build:** once real `penny_candidate` alerts exist and members start
-reporting finds (the `finds` table and `reputation.ts` corroboration system
-are already fully built for this), run a periodic review of score vs.
-confirmed outcome, and adjust weights via `SCORE_VERSION` + `npm run score`
-(rebuild.ts) replay when the data supports a change.
-**data-method:** cites `score.ts`'s own documented methodology and recon Part
-C.2.
-**why it beats today / beats Hidden Clearances:** `Faq.tsx` already claims
-"we can [show accuracy], because members confirm finds" — this blueprint is
-what makes that claim actually true over time instead of aspirational. No
-competitor researched publishes or even claims to track their own hit rate.
-**effort:** M, recurring — an operational loop, not a single PR.
-**cost:** $0 (uses already-collected data).
-**success metric:** a documented hit-rate figure (score band vs.
-confirmed-find rate) after the first real calibration pass.
-
-### 5. Put the legal/ToS risk decision in writing
-**status:** todo
-**problem:** recon confirms Home Depot's ToS prohibits automated collection,
-and this applies identically to every vendor in this space — routing scrapes
-through Apify/Unwrangle changes who sends the request, not whether it's
-against ToS. No file in this repo makes an explicit, on-purpose decision
-about this; it's currently an unstated assumption.
-**what to build:** not code — a short, explicit written risk note (who bears
-the exposure, what mitigates it — e.g. staying vendor-routed rather than
-self-scraping, keeping volume proportionate to a single metro rather than a
-national footprint that draws more attention) added here or to a dedicated
-company note, so it's a decision made on purpose.
-**data-method:** cites recon Part B.1 and Open Question 3.
-**why it beats today / beats Hidden Clearances:** doesn't beat anyone
-technically — every competitor in this space carries the identical exposure
-silently. Writing it down converts an unmanaged risk into a managed one,
-which matters more the closer the product gets to real paying customers.
-**effort:** S (a decision and a paragraph, not a build).
+### 5. Close the score-calibration loop against real finds
+**status:** todo — blocked on Blueprints 1 & 3 producing real data, unchanged
+from last pass
+**problem:** `score.ts` says weights should be tuned against measured hit
+rate, "never by feel" — no real finds data exists yet to grade against.
+**what to build:** once real `penny_candidate` alerts exist and members
+report finds, run a periodic review of score vs. confirmed outcome and
+adjust weights via `SCORE_VERSION` + replay.
+**data-method:** cites `score.ts`'s own methodology and recon Part C.2.
+**why it beats today / beats Hidden Clearances:** makes `Faq.tsx`'s
+accuracy claim actually true over time. No competitor researched publishes
+or even claims to track their own hit rate.
+**effort:** M, recurring.
 **cost:** $0.
-**success metric:** a dated, explicit risk-acceptance note exists in the
-repo; if the decision is "mitigate further," a concrete next step is named.
+**success metric:** a documented hit-rate figure after the first real
+calibration pass.
+
+### 6. Put the legal/ToS risk decision in writing — now covering Target too
+**status:** todo — scope widened this pass
+**problem:** recon confirms Home Depot's ToS prohibits automated collection;
+this now also applies to Target (`target-direct.ts` calls Target's internal
+API directly, same posture as HD) but Target's specific terms were not
+checked this pass — an unverified gap, flagged honestly rather than assumed
+either way. No file in this repo makes an explicit, on-purpose decision
+about either.
+**what to build:** not code — a short, explicit written risk note covering
+both retailers now: who bears the exposure, what mitigates it (staying
+low-volume/browser-direct rather than a broad self-built crawler, keeping
+volume proportionate to a single metro).
+**data-method:** cites recon Part B.1 and this pass's Target-side gap.
+**why it beats today / beats Hidden Clearances:** doesn't beat anyone
+technically — every competitor in this space carries identical exposure
+silently. Writing it down converts an unmanaged risk into a managed one.
+**effort:** S (a decision and a paragraph).
+**cost:** $0.
+**success metric:** a dated, explicit risk-acceptance note exists, covering
+Home Depot AND Target; if Target's ToS wasn't actually checked, that's
+stated as an open item, not silently assumed.
+
+### 7. Lowe's: try the $0 browser-direct crack BEFORE paying for Unwrangle
+**status:** todo — fully rewritten this pass; supersedes last pass's version
+of this item
+**problem:** last pass framed this as "confirm Lowe's store-level stock
+works, once a real sweep surfaces a candidate" and assumed the paid Unwrangle
+path ($99/mo+, confirmed live per `penny-recon.md` Part D2) as the default.
+That assumption is now outdated: `next-retailer.md`'s same-day update (its
+Open Question #8) points out that the exact same live-browser network-tab
+method that cracked both Home Depot (`architecture-verdict.md`) and Target
+(`target-cracked.md`) for $0 has **never actually been tried on Lowe's** —
+every Lowe's finding to date came from WebSearch alone, and WebSearch missed
+HD's and Target's real free endpoints too, until someone loaded the actual
+site and watched network traffic.
+**what to build:** before committing to Unwrangle's $99/mo+ tier, open a
+Lowe's product clearance page in a real browser session and watch the
+network tab for a price/stock call shaped like HD's `federation-gateway` or
+Target's RedSky — specifically checking for a store-level quantity field and
+any clearance-flag equivalent to HD's `alternatePriceDisplay`. If found,
+build `lowes-direct.ts` following the exact `hd-direct.ts`/`target-direct.ts`
+pattern. If genuinely not found (Lowe's does sit behind a plausible B2B-only
+`developer.lowes.com` portal per `next-retailer.md`'s Open Question #7,
+worth a two-minute check first), fall back to Unwrangle's confirmed-live
+Lowe's API as the paid path, per last pass's original recommendation.
+**data-method:** cites `next-retailer.md`'s 2026-08-23 update (Open
+Questions #7-8) and `penny-recon.md` Part D2.
+**why it beats today / beats Hidden Clearances:** if it hits, Lowe's ships
+free like Target did — a second retailer with a genuine per-store
+confirmation signal none of the "9,000 stores, 24/7" competitors are shown
+to have. Even if it misses, it's a two-minute test that avoids committing to
+a $99+/mo vendor before checking the free option one more time — exactly the
+mistake the original `next-retailer.md` WebSearch-only estimate ($15-75/mo
+for Target) already made once and got proven wrong by 100%.
+**effort:** S for the browser test itself; M for a full `lowes-direct.ts`
+module if it hits (mirrors Target's build, which was itself effort M once
+the endpoint was known).
+**cost:** $0 for the test. If it hits: $0 ongoing (same infra as Blueprint 1
+covers). If it misses: Unwrangle from $99/mo, unchanged from last pass's
+estimate.
+**success metric:** a dated, written yes/no in this file on whether Lowe's
+has a free, store-level, directly-callable endpoint — settled by direct
+observation, not inference, before any Lowe's promise reaches a pricing
+page.
 
 ---
 
-### 6. Confirm Lowe's store-level stock actually works before it's promised
-**status:** todo
-**problem:** `apify.ts` already accepts `retailer: 'lowes'`, but
-`unwrangle.ts`'s own comment says plainly: "Unconfirmed: whether per-store
-stock exists for Lowe's, Walmart, Target." Lowe's coverage is already implied
-in consumer-plan copy (flagged separately in `company/blueprints.md`'s
-Amazon-claim item) — if Lowe's store confirmation doesn't actually resolve,
-that's the identical false-claim risk, just for a different retailer.
-**what to build:** once a real sweep surfaces a Lowe's clearance SKU, run the
-same probe pattern as Blueprint 1 against it and record a yes/no.
-**data-method:** cites `unwrangle.ts`'s own documented uncertainty.
-**why it beats today / beats Hidden Clearances:** prevents shipping a second
-unverified retailer claim before it's checked, same discipline already
-applied to the Amazon claim.
-**effort:** S.
-**cost:** a few dollars of API credits.
-**success metric:** written yes/no on Lowe's store-level confirmation with
-the same real-number evidence standard as Blueprint 1.
+## Decided, not building (closed research questions — keep here so they
+## don't get re-asked)
 
-### 7. Scope Costco feasibility before it ever reaches a pricing page
-**status:** todo
-**problem:** the product vision names Costco as a future paid-tier add, but
-the recon (Open Question 5) found **zero** competitors claiming Costco
-coverage at all in this pass's searches — either an open opportunity or a
-sign the underlying data doesn't exist publicly (Costco's membership-gated
-pricing is a structural complication HD/Lowe's don't have). Nobody has
-checked which.
-**what to build:** a scoped, cheap research pass — check whether any
-Apify/SerpApi/Unwrangle-style vendor offers a comparable Costco store-level
-pricing/inventory surface at all, before the paid-tier roadmap commits to it.
-**data-method:** extends recon Part B; cites Open Question 5 directly.
-**why it beats today / beats Hidden Clearances:** avoids promising a paid-tier
-feature on a pricing page before checking whether the data even exists —
-exactly the kind of overpromise this backlog exists to prevent.
-**effort:** S (research only, no build).
-**cost:** $0–a few dollars if a trial credit is spent testing one vendor.
-**success metric:** a written yes/no/maybe on Costco data feasibility, with
-named evidence, added to this file before Costco appears on any pricing page.
+- **Costco — decided NOT to build as a scrape/vendor integration.**
+  `penny-recon.md` Part D1 (2026-08-23) is conclusive, not just directional:
+  in-warehouse "manager markdown" clearance at Costco is warehouse-specific
+  and structurally does not reliably appear on costco.com at all — a
+  different failure mode than "the API is expensive" or "Akamai blocks us"
+  (both true, but secondary). No vendor found in this pass or last offers a
+  Costco-specific pricing/inventory endpoint at any price. **If Costco ships
+  at all, it needs a crowdsourced-report feature** (closer to PennyCentral's
+  model) as its own, separate product decision — not a line item on this
+  data-method backlog, and not something this file should keep re-scoping
+  every pass. Do not put Costco on a pricing page referencing "automated
+  scanning" — it would be false per this recon.
+- **Walmart — decided NOT next**, per `next-retailer.md`'s ranking (dual
+  Akamai+PerimeterX/HUMAN bot defense, 9/10 difficulty; the one signal that
+  would matter — remote store-verification — is not confirmed purchasable at
+  any price; already the most saturated retailer in the competitor set).
+  Re-open only if a future pass finds a specific, named, working
+  store-verification path — not on raw demand size alone.
 
 ---
 
-## Open questions carried forward from the recon, with current status
+## Open questions carried forward, with current status
 
-1. **Vendor cost at scale** — partially answered: `.env.example` records a
-   vendor-reported $0.85/1k figure, but it's unverified by an actual run.
-   Settled by Blueprint 2's monitoring.
-2. **Refresh cadence we can honestly claim** — still open; only answerable
-   once Blueprint 2 is running and Blueprint 3 (freshness bar) is live.
-3. **Legal exposure** — still open as a written decision; see Blueprint 5.
-4. **Scoring model signal availability** — reframed by this pass: the real
-   open question is not which fields the vendor payload has, but whether
-   either wired store-confirm vendor call *works at all*; see Blueprint 1.
-5. **Paid-tier Costco/Lowe's data feasibility** — still open; see Blueprints
-   6 and 7.
+1. **Vendor cost at scale (Apify sweep)** — still open; unverified by an
+   actual multi-day run. Settled by Blueprint 3's monitoring.
+2. **Refresh cadence we can honestly claim** — still open; depends on
+   Blueprint 3 running and Blueprint 4 (freshness bar) being live.
+3. **Legal exposure, now for two retailers** — still open as a written
+   decision; widened scope, see Blueprint 6.
+4. **Store-confirm layer reliability** — **substantially resolved this
+   pass for the free path** (hd-direct.ts, target-direct.ts both verified
+   live); **still open for the paid-vendor fallback path** (Blueprint 2) and
+   **entirely open for whether any of this is actually automated** (Blueprint
+   1 — the real gap now).
+5. **Lowe's data feasibility** — reframed this pass from "which paid vendor"
+   to "try the free browser-direct crack first" — see Blueprint 7.
+6. **Target's ToS exposure** — new this pass, unverified either way; folded
+   into Blueprint 6.
