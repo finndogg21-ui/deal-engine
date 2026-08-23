@@ -130,6 +130,30 @@ interface Coverage {
 
 const pct = (n: number | null) => (n === null ? 'Unknown' : `${Math.round(n)}%`);
 
+/**
+ * What a card ACTUALLY shows, for sorting.
+ *
+ * A clearance row carries its real markdown in clearance_pct and its real
+ * price in clearance_price, while discount_pct is 0 — so sorting on
+ * discount_pct alone would rank a 90%-off floor below a 28% air purifier.
+ * These read the same values the card prints.
+ */
+const hasRealClearance = (c: Candidate): boolean =>
+  typeof c.clearance_price === 'number' &&
+  typeof c.price === 'number' &&
+  c.clearance_price < c.price;
+
+const effOff = (c: Candidate): number =>
+  hasRealClearance(c) ? (c.clearance_pct ?? 0) : (c.discount_pct ?? 0);
+
+const effPrice = (c: Candidate): number | null =>
+  hasRealClearance(c) ? (c.clearance_price as number) : c.price;
+
+const effSaves = (c: Candidate): number =>
+  hasRealClearance(c)
+    ? Math.round(((c.price as number) - (c.clearance_price as number)) * 100) / 100
+    : (c.saves ?? 0);
+
 /** Stock line for the nearby feed — shown even when 0 or unknown. This is the
  *  local half: the deal is national, the count is where the shopper is. */
 function stockText(s: { qty: number | null; store: string | null; distance_mi: number | null }): string {
@@ -413,7 +437,9 @@ export default function AllDeals() {
     new URLSearchParams(window.location.search).get('store'),
   );
   const [q, setQ] = useState('');
-  const [sort, setSort] = useState('score');
+  /* Default to the deepest cut. 'score' ranked by penny_score, which is 0 for
+     every verified deal, so the feed opened in arbitrary order. */
+  const [sort, setSort] = useState('discount');
 
   /**
    * Keep the retailer scope in step with the URL.
@@ -666,13 +692,20 @@ export default function AllDeals() {
         c.store_name.toLowerCase().includes(term));
     }
     const sorted = [...out];
-    if (sort === 'score' || tab === 'penny') sorted.sort((a, b) => b.penny_score - a.penny_score);
-    else if (sort === 'discount') sorted.sort((a, b) => (b.discount_pct ?? 0) - (a.discount_pct ?? 0));
-    else if (sort === 'saves') sorted.sort((a, b) => (b.saves ?? 0) - (a.saves ?? 0));
-    else if (sort === 'distance' || tab === 'near') {
-      sorted.sort((a, b) => (a.distance_mi ?? 1e9) - (b.distance_mi ?? 1e9));
+    // The penny spool keeps its own ranking; it is scored, not discounted.
+    if (tab === 'penny') sorted.sort((a, b) => b.penny_score - a.penny_score);
+    else if (tab === 'near') sorted.sort((a, b) => (a.distance_mi ?? 1e9) - (b.distance_mi ?? 1e9));
+    else if (sort === 'saves') sorted.sort((a, b) => effSaves(b) - effSaves(a));
+    else if (sort === 'price-low') {
+      // Unpriced rows sink rather than pretending to be free.
+      sorted.sort((a, b) => (effPrice(a) ?? 1e9) - (effPrice(b) ?? 1e9));
+    } else if (sort === 'price-high') {
+      sorted.sort((a, b) => (effPrice(b) ?? -1) - (effPrice(a) ?? -1));
     } else if (sort === 'newest') {
       sorted.sort((a, b) => +new Date(b.last_seen_at) - +new Date(a.last_seen_at));
+    } else {
+      // 'discount' — the default, and the one the tier ladder is built on.
+      sorted.sort((a, b) => effOff(b) - effOff(a));
     }
 
     /**
@@ -835,6 +868,23 @@ export default function AllDeals() {
           <input type="search" placeholder="Search deals"
             value={q} onChange={(e) => setQ(e.target.value)}
             aria-label="Search deals" />
+        </label>
+
+        {/* SORT. The logic for this existed but nothing ever set it, so the
+            feed was stuck on penny_score — which is 0 for every verified deal,
+            making the order arbitrary. */}
+        <label className="sortbox">
+          <span className="sortbox-label">Sort</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort deals">
+            <option value="discount">Biggest discount</option>
+            <option value="saves">Biggest saving</option>
+            <option value="price-low">Lowest price</option>
+            <option value="price-high">Highest price</option>
+            <option value="newest">Newest</option>
+          </select>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M5 8l5 5 5-5" />
+          </svg>
         </label>
 
         <span className={`health${health?.stale ? ' stale' : ''}`}>

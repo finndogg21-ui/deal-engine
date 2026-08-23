@@ -1074,3 +1074,61 @@
   line-height: 1;
   white-space: nowrap;
 }
+
+/* ── SORT CONTROL ─────────────────────────────────────────────────────────
+   A native <select> on purpose: it is keyboard- and screen-reader-correct for
+   free, and on a phone it opens the OS picker rather than a bespoke menu that
+   has to reimplement all of that badly. Styled to match the search box. */
+
+.sortbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  padding: 0 var(--s3);
+  height: 38px;
+}
+
+.sortbox-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.sortbox select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0 var(--s4) 0 0;
+  cursor: pointer;
+}
+.sortbox select:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* The OS menu paints its own list; force readable colours in dark mode. */
+.sortbox select option { background: var(--paper); color: var(--ink); }
+
+.sortbox svg {
+  position: absolute;
+  right: var(--s2);
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 760px) {
+  .sortbox { width: 100%; justify-content: space-between; }
+  .sortbox select { flex: 1 1 auto; }
+}
