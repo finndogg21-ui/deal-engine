@@ -153,3 +153,22 @@ deploy of the cycle and it exists only to repair a defect from the first —
 same precedent as cycle 1's micro-fix redeploy.
 
 Every other nav link measured 12.94:1 and was never affected.
+
+**Contrast fix verified live (commit 76855a8, /assets/index-CBWFuy6s.css):**
+- DARK: "Create free account" = rgb(17,17,17) on rgb(250,250,247) → **18.06:1**
+  (was 1.4:1). 22 nav+footer links sampled, **0 below 4.5:1**, all visible.
+- LIGHT: same button = rgb(250,250,247) on rgb(17,17,17) → **18.06:1**.
+  22 sampled, **0 below 4.5:1**, all visible. Live dot count 0, eyebrow clean.
+
+**FLAGGED FOR THE FOUNDER — a design-constitution conflict I did not create and
+did not revert.** While this cycle ran, the parallel session pushed 010bf28
+"Grail tier: spend colour only where the discount earns it", which is live now:
+`.card-off.tier-grail { background: rgb(161, 98, 7) }` — amber — on 2 of 38
+discount badges (the 80%+ finds), plus an `is-grail` card treatment. THE TAPE
+says "No accent color. None. Inversion + weight carry all meaning."
+Mitigating facts, stated fairly: it is used sparingly (2 badges), it is
+legible (white on amber ≈ 5.6:1), and the reasoning ("spend colour only where
+the discount earns it") is a coherent argument for amending the constitution
+rather than an accident. But it IS an amendment, and it was not put to the
+council. Someone should decide deliberately: amend THE TAPE to allow one
+earned accent, or revert the amber to inversion. Not an overnight call.
