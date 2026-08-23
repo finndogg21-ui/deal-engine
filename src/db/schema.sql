@@ -644,3 +644,13 @@ CREATE TABLE IF NOT EXISTS discovery (
 );
 CREATE INDEX IF NOT EXISTS idx_discovery_status ON discovery (status, found_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discovery_pending ON discovery (checked_at NULLS FIRST) WHERE status = 'pending';
+
+-- Which KIND of deal HD confirmed: a visible markdown, or HIDDEN CLEARANCE
+-- (no online markdown but HD flags an in-store clearance price it will not
+-- print). Hidden clearance is the category this product is named after; the
+-- card must say "in-store clearance price — scan it", never invent a number.
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS deal_kind TEXT;
+
+-- HD's alternatePriceDisplay: the hidden-clearance tell (no online markdown,
+-- but the store has a clearance price HD will not print online).
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS alt_price_display BOOLEAN;

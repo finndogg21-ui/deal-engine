@@ -43,6 +43,15 @@ export interface HdVerdictInput {
   quantity?: number | null;
   in_stock?: boolean | null;
   discontinued?: boolean | null;
+  /**
+   * HD's `pricing.alternatePriceDisplay`. When there is NO online markdown but
+   * this is true, Home Depot is hiding an in-store clearance price behind
+   * "See In-Store Clearance Price" — the hidden clearance this product exists
+   * to find. Verified 2026-08-22: the Rubbermaid bucket (item 100138008) reads
+   * alt=true with original=null and carries the clearance badge on HD's page,
+   * while ordinary full-price items at the same store read alt=false.
+   */
+  alt_price_display?: boolean | null;
 }
 
 /**
@@ -117,36 +126,57 @@ export async function pendingChecks(db: Db, limit = 25): Promise<PendingCheck[]>
  *   - HD reports units on that store's floor (in-store product, per the
  *     founder's constitution).
  */
-export function judge(v: HdVerdictInput): { status: 'published' | 'rejected' | 'unreachable'; reason: string | null } {
-  if (!v.reachable) return { status: 'unreachable', reason: 'Home Depot did not answer' };
-  if (v.discontinued) return { status: 'rejected', reason: 'discontinued at Home Depot' };
+export function judge(v: HdVerdictInput): {
+  status: 'published' | 'rejected' | 'unreachable';
+  reason: string | null;
+  kind: 'markdown' | 'hidden_clearance' | null;
+} {
+  if (!v.reachable) return { status: 'unreachable', reason: 'Home Depot did not answer', kind: null };
+  if (v.discontinued) return { status: 'rejected', reason: 'discontinued at Home Depot', kind: null };
 
   const price = v.price ?? null;
   const disc = v.discount_pct ?? 0;
-  if (price === null) return { status: 'rejected', reason: 'no price at Home Depot' };
-  if (disc <= 0) return { status: 'rejected', reason: 'no markdown at Home Depot' };
-  if (!meetsTieredFloor(price, disc)) {
-    return { status: 'rejected', reason: `${Math.round(disc)}% off $${price.toFixed(2)} is under the floor` };
-  }
-  const qty = v.quantity ?? null;
-  if (qty === null) return { status: 'rejected', reason: 'no shelf quantity reported (not an in-store deal)' };
-  if (qty <= 0) return { status: 'rejected', reason: 'zero on the shelf at this store' };
 
-  return { status: 'published', reason: null };
+  /**
+   * THE CATALOG IS NATIONAL. A clearance markdown is a chain-wide fact about a
+   * SKU, not a fact about one building — so publishing must NOT require stock
+   * at whichever store we happened to check. Stock is the per-ZIP overlay,
+   * resolved for the visitor's own stores at read time.
+   *
+   * (Founder correction, 2026-08-22: "it's a global website, not Bitters
+   * Deals." The earlier gate rejected 17 real clearance-flagged items purely
+   * because one San Antonio store had none on the shelf.)
+   */
+
+  // HIDDEN CLEARANCE — the category this product is named after. HD shows no
+  // online markdown but flags an in-store clearance price it will not print.
+  // No floor can apply (the register price is unknown) and we never invent
+  // one: the card says "in-store clearance price - scan it".
+  if (disc <= 0 && v.alt_price_display === true) {
+    return { status: 'published', reason: null, kind: 'hidden_clearance' };
+  }
+
+  if (price === null) return { status: 'rejected', reason: 'no price at Home Depot', kind: null };
+  if (disc <= 0) return { status: 'rejected', reason: 'no markdown at Home Depot', kind: null };
+  if (!meetsTieredFloor(price, disc)) {
+    return { status: 'rejected', reason: `${Math.round(disc)}% off $${price.toFixed(2)} is under the floor`, kind: null };
+  }
+  return { status: 'published', reason: null, kind: 'markdown' };
 }
 
 /** Record verdicts. Returns counts for the run report. */
 export async function recordVerdicts(
   db: Db,
   verdicts: HdVerdictInput[],
-): Promise<{ published: number; rejected: number; unreachable: number }> {
-  const out = { published: 0, rejected: 0, unreachable: 0 };
+): Promise<{ published: number; rejected: number; unreachable: number; hidden_clearance: number }> {
+  const out = { published: 0, rejected: 0, unreachable: 0, hidden_clearance: 0 };
   for (const v of verdicts) {
-    const { status, reason } = judge(v);
+    const { status, reason, kind } = judge(v);
     out[status]++;
+    if (kind === 'hidden_clearance') out.hidden_clearance++;
     await db.query(
       `UPDATE discovery
-          SET status = $2, reject_reason = $3, checked_at = now(),
+          SET status = $2, reject_reason = $3, checked_at = now(), deal_kind = $9,
               hd_price = $4, hd_list = $5, hd_discount = $6,
               hd_store_id = $7, hd_quantity = $8,
               publish_at = CASE WHEN $2 = 'published' THEN COALESCE(publish_at, now()) ELSE publish_at END
@@ -154,7 +184,7 @@ export async function recordVerdicts(
       [
         v.discovery_id, status, reason,
         v.price ?? null, v.list_price ?? null, v.discount_pct ?? null,
-        v.store_id ?? null, v.quantity ?? null,
+        v.store_id ?? null, v.quantity ?? null, kind,
       ],
     );
   }
