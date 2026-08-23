@@ -1,7 +1,48 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getLocalZip } from '../lib/zip.js';
+import { ago } from '../lib/deal-ui.js';
 import '../landing.css';
 
+interface Spotlight {
+  found: boolean;
+  title?: string;
+  price?: number;
+  list_price?: number | null;
+  discount_pct?: number | null;
+  distance?: string | null;
+  recorded_at?: string;
+}
+
+/** Static fallback, shown (and labeled) only when there's no real find yet. */
+const EXAMPLE: Spotlight = {
+  found: false,
+  title: 'a 100 ft contractor garden hose',
+  price: 0.01,
+  list_price: 24.98,
+  discount_pct: 100,
+};
+
 export default function Landing() {
+  const [spot, setSpot] = useState<Spotlight | null>(null);
+
+  useEffect(() => {
+    const zip = getLocalZip();
+    const qs = zip ? `?zip=${encodeURIComponent(zip)}` : '';
+    void (async () => {
+      try {
+        const res = await fetch(`/api/public/penny-spotlight${qs}`);
+        const body = await res.json().catch(() => null);
+        setSpot(res.ok && body?.found ? body : EXAMPLE);
+      } catch {
+        setSpot(EXAMPLE);
+      }
+    })();
+  }, []);
+
+  const live = spot?.found === true;
+  const shown = spot ?? EXAMPLE;
+
   return (
     <>
       {/* The thesis: the gap between the shelf tag and the register. */}
@@ -13,14 +54,22 @@ export default function Landing() {
         <h1 className="hero-h1">
           <span className="hero-lede">Someone paid</span>
           <span className="prices">
-            <span className="now"><mark>$0.01</mark></span>
-            <span className="was">Was <b>$24.98</b></span>
+            <span className="now"><mark>${(shown.price ?? 0.01).toFixed(2)}</mark></span>
+            {shown.list_price != null && (
+              <span className="was">Was <b>${shown.list_price.toFixed(2)}</b></span>
+            )}
           </span>
           <span className="hero-detail">
-            for a 100 ft contractor garden hose. <b>This morning, 1.4 miles away.</b>
+            for {shown.title}.{' '}
+            <b>
+              {live ? ago(shown.recorded_at!) : 'This morning'}
+              {shown.distance ? `, ${shown.distance}` : ''}
+            </b>
           </span>
         </h1>
-        <p className="hero-meta">62 still on the shelf, aisle 50, bay 001</p>
+        <p className="hero-meta">
+          {live ? 'A real spotter report, verified by our scan.' : 'Example — not a live report yet.'}
+        </p>
 
         <div className="hero-cta">
           <Link className="btn" to="/app">Start hunting</Link>
