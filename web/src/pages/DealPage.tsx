@@ -145,11 +145,12 @@ export default function DealPage() {
                   {pct !== null && pct > 0 && (
                     <div
                       className={`card-off deal-off tier-${
-                        pct >= 70 ? 'deep' : pct >= 40 ? 'mid' : 'light'
+                        pct >= 80 ? 'grail' : pct >= 60 ? 'deep' : pct >= 40 ? 'mid' : 'light'
                       }`}
                     >
                       <span className="off-n">{Math.round(pct)}</span>
                       <span className="off-u">% off</span>
+                      {pct >= 80 && <span className="grail-mark">◆ Grail</span>}
                     </div>
                   )}
                   {realClearance !== null && <span className="as-low">As low as</span>}
@@ -161,7 +162,7 @@ export default function DealPage() {
                   )}
                   {/* The dollar magnitude only — the percentage is already the
                       hero above, and saying it twice weakens both. */}
-                  {saves !== null && <div className="deal-save">Save {money(saves)}</div>}
+                  {saves !== null && <div className="deal-save">You save {money(saves)}</div>}
                   {realClearance !== null && row.clearance_store && (
                     <p className="deal-where">
                       Cheapest at <b>{row.clearance_store}</b>

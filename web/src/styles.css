@@ -26,6 +26,21 @@
   --go: #111111;
   --accent-text: #111111;
 
+  /* ── THE MARKDOWN ACCENT ───────────────────────────────────────────────
+     THE TAPE is monochrome by constitution; these are the one exception,
+     and they are spent only on the numbers that decide a drive: the price
+     you pay and the money you keep. Everything structural stays ink on
+     paper, so the accent never becomes wallpaper.
+     Contrast on --paper #FAFAF7: cut 5.9:1, save 5.6:1 (AA at any size). */
+  --cut: #C2410C;        /* the price you actually pay */
+  --save: #15803D;       /* what you keep */
+  --grail: #A16207;      /* 80%+ only — the find worth a detour */
+  /* Text ON the grail block. It flips with the theme: a dark amber block
+     needs paper text, a bright amber block needs ink. Fixing one and not the
+     other is how the 9px stamp ended up at 3.84:1 in light mode. */
+  --grail-ink: #FAFAF7;
+  --grail-wash: #FEF3C7; /* highlighter under the grail stamp */
+
   /* Archivo heavy = hardware-store poster; IBM Plex Mono = the register's
    * voice. Deliberately NOT Space Grotesk / JetBrains Mono (this year's
    * templated-brutalist pair). */
@@ -71,6 +86,12 @@
     --sticker: #fafaf7;
     --sticker-deep: #ffffff;
     --on-accent: #111111;
+    /* Lifted for dark ground. On --paper #111111: cut 8.9:1, save 11.2:1. */
+    --cut: #FB923C;
+    --save: #4ADE80;
+    --grail: #FBBF24;
+    --grail-ink: #111111;
+    --grail-wash: #3A2E0B;
     --ink: #fafaf7;
     --ink-soft: #d6d6d0;
     --ink-faint: #a3a39d;
@@ -88,6 +109,14 @@
   --sticker: #fafaf7;
   --sticker-deep: #ffffff;
   --on-accent: #111111;
+  /* Same lift as the media-query block, so the explicit toggle matches the
+     system preference. Defining these in only one of the two is how a theme
+     ends up with an unreadable accent. */
+  --cut: #FB923C;
+  --save: #4ADE80;
+  --grail: #FBBF24;
+  --grail-ink: #111111;
+  --grail-wash: #3A2E0B;
   --ink: #fafaf7;
   --ink-soft: #d6d6d0;
   --ink-faint: #a3a39d;

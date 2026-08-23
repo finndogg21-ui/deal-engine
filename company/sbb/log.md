@@ -109,3 +109,47 @@ from the feed the SPA already loads, linked to its /app/p/:id.
 **Guardrails hit:** two. Billing (left /pricing entirely alone despite three
 advisors wanting its copy fixed), and the concurrent-writer hazard (declined to
 commit a file another session was mid-edit in). One deploy this cycle.
+
+### Cycle 2 — verification record (live prod, no screenshots available)
+
+Deploy path: git push to origin/main → Railway auto-build. Asset went
+index-CJrMF7pY.js → index-D5ietoG5.js, confirming af4c481 + f5b1917 shipped.
+
+**B3 (commit af4c481) — VERIFIED LIVE:**
+- Marketing nav renders, in order: How it works, Pricing, Stores, FAQ,
+  **Sign in** (/signin), Open the app, **Create free account** (/signup).
+  Footer carries /signup and /signin too. The site went from 23 anchors with
+  zero account entry points to 27 with four.
+- Landing eyebrow reads "San Antonio, watching 5 stores"; `.live` dot element
+  count on the page is **0**. Orphaned CSS rule deleted with it.
+- App header CTA reads "Create free account". `/free trial/i` matches **nothing**
+  on the app page. The four-surface contradiction is closed.
+- 375px: no horizontal overflow, zero offscreen elements, every nav tap target
+  50-52px (≥44 minimum). Cost noted honestly: the nav now wraps to 3 rows on
+  mobile and the hero starts at y=246 instead of y~190. Still well above fold.
+
+**B2 (rode in on the other session's commit f5b1917) — VERIFIED LIVE:**
+- Stanley 30 oz card now reads "$22.50 / was **$45.49**" — the feed's real
+  hd_list. The string "45.92" (the old back-computed figure) appears **nowhere**
+  on the page. "Save $22.99" is now arithmetically true.
+- Rows where the back-computation happened to agree (the Target $40.00 items)
+  are unchanged, as intended.
+- The "Discount: Unknown" cell is gone — though credit is shared: the other
+  session replaced the old detail PANEL with a detail PAGE
+  (/app/d/:retailer/:id) that renders "77 % OFF / AS LOW AS $7.03 / was $29.98
+  in store / SAVE $22.95 / Cheapest at Bitters Rd · 11 stores checked". Zero
+  occurrences of "Unknown" on that page. My one-line clearance_pct fallback is
+  now dead code on that path; the user-facing defect is resolved either way.
+
+**THE CONTRAST CHECK EARNED ITS KEEP — it caught a bug I shipped.**
+The new "Create free account" button measured `color rgb(214,214,208)` on
+`backgroundColor rgb(250,250,247)` — **1.4:1, an unreadable solid button**,
+in BOTH themes. Cause: `.nav-links a` (specificity 0,1,1) outranks `.btn`
+(0,1,0), so the nav's --ink-soft overrode the button's --on-accent. The
+screenshot I could not take would not have saved me; the computed-style sample
+did. Fixed in **commit 76855a8** (`.nav-links a.btn { color: var(--on-accent) }`
+plus the quiet and hover variants), typecheck clean, pushed. This is the second
+deploy of the cycle and it exists only to repair a defect from the first —
+same precedent as cycle 1's micro-fix redeploy.
+
+Every other nav link measured 12.94:1 and was never affected.

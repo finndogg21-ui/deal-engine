@@ -969,3 +969,74 @@
 .deal-off .off-u { font-size: 13px; }
 .deal-off.tier-deep { padding: var(--s3) var(--s4) 10px; }
 .deal-off.tier-light .off-n { -webkit-text-stroke-width: 2.5px; }
+
+/* ── TIERED MARKDOWNS, IN COLOR ───────────────────────────────────────────
+   Colour is spent ONLY on the two numbers that decide a drive — the price
+   you pay and the money you keep — plus the grail stamp. Titles, rules,
+   chrome and buttons stay ink on paper, so the accent never becomes
+   wallpaper and still reads as a signal on the twentieth card.
+
+   The depth ladder is unchanged, now carried by hue as well as ink:
+     grail 80%+  amber stamp, washed highlight, accent card border
+     deep  60-79 knocked out of solid ink
+     mid   40-59 solid ink
+     light  <40  hollow outline, no colour at all
+   Withholding colour from the shallow tier is what makes it mean something
+   on the deep ones. */
+
+/* The price you pay. */
+.card-price .now { color: var(--cut); }
+.card-deal.is-light .card-price .now { color: var(--ink); }
+
+/* The struck original — quiet, never competing with the live price. */
+.card-price .was s { color: var(--ink-faint); text-decoration-thickness: 1px; }
+
+/* What you keep. */
+.card-save { color: var(--save); font-weight: 700; }
+
+/* ── GRAIL ─────────────────────────────────────────────────────────────── */
+
+.card-off.tier-grail {
+  background: var(--grail);
+  color: var(--grail-ink);
+  padding: var(--s2) var(--s3) 6px;
+  position: relative;
+}
+.card-off.tier-grail .off-u { color: var(--grail-ink); opacity: 0.78; }
+
+.grail-mark {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--grail-ink);
+}
+
+/* The whole card is marked, so a grail is findable while scrolling. */
+.card-deal.is-grail { border-color: var(--grail); box-shadow: inset 0 0 0 1px var(--grail); }
+.card-deal.is-grail .card-price .now { color: var(--grail); }
+
+/* A grail on an inverted (penny) card keeps its amber — the tier outranks
+   the card's own inversion. */
+.invert .card-off.tier-grail { background: var(--grail); color: var(--grail-ink); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* One slow pulse on mount, then still. Enough to catch the eye once in a
+     grid of six; not a loop that turns the page into a slot machine. */
+  @keyframes grail-in {
+    0%   { box-shadow: inset 0 0 0 1px var(--grail); }
+    45%  { box-shadow: inset 0 0 0 3px var(--grail); }
+    100% { box-shadow: inset 0 0 0 1px var(--grail); }
+  }
+  .card-deal.is-grail { animation: card-print 0.2s ease-out both, grail-in 1.1s ease-in-out 0.35s 1; }
+}
+
+/* Deal page: same accents, page scale. */
+.deal-now { color: var(--cut); }
+.deal-save { background: none; padding: 0; color: var(--save); font-size: 15px; letter-spacing: 0.02em; }
+.deal-was s { color: var(--ink-faint); }
+.deal-off.tier-grail .grail-mark { font-size: 11px; margin-top: 5px; }

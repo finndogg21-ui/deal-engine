@@ -199,8 +199,20 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
    * decoration: it is the order a reseller would work the list in.
    */
   const off = clearedPrice !== null ? (c.clearance_pct ?? null) : c.discount_pct;
+
+  /**
+   * FOUR TIERS, AND THE TOP ONE IS RARE ON PURPOSE.
+   *
+   * grail 80%+   the find you drive across town for
+   * deep  60-79  a real haul
+   * mid   40-59  worth the stop
+   * light  <40   honest, and visibly the shallowest cut
+   *
+   * If everything were a grail, nothing would be. On the current feed this is
+   * 2 of 18 — which is what makes the treatment mean something when it shows.
+   */
   const tier =
-    off === null ? null : off >= 70 ? 'deep' : off >= 40 ? 'mid' : 'light';
+    off === null ? null : off >= 80 ? 'grail' : off >= 60 ? 'deep' : off >= 40 ? 'mid' : 'light';
 
   const saved =
     clearedPrice !== null && typeof c.price === 'number'
@@ -209,7 +221,10 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
 
 
   return (
-    <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`}
+    <button
+      className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}${
+        tier ? ` is-${tier}` : ''
+      }`}
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
         {c.stock_qty === 0 && <span className="badge-gone">Gone</span>}
@@ -235,6 +250,9 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           <div className={`card-off tier-${tier}`}>
             <span className="off-n">{Math.round(off)}</span>
             <span className="off-u">% off</span>
+            {/* The grail stamp. Earned at 80%+, so it stays rare enough to
+                mean something when it appears. */}
+            {tier === 'grail' && <span className="grail-mark">◆ Grail</span>}
           </div>
         )}
 
@@ -270,7 +288,7 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
             quietly — the percentage is already doing the shouting, and two
             loud things beside each other are neither. */}
         {saved !== null && saved > 0 && (
-          <div className="card-save">Save {money(saved)}</div>
+          <div className="card-save">You save {money(saved)}</div>
         )}
 
         {c.penny_score >= 70 && (
