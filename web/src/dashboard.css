@@ -839,3 +839,34 @@
   font-size: 12px;
   color: var(--ink-soft);
 }
+
+/* ── BUTTONS ON ONE LINE ACROSS A ROW ────────────────────────────────────
+   Cards hold different amounts of content — a one-line title next to a
+   two-line one, a reveal control on one card and a save block on the next —
+   so the CTA used to land wherever the text happened to stop, and a row of
+   six had six different button heights.
+
+   Grid items already stretch to the tallest card in the row, so the fix is to
+   let the body absorb the slack and pin the CTA to the bottom. The price row
+   also gets a floor, so cards with and without a "was" line still align. */
+
+.deck .card-deal { height: 100%; }
+
+.deck .card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Title reserves both lines so a one-line name does not ride up. */
+.deck .card-title { min-height: 2.7em; margin-bottom: var(--s2); }
+
+/* The price block keeps a constant height whether or not there is a "was"
+   line, an "as low as" label, or a reveal control. */
+.deck .card-price { min-height: 46px; }
+
+/* Everything below the price is pushed to the bottom as one group, so the
+   saving, the facts line and the CTA all sit level across the row. */
+.deck .card-facts { margin-top: auto; padding-top: var(--s2); }
+.deck .card-cta { margin-top: var(--s2); }

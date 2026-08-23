@@ -25,8 +25,9 @@ const apply = process.argv.includes('--apply');
 const db = await getDb();
 
 const { rows } = await db.query(
-  `SELECT discovery_id, retailer, title, status, hd_price, hd_list, hd_discount,
-          clearance_price, clearance_pct, hd_quantity, hd_store_id
+  `SELECT discovery_id, retailer, title, status, deal_kind, hd_price, hd_list, hd_discount,
+          clearance_price, clearance_pct, clearance_store, alt_price_display,
+          hd_quantity, hd_store_id
      FROM discovery
     WHERE status = 'published'`,
 );
@@ -51,14 +52,29 @@ for (const r of rows as Array<Record<string, unknown>>) {
     discount_pct: n(r.hd_discount),
     clearance_price: n(r.clearance_price),
     clearance_pct: n(r.clearance_pct),
+    clearance_store: (r.clearance_store as string | null) ?? null,
+    alt_price_display: (r.alt_price_display as boolean | null) ?? null,
     quantity: n(r.hd_quantity),
     store_id: r.hd_store_id as string | null,
     discontinued: false,
   });
 
-  if (verdict.status === r.status) continue;
+  /**
+   * Compare the KIND as well as the status.
+   *
+   * An earlier version returned early whenever the status matched, so a row
+   * could stay published with the wrong deal_kind forever. That left four real
+   * markdowns (25-40% off) labelled hidden_clearance: the card hid a price it
+   * actually had behind a "see in-store clearance price" button that then had
+   * nothing to reveal.
+   */
+  const kindNow = (r.deal_kind ?? null) as string | null;
+  if (verdict.status === r.status && verdict.kind === kindNow) continue;
   changed++;
-  const key = `${String(r.status)} -> ${verdict.status}`;
+  const key =
+    verdict.status === r.status
+      ? `kind ${kindNow ?? '-'} -> ${verdict.kind ?? '-'}`
+      : `${String(r.status)} -> ${verdict.status}`;
   moves.set(key, (moves.get(key) ?? 0) + 1);
 
   if (apply) {
