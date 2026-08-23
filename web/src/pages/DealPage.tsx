@@ -48,10 +48,6 @@ export default function DealPage() {
   const [row, setRow] = useState<Row | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
 
-  /** Revealed by default here: someone who opened the full page has already
-   *  asked for the detail. The teaser click belongs on the card, not here. */
-  const [revealed, setRevealed] = useState(true);
-
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -139,14 +135,11 @@ export default function DealPage() {
             </>
           ) : (
             <>
-              {isHidden && !revealed ? (
-                <button className="clr-reveal" onClick={() => setRevealed(true)}>
-                  See in-store clearance price
-                </button>
-              ) : (
+              {(
                 <>
                   {/* "As low as" for clearance: this is the cheapest real price
-                      we found, not one every store honors. */}
+                      we found, not one every store honors. Shown outright — a
+                      price we already have is not worth hiding behind a click. */}
                   {realClearance !== null && <span className="as-low">As low as</span>}
                   <div className="deal-now">{money(payNow)}</div>
                   {compareAt !== null && compareAt !== payNow && (

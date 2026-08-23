@@ -176,14 +176,6 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
   const showImg = c.image_url && !imgFailed;
 
   /**
-   * Home Depot puts its clearance price behind a "See In-Store Clearance Price"
-   * click, because the markdown is per STORE — the same SKU can be cleared at
-   * one building and full price at the next. We mirror that: the card advertises
-   * the find, and the number is one click away.
-   */
-  const [revealed, setRevealed] = useState(false);
-
-  /**
    * A clearance price only counts when it is actually BELOW the shelf price.
    * HD returns some items with clearance.value equal to the shelf price and
    * percentageOff 0 — flagged, but not marked down. Printing that as a
@@ -197,12 +189,6 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
       ? c.clearance_price
       : null;
 
-  const reveal = (e: { stopPropagation: () => void; preventDefault: () => void }) => {
-    // The whole card is a button; without this the click opens the deal instead.
-    e.stopPropagation();
-    e.preventDefault();
-    setRevealed(true);
-  };
 
   return (
     <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`}
@@ -230,30 +216,20 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
             price is visible before the click; the click adds the clearance
             price beside it and the amount saved underneath. */}
         <div className="card-price">
-          {c.hidden_clearance ? (
-            !revealed ? (
-              <>
-                <span className="now pre-reveal">{money(c.price)}</span>
-                <span className="was">Regular price</span>
-              </>
-            ) : clearedPrice !== null ? (
-              /* "AS LOW AS" — clearance is per store, so this is the cheapest
-                 real price we found, not a price every store honors. Saying
-                 just "$7.03" would promise something Home Depot does not. */
-              <>
-                <span className="as-low">As low as</span>
-                <span className="now">{money(clearedPrice)}</span>
-                <span className="was">was <s>{money(c.price)}</s> in store</span>
-              </>
-            ) : (
-              /* Unreachable in practice: judge() no longer publishes a flagged
-                 row without a real price from some store. Kept as a guard so a
-                 stale row can never render an empty price slot. */
-              <>
-                <span className="now">{money(c.price)}</span>
-                <span className="was">Regular price</span>
-              </>
-            )
+          {/* NO CLICK TO SEE THE PRICE.
+              The reveal existed only because these cards once had no number to
+              show — Home Depot hides it, and we had not fetched it yet. The
+              multi-store check gets the real price, so hiding it behind a tap
+              was friction in front of information we already had. */}
+          {c.hidden_clearance && clearedPrice !== null ? (
+            /* "AS LOW AS" — clearance is per store, so this is the cheapest
+               real price we found, not a price every store honors. Saying
+               just "$7.03" would promise something Home Depot does not. */
+            <>
+              <span className="as-low">As low as</span>
+              <span className="now">{money(clearedPrice)}</span>
+              <span className="was">was <s>{money(c.price)}</s> in store</span>
+            </>
           ) : (
             <>
               <span className="now">{money(c.price)}</span>
@@ -265,21 +241,11 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         </div>
 
         {/* THE SAVING — the reason to drive there, so it gets the loud slot. */}
-        {c.hidden_clearance && revealed && clearedPrice !== null && typeof c.price === 'number' ? (
+        {c.hidden_clearance && clearedPrice !== null && typeof c.price === 'number' ? (
           <div className="card-save big">
             Save {money(Math.round((c.price - clearedPrice) * 100) / 100)}
             {c.clearance_pct ? ` · ${Math.round(c.clearance_pct)}% off` : ''}
           </div>
-        ) : c.hidden_clearance && !revealed ? (
-          <span
-            className="clr-reveal"
-            role="button"
-            tabIndex={0}
-            onClick={reveal}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') reveal(e); }}
-          >
-            See in-store clearance price
-          </span>
         ) : c.saves !== null && c.saves > 0 ? (
           <div className="card-save big">
             Save {money(c.saves)}
@@ -300,13 +266,9 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           {/* The hedge always leads; when a ZIP is set, the local stock line
               appears right under it, instantly, for every card (no click). */}
           <span className="card-possible">
-            {!c.hidden_clearance
-              ? 'Possible deal · check your store'
-              : !revealed
-                ? 'Home Depot hides this one · tap to see it'
-                : clearedPrice !== null
-                  ? `Cheapest at ${c.clearance_store ?? 'a nearby store'} · scan yours to confirm`
-                  : 'Scan the SKU in your store'}
+            {c.hidden_clearance && clearedPrice !== null
+              ? `Cheapest at ${c.clearance_store ?? 'a nearby store'} · scan yours to confirm`
+              : 'Possible deal · check your store'}
           </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>
