@@ -189,15 +189,33 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
       ? c.clearance_price
       : null;
 
+  /**
+   * INK DENSITY ENCODES DEPTH.
+   *
+   * Every card used to shout equally — a 25%-off faucet carried the same
+   * visual weight as a 90%-off floor — so a grid of six had no ranking to
+   * scan. A thermal printer burns darker the more it prints, so the discount
+   * is set in more ink the deeper it goes. The tier is real information, not
+   * decoration: it is the order a reseller would work the list in.
+   */
+  const off = clearedPrice !== null ? (c.clearance_pct ?? null) : c.discount_pct;
+  const tier =
+    off === null ? null : off >= 70 ? 'deep' : off >= 40 ? 'mid' : 'light';
+
+  const saved =
+    clearedPrice !== null && typeof c.price === 'number'
+      ? Math.round((c.price - clearedPrice) * 100) / 100
+      : c.saves;
+
 
   return (
     <button className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}`}
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
         {c.stock_qty === 0 && <span className="badge-gone">Gone</span>}
-        {c.hidden_clearance
-          ? <span className="badge-off">CLEARANCE</span>
-          : c.discount_pct !== null && <span className="badge-off">{pct(c.discount_pct)} off</span>}
+        {/* The percentage moved out of this corner and into the body, where it
+            is the hero. Repeating it here would be the same fact twice. */}
+        {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
         {c.in_store_only
           ? <span className="badge-instore">In store</span>
           : <span className="badge-score">{c.penny_score}</span>}
@@ -210,11 +228,18 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         <span className="retailer">{retailerName(c.retailer)}</span>
         <p className="card-title">{c.title}</p>
 
-        {/* BOTH PRICES, ALWAYS — and the saving is the loudest thing on the card.
-            The old version showed a lone reveal button with no numbers at all,
-            so a card advertised a deal without ever naming one. The regular
-            price is visible before the click; the click adds the clearance
-            price beside it and the amount saved underneath. */}
+        {/* THE HOOK. In a grid of six at ~190px wide, the number that makes
+            someone stop is the depth of the cut, not the price — the price is
+            what they read second, once the card has earned the look. */}
+        {off !== null && off > 0 && (
+          <div className={`card-off tier-${tier}`}>
+            <span className="off-n">{Math.round(off)}</span>
+            <span className="off-u">% off</span>
+          </div>
+        )}
+
+        {/* BOTH PRICES, ALWAYS. A card must never advertise a deal without
+            naming a number. */}
         <div className="card-price">
           {/* NO CLICK TO SEE THE PRICE.
               The reveal existed only because these cards once had no number to
@@ -240,18 +265,13 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           )}
         </div>
 
-        {/* THE SAVING — the reason to drive there, so it gets the loud slot. */}
-        {c.hidden_clearance && clearedPrice !== null && typeof c.price === 'number' ? (
-          <div className="card-save big">
-            Save {money(Math.round((c.price - clearedPrice) * 100) / 100)}
-            {c.clearance_pct ? ` · ${Math.round(c.clearance_pct)}% off` : ''}
-          </div>
-        ) : c.saves !== null && c.saves > 0 ? (
-          <div className="card-save big">
-            Save {money(c.saves)}
-            {c.discount_pct ? ` · ${Math.round(c.discount_pct)}% off` : ''}
-          </div>
-        ) : null}
+        {/* The dollar magnitude, which the percentage cannot carry: 90% off a
+            $12 hook and 90% off a $134 floor are not the same errand. Set
+            quietly — the percentage is already doing the shouting, and two
+            loud things beside each other are neither. */}
+        {saved !== null && saved > 0 && (
+          <div className="card-save">Save {money(saved)}</div>
+        )}
 
         {c.penny_score >= 70 && (
           <div className="card-predict">May ring up at $0.01, not confirmed</div>
@@ -440,8 +460,13 @@ export default function AllDeals() {
         const price = d.hd_price === null || d.hd_price === undefined ? null : Number(d.hd_price);
         const disc = d.hd_discount === null || d.hd_discount === undefined ? null : Number(d.hd_discount);
         const hidden = d.deal_kind === 'hidden_clearance';
-        const list = !hidden && price !== null && disc !== null && disc > 0 && disc < 100
-          ? Math.round((price / (1 - disc / 100)) * 100) / 100
+        // The "was" price is READ, never derived. Back-computing it from a
+        // rounded discount (price / (1 - disc/100)) printed "was $45.92" on the
+        // Stanley 30 oz while the feed's own hd_list said $45.49 — a figure the
+        // shopper can check against the shelf tag, and we were 43 cents wrong.
+        // No hd_list means no "was" line: an absent number beats an invented one.
+        const list = !hidden && d.hd_list !== null && d.hd_list !== undefined
+          ? Number(d.hd_list)
           : null;
         // The pool is multi-retailer. Take the retailer from the ROW — hardcoding
         // it here made every Target row render as Home Depot.
@@ -954,7 +979,12 @@ export default function AllDeals() {
             <div className="grid">
               <div className="cell"><div className="k">Score</div><div className="v">{sel.penny_score}</div></div>
               <div className="cell"><div className="k">Price</div><div className="v" style={{ color: 'var(--go)' }}>{money(sel.price)}</div></div>
-              <div className="cell"><div className="k">Discount</div><div className="v">{pct(sel.discount_pct)}</div></div>
+              {/* Hidden-clearance rows carry no online discount by design, so
+                  this cell read "Unknown" while the row's own clearance_pct
+                  said 75-90% off. Show the markdown we actually measured. */}
+              <div className="cell"><div className="k">Discount</div><div className="v">
+                {pct(sel.discount_pct ?? sel.clearance_pct ?? null)}
+              </div></div>
               <div className="cell"><div className="k">In stock</div><div className="v">{sel.stock_qty ?? '?'}</div></div>
               <div className="cell"><div className="k">Distance</div><div className="v">{sel.store.distance_mi ?? '?'} mi</div></div>
             </div>

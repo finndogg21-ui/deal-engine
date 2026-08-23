@@ -870,3 +870,102 @@
    saving, the facts line and the CTA all sit level across the row. */
 .deck .card-facts { margin-top: auto; padding-top: var(--s2); }
 .deck .card-cta { margin-top: var(--s2); }
+
+/* ── THE CUT ──────────────────────────────────────────────────────────────
+   The discount is the hook, and its DEPTH is set in ink.
+
+   A thermal printer burns darker the more it prints, so the deeper the
+   markdown the more ink the number takes: 70%+ is knocked out of a solid
+   block, 40-69% is solid ink, under 40% is outlined and hollow. The tier is
+   information — it is the order a reseller works the list in — so a grid of
+   six can be ranked at a glance instead of read card by card.
+
+   No new colors. The whole effect is ink coverage and weight. */
+
+.card-off {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  align-self: flex-start;
+  margin: var(--s2) 0 var(--s1);
+  font-family: var(--display);
+  line-height: 0.82;
+}
+
+.card-off .off-n {
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-off .off-u {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* 70%+ — knocked out of solid ink. The one loud element on the card. */
+.card-off.tier-deep {
+  background: var(--sticker);
+  color: var(--on-accent);
+  padding: var(--s2) var(--s3) 6px;
+}
+.card-off.tier-deep .off-u { opacity: 0.72; }
+
+/* 40-69% — solid ink, no block. */
+.card-off.tier-mid { color: var(--ink); }
+.card-off.tier-mid .off-u { color: var(--ink-faint); }
+
+/* Under 40% — hollow. Present, honest, and visibly the shallowest cut. */
+.card-off.tier-light .off-n {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--ink);
+  text-stroke: 1.5px var(--ink);
+}
+.card-off.tier-light .off-u { color: var(--ink-faint); }
+
+/* Inverted (penny) cards flip the ink so the tiers survive. */
+.invert .card-off.tier-deep { background: var(--on-accent); color: var(--sticker); }
+.invert .card-off.tier-mid { color: var(--on-accent); }
+.invert .card-off.tier-light .off-n { -webkit-text-stroke-color: var(--on-accent); }
+.invert .card-off .off-u { color: rgba(250, 250, 247, 0.66); }
+
+/* The price steps back so the cut can lead — still the second thing read. */
+.deck .card-price .now { font-size: 19px; letter-spacing: -0.01em; }
+
+/* The saving is a quiet mono line now, not a second loud block. */
+.card-save {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  margin-top: var(--s1);
+  background: none;
+  padding: 0;
+  text-transform: none;
+}
+.invert .card-save { color: rgba(250, 250, 247, 0.78); }
+
+@media (max-width: 1340px) { .card-off .off-n { font-size: 34px; } }
+
+/* The CLEARANCE badge had both `left` and `right` set, so it stretched across
+   the top of the image and slid under the "In store" chip — a 19px overlap.
+   It now sizes to its own text and anchors to the right corner. */
+.card-img .badge-off {
+  left: auto;
+  right: 8px;
+  top: auto;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+}
+
+/* The cut at page scale. Same system, more room. */
+.deal-off { margin: 0 0 var(--s3); }
+.deal-off .off-n { font-size: 76px; }
+.deal-off .off-u { font-size: 13px; }
+.deal-off.tier-deep { padding: var(--s3) var(--s4) 10px; }
+.deal-off.tier-light .off-n { -webkit-text-stroke-width: 2.5px; }

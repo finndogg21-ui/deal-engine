@@ -140,6 +140,18 @@ export default function DealPage() {
                   {/* "As low as" for clearance: this is the cheapest real price
                       we found, not one every store honors. Shown outright — a
                       price we already have is not worth hiding behind a click. */}
+                  {/* Same ink-density tiering as the card, at page scale, so
+                      the two surfaces read as one system. */}
+                  {pct !== null && pct > 0 && (
+                    <div
+                      className={`card-off deal-off tier-${
+                        pct >= 70 ? 'deep' : pct >= 40 ? 'mid' : 'light'
+                      }`}
+                    >
+                      <span className="off-n">{Math.round(pct)}</span>
+                      <span className="off-u">% off</span>
+                    </div>
+                  )}
                   {realClearance !== null && <span className="as-low">As low as</span>}
                   <div className="deal-now">{money(payNow)}</div>
                   {compareAt !== null && compareAt !== payNow && (
@@ -147,11 +159,9 @@ export default function DealPage() {
                       was <s>{money(compareAt)}</s>{isHidden ? ' in store' : ''}
                     </p>
                   )}
-                  {saves !== null && (
-                    <div className="deal-save">
-                      Save {money(saves)}{pct ? ` · ${Math.round(pct)}% off` : ''}
-                    </div>
-                  )}
+                  {/* The dollar magnitude only — the percentage is already the
+                      hero above, and saying it twice weakens both. */}
+                  {saves !== null && <div className="deal-save">Save {money(saves)}</div>}
                   {realClearance !== null && row.clearance_store && (
                     <p className="deal-where">
                       Cheapest at <b>{row.clearance_store}</b>
