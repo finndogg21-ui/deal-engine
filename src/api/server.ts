@@ -28,6 +28,7 @@ import { stockQueue } from './routes/stock-queue.js';
 import { nearbyDeals } from './routes/nearby-deals.js';
 import { communityDeals } from './routes/community-deals.js';
 import { publishedDealsRoute } from './routes/published-deals.js';
+import { pennySpotlight } from './routes/penny-spotlight.js';
 import { startStockWorker } from './stock-worker.js';
 import { billing } from './routes/billing.js';
 import { admin } from './routes/admin.js';
@@ -81,6 +82,7 @@ app.use('/api', stockQueue);
 app.use('/api', nearbyDeals);
 app.use('/api', communityDeals);
 app.use('/api', publishedDealsRoute);
+app.use('/api', pennySpotlight);
 app.use('/api', billing);
 app.use('/api', admin);
 
