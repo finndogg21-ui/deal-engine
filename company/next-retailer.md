@@ -13,6 +13,22 @@ where a research claim touched something we could check directly.
 
 **Headline recommendation: TARGET, then LOWE'S. Not Walmart. Not Costco (yet).**
 
+**STATUS (2026-08-23, later same day): Target shipped.** Target has since
+been built (`company/target-cracked.md`, commits `a380682`/`2a51a05`) and it
+beat this recon's own cost estimate — RedSky turned out to be **free**
+(browser-reachable, same Akamai-blocks-servers/browser-gets-through pattern
+as Home Depot), not the ~$15-75/mo Traject-vendor estimate below, and its
+`location_available_to_promise_quantity` field was confirmed live to track
+real per-store stock (`IN_STOCK`/`LIMITED_STOCK`/`OUT_OF_STOCK` matching
+exact counts across four SKUs) — Open Question #1 below is now **resolved,
+answer: yes**. That makes the question this file was built to answer —
+"which retailer after Home Depot" — already answered and shipped. **See the
+"What's next after Target" update near the bottom for the current-dated
+recommendation of what to build next now that this file's original question
+is moot.** The original four-retailer analysis below is left intact as the
+historical record and because its Lowe's/Walmart/Costco findings are still
+the live basis for that updated recommendation.
+
 ---
 
 ## The ranked recommendation
@@ -336,6 +352,100 @@ migration is required to add a second retailer.
    retailer without first checking it against real, in-store-confirmed
    price photos (Slickdeals/community-report corpus, same validation
    pattern `penny-recon.md`'s Part C.5 already proposed for HD).
+
+---
+
+## 2026-08-23 update — Target shipped; what's next (Lowe's, ranked over Walmart and Costco)
+
+This section is a second, same-day pass, run after Target was already built
+and after `penny-recon.md`'s own Part D update (2026-08-23) independently
+resolved two of the three remaining open questions below. Rather than
+re-answering "which retailer after Home Depot" (already moot — Target
+shipped), this asks the live question: **of Lowe's, Walmart, and Costco,
+which is next?**
+
+**Recommendation: Lowe's.** Ranked reasoning:
+
+1. **Lowe's is the only one of the three with a resolved, bounded cost path
+   today.** `penny-recon.md` Part D2 **[verified: vendor's own docs]**
+   confirms Unwrangle sells a live Lowe's Product/Search/Reviews API right
+   now, credit-metered (**$10-99 per 100,000 credits**, plans from
+   **$99/mo** **[verified: 2+ independent sources — Datarade, Unwrangle's
+   own docs, cross-checked this pass]**), and rates the underlying
+   feasibility "roughly as feasible as Home Depot" via the same
+   scrape-plus-verify pattern this repo already runs. Costco's equivalent
+   question is **closed negative** (Part D1: no vendor found, warehouse
+   markdowns largely invisible online — this isn't a cost problem, it's a
+   data-doesn't-exist-online problem). Walmart's cost floor is unclear in
+   the other direction: cheap raw scraping exists (SerpApi from $25/mo) but
+   the one thing that would matter — a remote store-verification signal —
+   is not confirmed purchasable at any price (unchanged from the original
+   analysis below).
+2. **A new, targeted search this pass found no consumer storefront API for
+   Lowe's with a name — the same negative result as two prior passes.** HD's
+   internal API has a name (`federation-gateway`) and so does Target's
+   (`RedSky`); both turned up specifically and repeatedly in search results.
+   Lowe's did not, across three independent research passes now (the
+   original pass below, `penny-recon.md` Part D2, and this pass). **[single
+   source, new this pass]** A Lowe's-branded developer portal does exist
+   (`developer.lowes.com`, built on Azure API Management) — but it sits
+   alongside Lowe's Vendor Gateway / EDI trading-partner integration
+   references in the same search results, which reads as a **B2B
+   supplier/vendor portal** (order management, catalog submission — the
+   companies that *sell to* Lowe's), not a consumer product-price lookup
+   API. **[inference]** Treat this as almost certainly the wrong door, not
+   a free win — but cheap to rule out for certain (see Open Questions).
+3. **The one method that has now worked twice — a live browser session
+   against the storefront, not WebSearch — has never been tried on Lowe's.**
+   Home Depot's `federation-gateway` and Target's RedSky were both
+   ultimately confirmed by loading the real site in a browser and watching
+   network traffic (`architecture-verdict.md`'s pilot; `target-cracked.md`),
+   not by search. WebSearch alone would have under-priced both of those
+   builds (this file's own original Target estimate — $15-75/mo — was wrong
+   in the cheap direction; Target turned out to be free). **[inference]**
+   Two-for-two on retailers actually inspected live vs. zero-for-two on
+   retailers only WebSearched suggests the next cheapest test for Lowe's is
+   the same live-browser check, before assuming the $99+/mo Unwrangle path
+   is the floor.
+4. **Walmart and Costco are re-confirmed unchanged, not re-opened.** A
+   fresh check this pass re-confirms Walmart's dual-layer bot defense
+   (Akamai **+** PerimeterX/HUMAN, still 9/10-rated **[verified: 2+
+   independent sources, current]**) and that its Marketplace API is
+   seller-gated — approved sellers can query only their own listings, not
+   the broader catalog **[single source, this pass]** — which still
+   collapses the "remote store-verification" requirement the way the
+   original analysis found. Costco's warehouse-clearance-not-online problem
+   (Part D1) is a data-availability gap no vendor spend fixes; it remains a
+   crowdsourced-report feature idea, not a scrape-module candidate, and
+   should stay off the "next retailer module" list even though it has the
+   single largest raw demand signal of the four retailers researched
+   (1.4M-member Facebook group, unverified single source).
+
+**Updated ranking for "what's next": Lowe's, then Walmart, then Costco
+(Costco arguably shouldn't be ranked in this list at all — see above).**
+
+### New open question this pass
+
+7. **Is `developer.lowes.com` (Azure APIM) actually a supplier/EDI portal,
+   or does it also expose a consumer product-price/inventory API?**
+   **[inference, unconfirmed]** — the surrounding search results (Vendor
+   Gateway, EDI trading-partner pages) point strongly to B2B, but this
+   wasn't directly confirmed either way. **Cheap test:** load
+   `developer.lowes.com`'s API catalog page in a browser (or ask a person
+   with access to check) and read the actual API list — this resolves in
+   minutes and costs nothing; do it before assuming Lowe's has zero
+   named-endpoint option.
+8. **Does lowes.com's storefront actually call an internal GraphQL/REST
+   endpoint the way Home Depot and Target both do?** Unconfirmed by
+   WebSearch across three passes now, but WebSearch also missed HD's and
+   Target's real endpoints until someone loaded the site in a browser.
+   **Cheap test:** the same live-browser network-tab check that cracked HD
+   (`architecture-verdict.md`) and Target (`target-cracked.md`) — open a
+   product page on lowes.com, watch the network tab for a price/stock call,
+   check for a `mixed_current_price_type`/`alternatePriceDisplay`-style
+   clearance-signal field. This is the single highest-leverage next test in
+   this whole document: if it hits, Lowe's could be free like HD and Target
+   instead of $99+/mo.
 
 ---
 
