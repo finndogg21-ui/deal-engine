@@ -6,7 +6,11 @@ export default function Landing() {
     <>
       {/* The thesis: the gap between the shelf tag and the register. */}
       <header className="wrap hero">
-        <p className="eyebrow"><span className="live" /> San Antonio, watching 5 stores</p>
+        {/* The dot is gone. It was a static coloured circle dressed as a live
+            indicator — nothing bound to it, nothing refreshing it — and colour
+            has no place in a black-and-white system. Motion and colour are
+            reserved for data that actually changed. */}
+        <p className="eyebrow">San Antonio, watching 5 stores</p>
 
         {/* The headline really is this sentence, so it is the h1. Screen
             readers and search engines get the same thing a reader gets. */}

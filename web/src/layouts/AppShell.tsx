@@ -34,8 +34,11 @@ export default function AppShell() {
       <header className="tape-head">
         <Link to="/app" className="tape-mark">{BRAND.toUpperCase()}</Link>
         <div className="tape-zip"><ZipBar /></div>
-        {/* The one standing trial pitch — quiet, bordered, inverts on hover. */}
-        <Link to="/signup" className="tape-trial">Start free trial</Link>
+        {/* The one standing pitch — quiet, bordered, inverts on hover. It says
+            "account", not "trial": there is no trial, /faq says so plainly, and
+            /signup asks for an email and a password and nothing else. Promising
+            a trial here made four surfaces contradict each other. */}
+        <Link to="/signup" className="tape-trial">Create free account</Link>
         <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
       </header>
       {/* The rail is the only nav: Home Depot and Target. On a phone it lies

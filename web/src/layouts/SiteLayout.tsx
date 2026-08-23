@@ -18,7 +18,12 @@ export default function SiteLayout() {
             <NavLink to="/pricing">Pricing</NavLink>
             <NavLink to="/stores/home-depot">Stores</NavLink>
             <NavLink to="/faq">FAQ</NavLink>
+            {/* Until now the public site had no way in at all: 23 anchors and
+                not one to /signup or /signin — the closest was "Delete your
+                account" in the footer. */}
+            <NavLink to="/signin">Sign in</NavLink>
             <Link to="/app" className="btn btn-quiet">Open the app</Link>
+            <Link to="/signup" className="btn">Create free account</Link>
           </nav>
         </div>
       </header>
@@ -36,6 +41,8 @@ export default function SiteLayout() {
               <li><Link to="/pricing">Pricing</Link></li>
               <li><Link to="/faq">Questions</Link></li>
               <li><Link to="/app">Open the app</Link></li>
+              <li><Link to="/signup">Create free account</Link></li>
+              <li><Link to="/signin">Sign in</Link></li>
             </ul>
           </div>
 

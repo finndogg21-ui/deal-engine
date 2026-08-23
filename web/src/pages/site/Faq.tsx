@@ -41,9 +41,11 @@ const QA: { q: string; a: React.ReactNode }[] = [
       you how often their own predictions are right. We can, because members confirm finds.</>,
   },
   {
-    q: 'Is there a free trial?',
-    a: <>Not yet. There will be a free tier later. Right now the honest answer is that the
-      product is early and the founding rate exists to reflect that.</>,
+    q: 'What does it cost right now?',
+    a: <>Nothing. <Link to="/signup">Making an account</Link> asks for an email and a
+      password, never a card, and paid plans are not open for purchase yet. So there is no
+      trial clock to run out, because there is nothing to run out of. The honest version is
+      that the product is early and the founding rate exists to reflect that.</>,
   },
   {
     q: 'How do I cancel?',

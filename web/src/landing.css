@@ -22,9 +22,6 @@
   font-size: 15px; color: var(--ink-faint); margin: 0 0 22px;
   display: flex; align-items: center; gap: 9px;
 }
-.eyebrow .live {
-  width: 9px; height: 9px; border-radius: 50%; background: var(--go); flex: none;
-}
 
 /* The hero sentence is one h1. These spans carry the visual sizes so the
  * heading level stays honest without forcing every part to look the same. */
