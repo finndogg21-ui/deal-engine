@@ -222,12 +222,14 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
 
   return (
     <button
-      className={`card-deal${selected ? ' sel' : ''}${c.stock_qty === 0 ? ' gone' : ''}${
-        tier ? ` is-${tier}` : ''
-      }`}
+      /* NEVER "GONE".
+         A zero count is one store's shelf, not the chain's. Marking the whole
+         card gone — and greying it out — told a customer the deal was dead
+         when it may be sitting on a shelf two towns over. Stock belongs in the
+         per-store ledger, where it is attributed to the store it came from. */
+      className={`card-deal${selected ? ' sel' : ''}${tier ? ` is-${tier}` : ''}`}
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
-        {c.stock_qty === 0 && <span className="badge-gone">Gone</span>}
         {/* The percentage moved out of this corner and into the body, where it
             is the hero. Repeating it here would be the same fact twice. */}
         {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
@@ -674,20 +676,17 @@ export default function AllDeals() {
     }
 
     /**
-     * Sold out sinks to the bottom, whatever the chosen sort (F11).
+     * NO SOLD-OUT DEMOTION.
      *
-     * Real scan data has these: the AURA night light is 69% off at Bitters Rd
-     * with ZERO on the shelf, while Windsor Park has 6. Ranking a gone item
-     * above an available one by discount alone sends someone on a drive for
-     * something that is not there — the single fastest way to lose trust in
-     * the alerts.
+     * This used to sink any deal whose checked store read 0, to avoid sending
+     * someone on a wasted drive. Its own example gave the game away: the AURA
+     * night light is 69% off with ZERO at Bitters Rd and SIX at Windsor Park.
+     * Sinking it buried a deal that was in stock two towns over.
      *
-     * Only a hard 0 counts. `null` means we have no store breakdown, which is
-     * not the same claim as "none left".
+     * The catalog is national and stock is a per-store overlay, so one store's
+     * empty shelf ranks nothing. Availability is shown in the ledger, attributed
+     * to the store it came from, where the reader can act on it.
      */
-    const goneLast = (c: Candidate) => (c.stock_qty === 0 ? 1 : 0);
-    sorted.sort((a, b) => goneLast(a) - goneLast(b));
-
     return sorted;
   }, [rows, nearRows, nearStockByProduct, store, tab, q, sort]);
 

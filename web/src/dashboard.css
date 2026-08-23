@@ -293,8 +293,8 @@
 
 /* Sold out at this store (F11). Dimmed rather than hidden: knowing an item is
    gone HERE is useful, because it is often still available at another store. */
-.card-deal.gone { opacity: 0.55; }
-.card-deal.gone .card-price .now { color: var(--ink-faint); }
+/* `.gone` is deliberately no longer applied. A zero shelf count at one store
+   is not the deal being over, and dimming the card to 55% said it was. */
 
 .badge-gone {
   position: absolute; top: 10px; left: 10px; z-index: 2;
