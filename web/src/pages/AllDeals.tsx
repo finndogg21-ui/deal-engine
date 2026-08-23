@@ -692,8 +692,10 @@ export default function AllDeals() {
         c.store_name.toLowerCase().includes(term));
     }
     const sorted = [...out];
-    // The penny spool keeps its own ranking; it is scored, not discounted.
-    if (tab === 'penny') sorted.sort((a, b) => b.penny_score - a.penny_score);
+    // The penny spool's ladder candidates rank by score UNLESS the reader has
+    // asked for a different order — the dropdown used to be ignored here
+    // entirely, which is why it looked broken on this tab.
+    if (tab === 'penny' && sort === 'discount') sorted.sort((a, b) => b.penny_score - a.penny_score);
     else if (tab === 'near') sorted.sort((a, b) => (a.distance_mi ?? 1e9) - (b.distance_mi ?? 1e9));
     else if (sort === 'saves') sorted.sort((a, b) => effSaves(b) - effSaves(a));
     else if (sort === 'price-low') {
@@ -722,6 +724,30 @@ export default function AllDeals() {
      */
     return sorted;
   }, [rows, nearRows, nearStockByProduct, store, tab, q, sort]);
+
+  /**
+   * THE SORT NOW REACHES THE PENNY SPOOL.
+   *
+   * Community penny reports render from their own array, which nothing ever
+   * sorted — so the dropdown genuinely did nothing on this tab no matter what
+   * you picked. Every penny is $0.01, so the price sorts rank by what the item
+   * was WORTH, which is the only thing that separates one penny find from
+   * another.
+   */
+  const sortedPennyReports = useMemo(() => {
+    const list = (r: CommunityReport) => (r.list_price === null ? 0 : Number(r.list_price));
+    const out = [...pennyReports];
+    if (sort === 'newest') {
+      out.sort((a, b) => +new Date(b.reported_at ?? 0) - +new Date(a.reported_at ?? 0));
+    } else if (sort === 'price-low') {
+      out.sort((a, b) => list(a) - list(b));
+    } else {
+      // discount, saving and highest-price all rank by original value: at one
+      // cent, the bigger the "was", the bigger the find.
+      out.sort((a, b) => list(b) - list(a));
+    }
+    return out;
+  }, [pennyReports, sort]);
 
   const counts = useMemo(() => ({
     all: rows.length,
@@ -930,10 +956,21 @@ export default function AllDeals() {
                   store-specific and never guaranteed — scan the SKU in store.
                 </p>
               </div>
-              {pennyReports.map((r, i) => (
+              {sortedPennyReports.map((r, i) => {
+                /* A penny IS the deepest cut there is — $0.01 from any shelf
+                   price rounds to 100% off — so it always earns the grail
+                   treatment the rest of the feed reserves for 80%+. */
+                const list = r.list_price === null ? null : Number(r.list_price);
+                const off = list !== null && list > 0.01
+                  ? Math.round(((list - 0.01) / list) * 100)
+                  : null;
+                const saved = list !== null && list > 0.01
+                  ? Math.round((list - 0.01) * 100) / 100
+                  : null;
+                return (
                 <button
                   key={r.report_id}
-                  className="card-deal invert"
+                  className="card-deal invert is-grail"
                   style={{ '--i': Math.min(i, 16) } as CSSProperties}
                   onClick={() => nav(`/app/p/${r.report_id}`)}
                 >
@@ -944,10 +981,22 @@ export default function AllDeals() {
                   <div className="card-body">
                     <span className="retailer">Home Depot</span>
                     <p className="card-title">{displayTitle(r.title)}</p>
+
+                    {off !== null && (
+                      <div className="card-off tier-grail">
+                        <span className="off-n">{off}</span>
+                        <span className="off-u">% off</span>
+                        <span className="grail-mark">◆ Penny</span>
+                      </div>
+                    )}
+
                     <div className="card-price">
                       <span className="now">$0.01</span>
-                      {r.list_price !== null && <span className="was">Was <b>{money(Number(r.list_price))}</b></span>}
+                      {list !== null && <span className="was">was <s>{money(list)}</s></span>}
                     </div>
+
+                    {saved !== null && <div className="card-save">You save {money(saved)}</div>}
+
                     <div className="card-facts">
                       <span className="card-possible">
                         Reported {r.state ? `in ${statesLine(r.state)}` : 'by the community'}
@@ -961,7 +1010,8 @@ export default function AllDeals() {
                     <span className="card-cta">See all the details</span>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </>
           )}
 

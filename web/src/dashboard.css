@@ -1132,3 +1132,24 @@
   .sortbox { width: 100%; justify-content: space-between; }
   .sortbox select { flex: 1 1 auto; }
 }
+
+/* ── SECTION HEADINGS INSIDE THE GRID ─────────────────────────────────────
+   `.community-head` is a direct child of `.deck`, so the grid was handing it
+   ONE CELL like a card. That pushed the first row down to a single card and
+   shifted every row after it — the staggered, off-balance feed.
+   A heading spans the whole row instead. */
+.deck > .community-head {
+  grid-column: 1 / -1;
+  margin: var(--s4) 0 0;
+}
+.deck > .community-head h3 {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 var(--s2);
+}
+.deck > .community-head p { margin: 0; font-size: 12px; color: var(--ink-faint); max-width: 62ch; }
+
+/* The empty state is a message, not a card. */
+.deck > .empty { grid-column: 1 / -1; }
