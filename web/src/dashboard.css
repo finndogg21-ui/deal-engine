@@ -1040,3 +1040,37 @@
 .deal-save { background: none; padding: 0; color: var(--save); font-size: 15px; letter-spacing: 0.02em; }
 .deal-was s { color: var(--ink-faint); }
 .deal-off.tier-grail .grail-mark { font-size: 11px; margin-top: 5px; }
+
+/* ── STRAIGHTEN THE CUT BLOCK ─────────────────────────────────────────────
+   Two layout bugs sat on top of each other:
+
+   1. "% off" broke across two lines. The container sets line-height 0.82 for
+      the big numeral, which the 10px unit inherited, and nothing stopped it
+      wrapping in a 21px box — so it rendered as "%" over "off".
+   2. The grail stamp carried width:100% to push itself onto its own line, but
+      a flex item cannot wrap a nowrap container, so it sat on the number's
+      baseline instead.
+
+   The block is now an explicit two-row layout: numeral + unit on one
+   baseline, stamp underneath. */
+
+.card-off {
+  flex-wrap: wrap;
+  column-gap: 5px;
+  row-gap: 3px;
+}
+
+.card-off .off-u {
+  white-space: nowrap;   /* never "%" over "off" */
+  line-height: 1;        /* do not inherit the numeral's 0.82 */
+  position: relative;
+  top: -1px;             /* optically seat it on the numeral's baseline */
+}
+
+.grail-mark {
+  flex: 0 0 100%;        /* its own row, which width:100% could not do */
+  width: auto;
+  margin-top: 2px;
+  line-height: 1;
+  white-space: nowrap;
+}
