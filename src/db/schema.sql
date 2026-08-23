@@ -659,3 +659,13 @@ ALTER TABLE discovery ADD COLUMN IF NOT EXISTS alt_price_display BOOLEAN;
 -- store. This is what a card must show: "$2.00 in store (90% off)".
 ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_price NUMERIC(10,2);
 ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_pct NUMERIC(5,2);
+
+-- WHERE the clearance price was found. Clearance is a per-store fact — verified
+-- 2026-08-23 across 5 metros: the same LED strip light is $7.03 at Bitters Rd
+-- and carries no markdown at all in NY, LA, Chicago or Miami, while a Banbury
+-- faucet is the reverse (cleared in Manhattan, full price in San Antonio).
+-- So a clearance price is meaningless without the store it belongs to, and the
+-- card says "As low as $X" naming that store rather than a bare number.
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_store TEXT;
+-- How many stores we actually asked, so "as low as" is honest about its sample.
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_stores_checked INTEGER;

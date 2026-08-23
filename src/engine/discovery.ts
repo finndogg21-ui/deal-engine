@@ -79,6 +79,13 @@ export interface HdVerdictInput {
    */
   clearance_price?: number | null;
   clearance_pct?: number | null;
+  /**
+   * The store the clearance price belongs to, and how many we asked. Clearance
+   * is per store, so a price with no store attached cannot be acted on — and
+   * "as low as" is only honest if we say how wide the sample was.
+   */
+  clearance_store?: string | null;
+  clearance_stores_checked?: number | null;
 }
 
 /**
@@ -196,19 +203,29 @@ export function judge(v: HdVerdictInput): {
   if (price === null) return { status: 'rejected', reason: `no price at ${who}`, kind: null };
 
   /**
-   * FLAGGED, NOT YET PRICED.
+   * THE FLAG IS NOT A PRICE, AND NO LONGER PUBLISHES ON ITS OWN.
    *
-   * The item carries the in-store-clearance flag but no number has been
-   * fetched for it yet. That is a gap in OUR data, not evidence the deal is
-   * fake — rejecting it throws away the exact category this product is named
-   * after. It publishes as a hidden clearance whose price is revealed on the
-   * card once a check fills `clearance_price` in.
+   * Measured 2026-08-23 across 5 metros: `alternatePriceDisplay` came back
+   * true for 10 of 10 (item, store) pairs — including the 8 with no clearance
+   * anywhere near them. It is a PRODUCT-level attribute ("this item takes part
+   * in clearance somewhere"), not the per-store signal it was taken for. Any
+   * row published on the flag alone therefore reached the feed with nothing to
+   * show, which is how 19 of 21 cards ended up saying "Varies by store".
+   *
+   * A customer must always see a real price, so the rule is now simple: no
+   * number from any store we checked, no card. The multi-store checker finds
+   * the lowest real clearance and that is what the card quotes.
    */
-  if (v.alt_price_display === true) {
-    return { status: 'published', reason: null, kind: 'hidden_clearance' };
+  if (disc <= 0) {
+    return {
+      status: 'rejected',
+      reason:
+        v.alt_price_display === true
+          ? `flagged as clearance at ${who} but no store we checked had a price`
+          : `no markdown at ${who}`,
+      kind: null,
+    };
   }
-
-  if (disc <= 0) return { status: 'rejected', reason: `no markdown at ${who}`, kind: null };
   if (!meetsTieredFloor(price, disc)) {
     return { status: 'rejected', reason: `${Math.round(disc)}% off $${price.toFixed(2)} is under the floor`, kind: null };
   }
@@ -247,6 +264,7 @@ export async function recordVerdicts(
           SET status = $2, reject_reason = $3, checked_at = now(), deal_kind = $9,
               clearance_price = $10, clearance_pct = $11,
               alt_price_display = $12,
+              clearance_store = $13, clearance_stores_checked = $14,
               hd_price = $4, hd_list = $5, hd_discount = $6,
               hd_store_id = $7, hd_quantity = $8,
               publish_at = CASE WHEN $2 = 'published' THEN COALESCE(publish_at, now()) ELSE publish_at END
@@ -260,6 +278,8 @@ export async function recordVerdicts(
         // before we have fetched its number. Without this the flag was read,
         // used once, and thrown away.
         v.alt_price_display ?? null,
+        v.clearance_store ?? null,
+        v.clearance_stores_checked ?? null,
       ],
     );
   }
@@ -271,7 +291,8 @@ export async function publishedDeals(db: Db, limit = 200) {
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT discovery_id, retailer, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
-            checked_at, source, deal_kind, clearance_price, clearance_pct
+            checked_at, source, deal_kind, clearance_price, clearance_pct,
+            clearance_store, clearance_stores_checked
        FROM discovery
       WHERE status = 'published'
       -- Hidden clearance first (the category this product is named after),

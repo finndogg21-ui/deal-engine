@@ -88,6 +88,10 @@ interface Candidate {
    *  that, never guess a figure. */
   clearance_price?: number | null;
   clearance_pct?: number | null;
+  /** The store that price belongs to, and how wide the sample was. Clearance
+   *  is per store, so "as low as" needs both to be honest. */
+  clearance_store?: string | null;
+  clearance_stores_checked?: number | null;
   /** Exact units per store — the ledger. Empty when we have never counted. */
   stores?: Array<{ store: string; qty: number | null; distance_mi: number | null }>;
 }
@@ -233,17 +237,21 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
                 <span className="was">Regular price</span>
               </>
             ) : clearedPrice !== null ? (
+              /* "AS LOW AS" — clearance is per store, so this is the cheapest
+                 real price we found, not a price every store honors. Saying
+                 just "$7.03" would promise something Home Depot does not. */
               <>
+                <span className="as-low">As low as</span>
                 <span className="now">{money(clearedPrice)}</span>
                 <span className="was">was <s>{money(c.price)}</s> in store</span>
               </>
             ) : (
-              /* Flagged by Home Depot, but no number for the store we checked.
-                 Say that plainly rather than inventing one — the markdown may
-                 still be live at a different store. */
+              /* Unreachable in practice: judge() no longer publishes a flagged
+                 row without a real price from some store. Kept as a guard so a
+                 stale row can never render an empty price slot. */
               <>
-                <span className="now clr-unknown">Varies by store</span>
-                <span className="was">Regular <b>{money(c.price)}</b></span>
+                <span className="now">{money(c.price)}</span>
+                <span className="was">Regular price</span>
               </>
             )
           ) : (
@@ -297,8 +305,8 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
               : !revealed
                 ? 'Home Depot hides this one · tap to see it'
                 : clearedPrice !== null
-                  ? `In-store clearance${c.clearance_pct ? ` · ${Math.round(c.clearance_pct)}% off` : ''} · scan to confirm`
-                  : 'Clearance is per store · scan the SKU in yours'}
+                  ? `Cheapest at ${c.clearance_store ?? 'a nearby store'} · scan yours to confirm`
+                  : 'Scan the SKU in your store'}
           </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>
@@ -507,6 +515,11 @@ export default function AllDeals() {
           hidden_clearance: hidden,
           clearance_price: clr,
           clearance_pct: clrPct,
+          clearance_store: (d.clearance_store as string) ?? null,
+          clearance_stores_checked:
+            d.clearance_stores_checked === null || d.clearance_stores_checked === undefined
+              ? null
+              : Number(d.clearance_stores_checked),
           stores: Array.isArray(d.stores)
             ? (d.stores as Candidate['stores'])
             : [],

@@ -29,6 +29,8 @@ interface Row {
   deal_kind: string | null;
   clearance_price: string | number | null;
   clearance_pct: string | number | null;
+  clearance_store?: string | null;
+  clearance_stores_checked?: number | null;
   checked_at: string | null;
   source: string | null;
   stores?: LedgerRow[];
@@ -143,6 +145,9 @@ export default function DealPage() {
                 </button>
               ) : (
                 <>
+                  {/* "As low as" for clearance: this is the cheapest real price
+                      we found, not one every store honors. */}
+                  {realClearance !== null && <span className="as-low">As low as</span>}
                   <div className="deal-now">{money(payNow)}</div>
                   {compareAt !== null && compareAt !== payNow && (
                     <p className="deal-was">
@@ -153,6 +158,15 @@ export default function DealPage() {
                     <div className="deal-save">
                       Save {money(saves)}{pct ? ` · ${Math.round(pct)}% off` : ''}
                     </div>
+                  )}
+                  {realClearance !== null && row.clearance_store && (
+                    <p className="deal-where">
+                      Cheapest at <b>{row.clearance_store}</b>
+                      {row.clearance_stores_checked
+                        ? ` · ${row.clearance_stores_checked} stores checked`
+                        : ''}
+                      . Clearance is set per store, so yours may differ — scan the SKU.
+                    </p>
                   )}
                 </>
               )}
