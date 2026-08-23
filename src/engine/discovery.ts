@@ -196,10 +196,12 @@ export async function publishedDeals(db: Db, limit = 200) {
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT discovery_id, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
-            checked_at, source
+            checked_at, source, deal_kind
        FROM discovery
       WHERE status = 'published'
-      ORDER BY hd_discount DESC NULLS LAST
+      -- Hidden clearance first (the category this product is named after),
+      -- then the biggest verified markdowns.
+      ORDER BY (deal_kind = 'hidden_clearance') DESC, hd_discount DESC NULLS LAST
       LIMIT $1`,
     [limit],
   );

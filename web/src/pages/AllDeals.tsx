@@ -80,6 +80,8 @@ interface Candidate {
   /** Only on the "Closest to me" feed: this deal's stock at the nearest nearby
    *  store, shown even when 0 or unknown. Absent on the national candidate list. */
   near_stock?: { qty: number | null; store: string | null; distance_mi: number | null } | null;
+  /** HD flags an in-store clearance price it will not print online. */
+  hidden_clearance?: boolean;
 }
 
 interface HistoryPoint {
@@ -166,7 +168,9 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
         {c.stock_qty === 0 && <span className="badge-gone">Gone</span>}
-        {c.discount_pct !== null && <span className="badge-off">{pct(c.discount_pct)} off</span>}
+        {c.hidden_clearance
+          ? <span className="badge-off">CLEARANCE</span>
+          : c.discount_pct !== null && <span className="badge-off">{pct(c.discount_pct)} off</span>}
         {c.in_store_only
           ? <span className="badge-instore">In store</span>
           : <span className="badge-score">{c.penny_score}</span>}
@@ -180,9 +184,21 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         <p className="card-title">{c.title}</p>
 
         <div className="card-price">
-          <span className="now">{money(c.price)}</span>
-          {c.list_price !== null && (
-            <span className="was">Was <b>{money(c.list_price)}</b></span>
+          {c.hidden_clearance ? (
+            <>
+              {/* HD hides the register price. We show its ONLINE price and say
+                  plainly that the store price is lower and unknown - never a
+                  number we made up. */}
+              <span className="now">Clearance</span>
+              <span className="was">Online <b>{money(c.price)}</b></span>
+            </>
+          ) : (
+            <>
+              <span className="now">{money(c.price)}</span>
+              {c.list_price !== null && (
+                <span className="was">Was <b>{money(c.list_price)}</b></span>
+              )}
+            </>
           )}
         </div>
         {c.saves !== null && c.saves > 0 && (
@@ -201,7 +217,11 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         <div className="card-facts">
           {/* The hedge always leads; when a ZIP is set, the local stock line
               appears right under it, instantly, for every card (no click). */}
-          <span className="card-possible">Possible deal · check your store</span>
+          <span className="card-possible">
+            {c.hidden_clearance
+              ? 'In-store clearance price · scan the SKU to see it'
+              : 'Possible deal · check your store'}
+          </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>
             : <span>seen {ago(c.last_seen_at)}</span>}
@@ -319,7 +339,14 @@ export default function AllDeals() {
     setLoading(true);
     setLoadError(null);
     try {
-      const r = await fetch('/api/candidates?min_score=0&limit=500');
+      /**
+       * The feed reads the VERIFIED pool, not the raw sweep. Every row here
+       * was checked against Home Depot's own store-level data: a real
+       * markdown clearing the price-tiered floor, or hidden clearance HD
+       * flagged but would not price online. The old /api/candidates feed
+       * published whatever the scraper claimed - it was 97% wrong.
+       */
+      const r = await fetch('/api/deals/published?limit=200');
       const body = await r.json().catch(() => null);
 
       if (r.status === 402) {
@@ -327,7 +354,7 @@ export default function AllDeals() {
         setLoadError({ kind: 'upgrade', message: body?.error ?? 'This needs a plan.' });
         return;
       }
-      if (!r.ok || !Array.isArray(body)) {
+      if (!r.ok || !body || !Array.isArray(body.deals)) {
         setRows([]);
         setLoadError({
           kind: 'error',
@@ -335,7 +362,42 @@ export default function AllDeals() {
         });
         return;
       }
-      setRows(body);
+      // Map the verified pool onto the card shape the deck already renders.
+      const mapped: Candidate[] = (body.deals as Array<Record<string, unknown>>).map((d) => {
+        const price = d.hd_price === null || d.hd_price === undefined ? null : Number(d.hd_price);
+        const disc = d.hd_discount === null || d.hd_discount === undefined ? null : Number(d.hd_discount);
+        const hidden = d.deal_kind === 'hidden_clearance';
+        const list = !hidden && price !== null && disc !== null && disc > 0 && disc < 100
+          ? Math.round((price / (1 - disc / 100)) * 100) / 100
+          : null;
+        return {
+          product_id: `hd:${String(d.item_id)}`,
+          store_id: String(d.hd_store_id ?? ''),
+          title: String(d.title ?? ''),
+          category: null,
+          retailer: 'homedepot',
+          image_url: (d.image_url as string) ?? null,
+          store_name: '',
+          store_number: null,
+          aisle_bay: null,
+          other_stores: 0,
+          // Hidden clearance is an in-store-only price by definition.
+          in_store_only: hidden,
+          distance_mi: null,
+          stage: '',
+          penny_score: 0,
+          confidence: '',
+          price,
+          list_price: list,
+          saves: list !== null && price !== null ? Math.round((list - price) * 100) / 100 : null,
+          discount_pct: hidden ? null : disc,
+          stock_qty: d.hd_quantity === null || d.hd_quantity === undefined ? null : Number(d.hd_quantity),
+          last_seen_at: (d.checked_at as string) ?? new Date().toISOString(),
+          product_url: (d.product_url as string) ?? null,
+          hidden_clearance: hidden,
+        } as Candidate;
+      });
+      setRows(mapped);
     } catch {
       setRows([]);
       setLoadError({ kind: 'error', message: 'Could not load deals.' });
