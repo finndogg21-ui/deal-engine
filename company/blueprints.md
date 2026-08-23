@@ -6,33 +6,46 @@ rewriting this file — don't re-propose shipped or in-flight work.
 
 **Scope note:** this file covers marketing/UI/pricing/positioning. The
 scan/score/verify data-method track now has its own file,
-`company/penny-blueprints.md` (a separate pass, 2026-08-22) — don't duplicate
-its backlog here; its #1 item (proving the store-confirm vendor call actually
-works) is the real prerequisite behind this file's #2 (freshness bar), so
-read both before assuming either is ready to ship.
+`company/penny-blueprints.md` (own pass, most recently 2026-08-23) — don't
+duplicate its backlog here; its Blueprint 3 (turning the real sweep on, 14-day
+clock) is the real prerequisite behind this file's #2 (freshness bar), and its
+Blueprint 1 (automating the $0 browser-direct confirm call) gates whether
+Target can ever appear in this file's marketing copy — read both before
+assuming either is ready to ship.
 
-**Last pass:** 2026-08-22
+**Last pass:** 2026-08-23 (this pass). Previous pass: 2026-08-22.
 
 ## Market snapshot (as of this pass)
 
-- **New this pass — BrickSeek** now runs a paid reseller tier too: Premium
-  $14.99/mo, Extreme $29.99/mo, on top of its long-standing free basic
-  lookups. Another entrant between Endless ($9.99) and Deal Soldier/Scavenger
-  ($44-47) — the mid-tier is filling in, not thinning out.
-- **New this pass — Scavenger now offers a free preview scan with no signup
-  required**, ahead of its $47/mo paywall. This is the same shape as
-  deal-engine's own `PUBLIC_PREVIEW` flag (see Blueprint 1, below) — a
-  competitor treating "browse free, pay to keep using it" as a deliberate
-  funnel confirms the mechanic is sound *if scoped on purpose*. deal-engine's
-  version currently isn't scoped at all, which is the problem Blueprint 1
-  raises.
+- **This pass's check: no material competitor changes in the last 24h.**
+  Pricing, plans, and marketing claims for Hidden Clearances, Deal Soldier,
+  Scavenger, Endless, BrickSeek, Penny, PennyCentral, and Rebel Savings all
+  match last pass — no new tiers, outages, funding/acquisition news, or
+  viral posts found. (One red herring ruled out: a "Scavenger AI" €2.5M
+  seed round in the news is an unrelated Frankfurt B2B data company, not
+  the penny-deal Scavenger.) Two smaller names surfaced but don't change
+  the picture — **ClearanceFinds** (Lowe's-only, daily PDF + community, not
+  automated) and **BotBro** (generic AI shopping-bot builder, one HD blog
+  post) — both crowdsourced/generic, same category as everything already
+  tracked. No new automated per-store-scan competitor found for HD/Lowe's/
+  Target. Everything below carries forward unchanged from 2026-08-22.
+- **BrickSeek** runs a paid reseller tier too: Premium $14.99/mo, Extreme
+  $29.99/mo, on top of its long-standing free basic lookups. Another
+  entrant between Endless ($9.99) and Deal Soldier/Scavenger ($44-47) — the
+  mid-tier is filling in, not thinning out.
+- **Scavenger offers a free preview scan with no signup required**, ahead
+  of its $47/mo paywall. This is the same shape as deal-engine's own
+  `PUBLIC_PREVIEW` flag (see Blueprint 1, below) — a competitor treating
+  "browse free, pay to keep using it" as a deliberate funnel confirms the
+  mechanic is sound *if scoped on purpose*. deal-engine's version currently
+  isn't scoped at all, which is the problem Blueprint 1 raises.
 - **Penny (pennydeals.app)**, free tier + Pro $14.99/mo + VIP $29.99/mo
   (65+ stores; VIP's HD aisle/bay data is crowdsourced — "you scan in store
   to confirm," "where available," not a machine scan) and **PennyCentral**
   (140k+ member free community list) remain the sharpest "looks automated,
   isn't" threats — still the strongest reason Blueprint 3 (public freshness
   proof) matters, once the data behind it is real (see
-  `penny-blueprints.md` Blueprint 1-2).
+  `penny-blueprints.md` Blueprint 3-4).
 - **Scavenger** (~$47/mo) still the one rival whose own copy claims genuine
   automated inventory reads ("scans every Home Depot within 25 miles...
   24/7") — closest thing to a real scanning competitor, still broad-radius
@@ -45,17 +58,25 @@ read both before assuming either is ready to ship.
 - **Endless** — $9.99/mo, lower-end general clearance tool.
 - **Rebel Savings** — free, community-sourced store-level radius map.
 - Realistic paying market unchanged: ~30k-150k US penny/clearance hunters
-  total, San Antonio's share roughly 50-200 people. More paid mid-tier
-  entrants (BrickSeek) this pass reinforces the same conclusion as last
-  pass: this niche competes on trust in the data, not on price or breadth,
-  because there isn't room for a volume play.
-- **Shipped since last pass, changes the picture:** the "possible deals"
-  feed (`/api/deals/nearby`) now works for **any US ZIP nationwide**, not
-  just San Antonio (`src/geo/load-zip-centroids.ts`, `nearby-deals.ts`),
-  and there's a public-preview mode that lets anonymous visitors browse it
-  without an account. That's a bigger move than anything in this backlog
-  last pass — see Blueprint 1, it changes what Blueprint 7 (out-of-metro
-  capture) still needs to do.
+  total, San Antonio's share roughly 50-200 people. This niche competes on
+  trust in the data, not on price or breadth, because there isn't room for
+  a volume play.
+- **Shipped as of last pass, still the picture:** the "possible deals" feed
+  (`/api/deals/nearby`) works for **any US ZIP nationwide**, not just San
+  Antonio (`src/geo/load-zip-centroids.ts`, `nearby-deals.ts`), with a
+  public-preview mode that lets anonymous visitors browse it without an
+  account. See Blueprint 1 (preview scoping) and Blueprint 8 (out-of-metro
+  capture).
+- **New this pass, from the data-method track:** `penny-blueprints.md` (its
+  own 2026-08-23 pass) reports Target shipped as a third retailer
+  (`target-direct.ts`, browser-verified, $0) and reframes its own #1
+  priority from "which vendor to trust" to "the $0 browser-direct confirm
+  method is proven on two retailers but nothing runs it unattended yet."
+  Target is already reachable in the frontend's retailer picker
+  (`StockCheck.tsx`), but the scan/verify automation behind it isn't live —
+  **don't add Target to any marketing copy** (Blueprint 4, FAQ, Pricing)
+  until that file's Blueprint 1 ships and Target has real scan history, the
+  same discipline already applied to the freshness bar (Blueprint 2).
 
 **Standing correction (still true, still worth restating so it doesn't
 regress):** pricing is **Consumer $9.99/mo** and **Reseller $19/mo**
@@ -69,7 +90,7 @@ Extreme, and Penny VIP. (BUILD: `$75/mo` anywhere in code/copy is a bug.)
 - **Profit/margin layer** — done (`Profit.tsx`, `src/resell/fees.ts`,
   `/api/profit`). Resale-comp suggestions (bigger bet #10, below) still open.
 - **Public live-scan freshness bar** — code-complete in PR #2, not merged.
-  See Blueprint 1.
+  See Blueprint 2.
 - **Nationwide deal browsing** — done, shipped since last pass (see market
   snapshot). Reduces Blueprint 7 to a narrower ask.
 - **Founding-seat scarcity** — done on `/pricing`, still missing from
@@ -89,6 +110,12 @@ Extreme, and Penny VIP. (BUILD: `$75/mo` anywhere in code/copy is a bug.)
   gates this on real `scan_runs` history existing first; shipping it against
   test/empty data would be the exact "unverifiable claim" this backlog exists
   to avoid.
+- **PR #3** (`company/night-2026-08-22-remove-amazon-claim` → `main`): opened
+  since last pass. Deletes the "Amazon Warehouse" line from all three files
+  Blueprint 4 named (`Landing.tsx`, `Welcome.tsx`, `Pricing.tsx`), replacing
+  it with accurate HD/Lowe's copy — exactly the fix Blueprint 4 asked for.
+  Still open, draft, no blockers found. Blueprint 4 below is now **in-pr**,
+  not re-proposed.
 
 ---
 
@@ -133,12 +160,12 @@ differentiator (genuine machine-swept, timestamped per-store data) that
 Penny/PennyCentral's crowdsourced-dressed-as-scanned copy and Scavenger's
 "24/7 scans" claim can't be told apart from without proof on the page. The
 build side is done; what's missing is real `scan_runs` history behind it,
-tracked in `penny-blueprints.md` Blueprint 1-2 (store-confirm vendor
-reliability, then turning the sweep on for real).
+tracked in `penny-blueprints.md` Blueprint 3 (turning the sweep on for
+real, starting the 14-day clock).
 **what to build:** nothing new on the frontend. BUILD: merge PR #2 only
-after `penny-blueprints.md` Blueprint 2's 14-day real-data clock has run.
-Ideator note for next pass: check `penny-blueprints.md`'s dated vendor-probe
-results before re-promoting this.
+after `penny-blueprints.md` Blueprint 3's 14-day real-data clock has run.
+Ideator note for next pass: check `penny-blueprints.md`'s dated results
+before re-promoting this.
 **why it beats today:** a live, updating timestamp is something no
 crowdsourced competitor can fake without becoming an actual scanner — but
 only once it's showing real numbers.
@@ -166,43 +193,48 @@ scan data) — together they turn the hero from a claim into a live demo.
 scan hours; zero "the example never changes" reports.
 
 ### 4. Remove the "Amazon Warehouse" claim
-**status:** todo — still present, unchanged since last pass
-**problem:** `Landing.tsx:103`, `Pricing.tsx:29`, and `Welcome.tsx:40` all
-still promise "Amazon Warehouse and clearance deals." The live scan covers
-Home Depot + Lowe's only (`web/DESIGN_AUDIT.md` P2-5). Hidden Clearances
-genuinely does cover Amazon, so this gap is visible to anyone comparing —
-and now that BrickSeek and Penny both list retailer coverage prominently
-too, the mismatch is one comparison-shop away from being noticed by a payer,
-not just a reviewer.
-**what to build:** delete the line in all three files; replace with an
-accurate claim already true today (e.g. "Watch any product by name across
-Home Depot and Lowe's") or drop the bullet.
+**status:** in-pr (PR #3) — fix is written, awaiting merge
+**problem:** `Landing.tsx:103`, `Pricing.tsx:29`, and `Welcome.tsx:40` still
+promise "Amazon Warehouse and clearance deals" on `main`. The live scan
+covers Home Depot + Lowe's only (`web/DESIGN_AUDIT.md` P2-5). Hidden
+Clearances genuinely does cover Amazon, so this gap is visible to anyone
+comparing.
+**what to build:** nothing new — PR #3 already deletes the line in all
+three files and replaces it with accurate HD/Lowe's copy. BUILD: merge it.
+Ideator note: once Target's data automation ships (`penny-blueprints.md`
+Blueprint 1) don't fold it into this copy without checking that scan
+history backs it first — same discipline as Blueprint 2.
 **why it beats today:** removes a live false-advertising/chargeback risk for
 a five-minute, three-file, copy-only edit.
-**effort:** S — single PR.
+**effort:** S — a merge.
 **success metric:** grep for "Amazon" in `web/src` returns nothing outside
-`Terms.tsx`'s trademark disclaimer.
+`Terms.tsx`'s trademark disclaimer, once PR #3 is merged.
 
 ### 5. Answer "why pay when it's free/cheap elsewhere?" head-on
-**status:** todo
-**problem:** `Faq.tsx` still names zero competitors. The free/cheap field
-keeps growing (Hidden Clearances, Rebel Savings, Penny free tier,
-PennyCentral, now BrickSeek's free basic tier and Scavenger's free preview)
-— every one of them a "why not just use the free one" objection nobody on
-the site currently answers.
-**what to build:** one direct FAQ entry (or a short `/compare` page linked
-from Pricing and FAQ) naming the tradeoff specifically: most alternatives
-are broad, crowdsourced, or community-confirmed — genuinely useful, but not
-a per-store automated scan, and their own copy hedges this ("where
-available," "scan in store to confirm"). deal-engine covers 2 retailers
-deeply with a machine-swept, timestamped scan, checked against confirmed
-outcomes (`src/engine/reputation.ts`). Link to the freshness bar (Blueprint
-2) as proof once it's live with real data.
-**why it beats today:** silence on the objection means the prospect answers
-it themselves, usually by leaving.
-**effort:** S-M
-**success metric:** page/FAQ entry shipped; track conversion delta for
-visitors who read it, if analytics are wired.
+**status:** todo — partially shipped, needs sharpening
+**problem:** `Faq.tsx` now has a "How is this different from the free
+tools?" entry (new since last pass) — progress, but it argues from the
+profit-tracking angle only ("free scanners... cannot tell you how often
+their own predictions are right") and still names zero competitors and
+never mentions the data-freshness/automated-scan distinction. The free/cheap
+field keeps growing (Hidden Clearances, Rebel Savings, Penny free tier,
+PennyCentral, BrickSeek's free basic tier, Scavenger's free preview) and
+most of them hedge their own "automated" claims in their own copy ("where
+available," "scan in store to confirm") — an opening the current answer
+doesn't use.
+**what to build:** sharpen the existing FAQ entry (or add a second one) with
+the specific tradeoff: most alternatives are broad, crowdsourced, or
+community-confirmed — genuinely useful, but not a per-store automated scan.
+deal-engine covers 2 retailers deeply with a machine-swept, timestamped
+scan, checked against confirmed outcomes (`src/engine/reputation.ts`). Link
+to the freshness bar (Blueprint 2) as proof once it's live with real data.
+**why it beats today:** the profit-angle answer is good but incomplete —
+leaving the data-freshness objection unanswered means the prospect who came
+specifically comparing scan quality still leaves unconvinced.
+**effort:** S — editing an existing entry, not building a new page.
+**success metric:** FAQ entry names the crowdsourced-vs-automated tradeoff
+explicitly; track conversion delta for visitors who read it, if analytics
+are wired.
 
 ### 6. Surface founding-seat scarcity before checkout, not during it
 **status:** todo — unchanged since last pass
@@ -263,7 +295,7 @@ list exists after 30 days.
 ### 9. Multi-metro expansion
 **status:** todo (blocked on Blueprint 8's demand data + the lead-time
 constraint documented in `coverage.ts` and reinforced in
-`penny-blueprints.md` Blueprint 2 — new metro scoring needs ~14+ days of
+`penny-blueprints.md` Blueprint 3 — new metro scoring needs ~14+ days of
 real scan history before it can be sold honestly). Note the browse feed
 (market snapshot, above) already reaches new metros; only *scored*
 expansion is gated.
