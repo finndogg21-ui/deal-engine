@@ -124,3 +124,57 @@ whether this endpoint reflects it. Until then the module shape is unknown.
   payload, so INFERENCE: what you see is what there is.
 - Store-number lookup by ZIP — not yet located; store 1155 came from the site's
   own default.
+
+---
+
+## Research fan-out vs measurement (2026-08-23, 5 agents, 196 tool calls)
+
+The council's chairman verdict was **"build after one test, do not spend a
+dollar"** — and caught its own researcher fabricating: the only quoted JSON
+showing `displayType:"CLEARANCE"` was **a stitched composite of two different
+items** ($78 item carrying a $9.98 was-price). It downgraded that claim itself.
+
+Two of its load-bearing claims were testable. I tested both. **Neither
+reproduced.**
+
+**Claim 1 — "store is selected by the `sn` cookie, not the URL path."**
+Set `sn` to 1155 / 0595 / 2274 / 0530 and refetched the same item:
+
+| sn cookie | storeName | finalPrice | qty | aisle | bay |
+|---|---|---|---|---|---|
+| 1155 | N.W. Central San Antonio | 499 | 5 | 14 | 12 |
+| 0595 | Mooresville | 499 | 5 | 14 | 12 |
+| 2274 | Castle Rock | 499 | 5 | 14 | 12 |
+| 0530 | Big Flats | 499 | 5 | 14 | 12 |
+
+The cookie changes the store NAME and nothing else. Same as the path.
+
+**Claim 2 — "clearance item set differs per store (442 vs 505 items), and
+basePrice/discount differ per store (6% vs 12% on one item)."**
+Fetched the clearance PLP for two stores and diffed by product id:
+
+| measure | result |
+|---|---|
+| items on page 1 | 24 at both stores |
+| shared items | 23 of 24 |
+| items with a DIFFERENT quantity | **0** |
+| items with a DIFFERENT price | **0** |
+
+One item differed in the set, which is as likely to be ordering noise as a real
+store difference.
+
+## Standing conclusion
+
+VERIFIED and reproducible:
+- the endpoint and the clearance browse are public, free, and browser-only (403 server-side)
+- markdowns are real and exposed (`WASNOW`, basePrice > finalPrice, 24 per page)
+- per-ITEM stock is real and varies (`onhandQty` 0, 5, 2, 1 within one page)
+
+NOT ESTABLISHED, after direct testing:
+- that ANY of it varies by store — price, quantity and aisle were identical
+  across every store tried, by both path and cookie
+
+So Lowe's currently looks like the **Target shape** (chain-wide, one cheap
+fetch), NOT the Home Depot shape. If that holds, a Lowe's module is cheap to
+build — but it must NOT claim per-store stock or aisle, because the evidence
+for those varying does not exist.
