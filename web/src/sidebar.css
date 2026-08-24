@@ -37,6 +37,11 @@
 
 .tape-zip { margin-left: auto; }
 
+.tape-preview {
+  font-family: var(--sans); font-size: 13px; color: var(--ink-faint);
+  white-space: nowrap;
+}
+
 .tape-out {
   font-family: var(--sans); font-size: 14px; font-weight: 600;
   background: none; border: 1px solid var(--ink); color: var(--ink);

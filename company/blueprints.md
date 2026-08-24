@@ -126,13 +126,35 @@ a bug — none found this pass.)
   are accumulating (`penny-blueprints.md` Blueprint 1/3); today it will
   almost always render the labeled fallback, which is fine, but don't treat
   the PR's existence as "the freshness problem is solved."
+- **PR #5** (`company/night-2026-08-24-preview-header-fix` → `main`): new
+  this pass. Implements Blueprint 1(b) only — the "at minimum" bar, not the
+  full decision. `AppShell.tsx` now checks `me.email ===
+  'preview@deal-engine.local'` (the exact identity `loadUser` assigns under
+  `PUBLIC_PREVIEW=1`, see `src/api/middleware.ts`) and shows either "Sign
+  out" (real account) or a "Previewing — no account yet" notice next to
+  "Create free account" (preview) — never both at once, and a real signed-in
+  user no longer sees "Create free account" beside their own sign-out
+  button either, which was also live before this fix. Frontend-only, reads
+  a field already returned by `/api/auth/me`; no change to `loadUser`,
+  `requireAuth`, or any gating logic. No blockers found.
 
 ---
 
 ## Ranked backlog
 
 ### 1. Decide `PUBLIC_PREVIEW` on purpose — now with first-hand evidence of harm
-**status:** todo — top priority, escalated this pass
+**status:** partially shipped this pass (PR #5, part (b) only) — parts (a),
+(c), (d) still open, see below
+**2026-08-24 decision (BUILD, this pass):** shipped the minimal, reversible
+piece — (b)'s "header never shows both signals" bar — since it needed no
+gating change and was buildable in one session. Did **not** attempt (a)
+(same-day check of the live Railway env var — this sector can't fetch the
+production site) or (c) (bounding preview like a real funnel — needs a
+product decision on caps/delay, not just a fix, and touches request-level
+gating, which is out of this build's guardrails). (a) and (c) are still open
+and should be the next pass's #1 if not picked up sooner; the founder should
+independently confirm whether `PUBLIC_PREVIEW=1` is actually set on
+production, since no sector in this repo can check that from here.
 **problem:** `src/api/middleware.ts`'s `loadUser` grants any anonymous
 visitor a full logged-in **reseller-plan** identity when
 `PUBLIC_PREVIEW=1` — no signup, no paywall, same feed a $19/mo subscriber
