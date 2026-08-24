@@ -754,6 +754,27 @@ export default function AllDeals() {
     return out;
   }, [pennyReports, sort]);
 
+  /* The community blocks render from their own arrays, so until now they
+   * answered to nothing but the tab: a search that matched no card still left
+   * three of them on screen UNDERNEATH the "nothing matches" notice, and
+   * ?store=target&tab=penny printed 54 cards every one of which said Home
+   * Depot. Both community feeds ARE Home Depot's, so they take the same store
+   * scope the clearance block already carried, plus the search term the
+   * verified feed uses. `shown` is untouched — that is the render-critical
+   * path for the scanned feed. */
+  const communityScope = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const hd = !store || store === 'home-depot' || store === 'homedepot';
+    const match = (t: string) => !term || displayTitle(t).toLowerCase().includes(term);
+    // Tab-scoped as well, so these arrays are exactly what is on screen. The
+    // empty state reads them, and a non-empty clearance list must not silence
+    // it on a tab that never renders clearance.
+    return {
+      penny: tab === 'penny' && hd ? sortedPennyReports.filter((r) => match(r.title)) : [],
+      clearance: tab === 'all' && hd ? clearanceReports.filter((r) => match(r.title)) : [],
+    };
+  }, [q, store, tab, sortedPennyReports, clearanceReports]);
+
   const counts = useMemo(() => ({
     all: rows.length,
     // The penny spool = community reports + our ladder candidates. The badge
@@ -952,7 +973,7 @@ export default function AllDeals() {
             </div>
           )}
 
-          {tab === 'penny' && pennyReports.length > 0 && (
+          {communityScope.penny.length > 0 && (
             <>
               <div className="community-head">
                 <h3>Community penny reports</h3>
@@ -961,7 +982,7 @@ export default function AllDeals() {
                   store-specific and never guaranteed — scan the SKU in store.
                 </p>
               </div>
-              {sortedPennyReports.map((r, i) => {
+              {communityScope.penny.map((r, i) => {
                 /* A penny IS the deepest cut there is — $0.01 from any shelf
                    price rounds to 100% off — so it always earns the grail
                    treatment the rest of the feed reserves for 80%+. */
@@ -1027,7 +1048,7 @@ export default function AllDeals() {
             </>
           )}
 
-          {!loading && !loadError && shown.length === 0 && !(tab === 'penny' && pennyReports.length > 0) && (
+          {!loading && !loadError && shown.length === 0 && communityScope.penny.length === 0 && communityScope.clearance.length === 0 && (
             <div className="empty">
               {rows.length > 0 ? (
                 'Nothing matches those filters. Try a different store or clear the search.'
@@ -1060,8 +1081,10 @@ export default function AllDeals() {
               already in the REPORTED store's mode. */}
           {/* Community reports are ALL Home Depot, so they only belong on the
               unfiltered feed or the Home Depot one — under ?store=lowes they
-              were leaking three HD cards into another retailer's list. */}
-          {tab === 'all' && (!store || store === 'home-depot' || store === 'homedepot') && clearanceReports.length > 0 && (
+              were leaking three HD cards into another retailer's list. That
+              store scope now lives in `communityScope`, which applies the
+              search term too. */}
+          {communityScope.clearance.length > 0 && (
             <>
               <div className="community-head">
                 <h3>Community clearance reports</h3>
@@ -1070,7 +1093,7 @@ export default function AllDeals() {
                   confirm in store; the link opens Home Depot in the reported store's view.
                 </p>
               </div>
-              {clearanceReports.map((r, i) => (
+              {communityScope.clearance.map((r, i) => (
                 <button
                   key={r.report_id}
                   className="card-deal"

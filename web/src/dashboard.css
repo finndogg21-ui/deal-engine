@@ -1113,6 +1113,12 @@
   letter-spacing: 0.02em;
   padding: 0 var(--s4) 0 0;
   cursor: pointer;
+  /* The box is 38px but the select had no cross-size, so it collapsed to its
+     12px line box: 24px of the control was dead chrome and the only real tap
+     target was 14px tall. Stretching it overrides the parent's
+     align-items:center and makes the whole box hittable — this product gets
+     used one-handed in a store aisle. */
+  align-self: stretch;
 }
 .sortbox select:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 

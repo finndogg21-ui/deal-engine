@@ -148,7 +148,11 @@
     border-bottom: 1px solid var(--rule);
     padding: var(--s3) var(--s4);
   }
-  .rail-item { flex: 1 1 0; justify-content: center; }
+  /* min-width:0 or flex-shrink is inert (flex items default to min-width:auto),
+     the ellipsis on .rail-name can never fire, and three chips push the
+     document 20px past a 375px viewport — clipping whichever retailer was
+     added last. */
+  .rail-item { flex: 1 1 0; min-width: 0; justify-content: center; }
   .rail-badge { display: none; }
 }
 

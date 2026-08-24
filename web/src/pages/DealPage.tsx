@@ -42,6 +42,11 @@ const n = (v: unknown): number | null =>
 const retailerName = (slug: string) =>
   RETAILERS.find((r) => r.slug === slug || r.slug.replace(/-/g, '') === slug)?.name ?? slug;
 
+/* "Lowe's" + "'s" printed "Lowe's's". A brand name already ending in s
+   absorbs the genitive — "Lowe's own data" is what a copywriter writes —
+   so those take the name unchanged. Home Depot and Target keep the 's. */
+const possessive = (name: string) => (name.endsWith('s') ? name : `${name}'s`);
+
 export default function DealPage() {
   const { retailer, itemId } = useParams();
   const navigate = useNavigate();
@@ -223,7 +228,13 @@ export default function DealPage() {
             </li>
           )}
           <li>
-            Verified against {retailerName(row.retailer)}&apos;s own store-level data, not a
+            {/* "Lowe's" + "&apos;s" printed "Lowe's's". And "store-level" was
+                the one false word in this sentence for Lowe's: retailers.ts
+                already says on the record that Lowe's returns the same count
+                at every store and "we will not print it as one". Home Depot
+                and Target rows really are store-level, so they keep it. */}
+            Verified against {possessive(retailerName(row.retailer))} own{' '}
+            {row.retailer === 'lowes' ? 'published markdown data' : 'store-level data'}, not a
             third-party list.
           </li>
         </ul>

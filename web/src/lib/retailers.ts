@@ -51,7 +51,11 @@ export const RETAILERS: Retailer[] = [
     slug: 'lowes',
     name: "Lowe's",
     badge: 'LW',
-    coverage: 'in-store',
+    /* Not 'in-store'. That badge reads "Live, with in-store stock" two inches
+       above this page's own weCannot line saying Lowe's returned the same
+       count at every store and we will not print it as one. 'online' renders
+       "Live, online prices only", which is what we actually have. */
+    coverage: 'online',
     lede: 'Live. Dated markdowns from the Back Aisle, priced the same chain-wide.',
     howItWorks: [
       "Lowe's publishes its markdowns through a clearance browse it calls the Back Aisle.",
