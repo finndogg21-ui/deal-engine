@@ -51,21 +51,23 @@ export const RETAILERS: Retailer[] = [
     slug: 'lowes',
     name: "Lowe's",
     badge: 'LW',
-    coverage: 'in-store',
-    lede: 'Same markdown ladder, different store, usually less picked over.',
+    // Module is built and the data is proven reachable; flip to 'in-store'
+    // once the first sweep publishes rows.
+    coverage: 'planned',
+    lede: 'Next up. Dated markdowns from the Back Aisle, priced the same chain-wide.',
     howItWorks: [
-      "Lowe's runs clearance on its own cycle, and the stages are not identical to Home Depot's.",
-      'Because fewer people hunt here, deep discounts often sit longer before someone takes them.',
-      'Store to store variation is high. An item at full price at one location can be on final clearance ten miles away.',
+      "Lowe's publishes its markdowns through a clearance browse it calls the Back Aisle.",
+      'Every discount carries an end date, so these are time-limited sales rather than the permanent clearance Home Depot hides in store.',
+      "The price is the same at every store we checked, so there is no cheaper location to drive to — what you see is what any Lowe's charges.",
     ],
     weSee: [
-      'Discounted inventory per store, refreshed daily',
-      'Units remaining at each location',
-      'The full markdown history for an item, so you can see where it is heading',
+      "The marked-down price, the original, and the percentage — all published by Lowe's itself.",
+      'When the markdown ends, so a deal is never shown as if it lasts forever.',
     ],
     weCannot: [
-      'Guarantee shelf location. Aisle data is less consistent here than at Home Depot.',
-      'See in-store only markdowns that never touch the website.',
+      "Tell you units on a specific shelf. Lowe's returned the same count at every store we tested, so it is not real per-store stock and we will not print it as one.",
+      'Give you an aisle. The same caveat applies — the aisle came back identical in four states.',
+      'See in-store-only markdowns that never reach the website.',
     ],
   },
   {

@@ -178,3 +178,48 @@ So Lowe's currently looks like the **Target shape** (chain-wide, one cheap
 fetch), NOT the Home Depot shape. If that holds, a Lowe's module is cheap to
 build — but it must NOT claim per-store stock or aisle, because the evidence
 for those varying does not exist.
+
+
+---
+
+## RETRACTION — one of my own measurements was invalid
+
+While building the parser I found that my two-store PLP comparison was
+**worthless**, and I am correcting it rather than leaving it standing.
+
+That test paired `/pd/` links with nearby price fields. But the `/pd/` hrefs in
+the served HTML sit at offset ~5,300 and are NAVIGATION; the product data blob
+does not start until ~417,000. The two never sit near each other, so every
+price and quantity it "compared" was null. `diffQty: 0` and `diffPrice: 0` meant
+"no data on either side", not "identical across stores".
+
+**The chain-wide conclusion still stands**, but on the OTHER test only: the
+per-item `/wpd/` endpoint returned identical price, qty and aisle at four stores
+in four states, by URL path and by `sn` cookie, while storeName changed
+correctly. That one used proper JSON paths and is sound. One valid measurement,
+not two.
+
+## Parser: the trap worth remembering
+
+Anchoring on the product link yields **0 hits from 96 products** and reads as
+"no deals today" rather than a bug. Anchor on `"finalPrice"` instead — it
+appears exactly once per product. Re-anchored, the same five pages produced
+**57 floor-clearing hits from 120 scanned, a 47% hit rate** (Target's is ~14%):
+
+| was | now | off |
+|---|---|---|
+| $3,299 | $1,999 | 39% |
+| $899 | $569 | 36% |
+| $849 | $549 | 35% |
+| $3,099 | $2,099 | 32% |
+
+## Remaining gap before Lowe's can go live
+
+**Product titles.** The clearance list carries no clean product name — only
+marketing copy, model ids and division labels. The detail endpoint should have
+it, but `product.description` came back empty for all 24 enriched items, so the
+title path is still unfound.
+
+Cards without product names are useless, so nothing was ingested and the rail
+entry is held back rather than shipping a nav item that opens an empty feed.
+Find the title field and Lowe's is ready.
