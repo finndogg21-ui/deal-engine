@@ -131,15 +131,32 @@ export async function seedDiscovery(db: Db): Promise<{ from_sweep: number; from_
  * The next items to ask Home Depot about: never-checked first, then the
  * stalest. Bounded per run so a scheduled check stays polite and cheap.
  */
-export async function pendingChecks(db: Db, limit = 25): Promise<PendingCheck[]> {
+export async function pendingChecks(
+  db: Db,
+  limit = 25,
+  retailer?: string | null,
+): Promise<PendingCheck[]> {
+  /**
+   * FILTER BY RETAILER, ALWAYS, IN PRACTICE.
+   *
+   * This queue used to be retailer-blind, and the Home Depot routine asks
+   * Home Depot about every item_id it is handed. Once Target rows entered the
+   * pool they came back in this queue too — 20 of 20 pending items were Target
+   * TCINs — so the next Home Depot run would have queried HD's catalog with
+   * Target ids, got "not found" for all of them, and marked live Target deals
+   * unreachable. One retailer's checker silently deleting another's inventory.
+   *
+   * The caller now names its retailer and can only ever be given those rows.
+   */
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT discovery_id, retailer, item_id, title, claimed_price, claimed_discount
        FROM discovery
-      WHERE status IN ('pending', 'unreachable')
-         OR (status = 'published' AND checked_at < now() - INTERVAL '12 hours')
+      WHERE ($2::text IS NULL OR retailer = $2)
+        AND (status IN ('pending', 'unreachable')
+             OR (status = 'published' AND checked_at < now() - INTERVAL '12 hours'))
       ORDER BY checked_at ASC NULLS FIRST
       LIMIT $1`,
-    [limit],
+    [limit, retailer ?? null],
   );
   return rows.map((r) => ({
     discovery_id: Number(r.discovery_id),

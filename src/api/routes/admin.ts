@@ -259,7 +259,14 @@ admin.get('/admin/discovery/pending', route(async (req, res) => {
   if (!scanAuthorized(req)) return res.status(401).json({ error: 'Not available.' });
   const nRaw = Number(req.query.n ?? 25);
   const n = Math.min(Math.max(Number.isFinite(nRaw) ? nRaw : 25, 1), 100);
-  res.json({ items: await pendingChecks(await getDb(), n) });
+  /* A checker only ever gets its OWN retailer's rows. Without this the Home
+     Depot routine was handed Target TCINs and would have asked HD about them,
+     marking live Target deals unreachable. */
+  const retailer =
+    typeof req.query.retailer === 'string' && req.query.retailer.trim()
+      ? req.query.retailer.trim().toLowerCase()
+      : null;
+  res.json({ items: await pendingChecks(await getDb(), n, retailer) });
 }));
 
 /** POST /api/admin/discovery/verdicts — HD's answers; publishes or rejects. */
