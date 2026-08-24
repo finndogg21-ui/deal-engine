@@ -1058,7 +1058,10 @@ export default function AllDeals() {
               finds (via rebelsavings). Labeled hearsay: the store, shelf count
               and discount are THEIR report, not our sweep. The link opens HD
               already in the REPORTED store's mode. */}
-          {tab === 'all' && clearanceReports.length > 0 && (
+          {/* Community reports are ALL Home Depot, so they only belong on the
+              unfiltered feed or the Home Depot one — under ?store=lowes they
+              were leaking three HD cards into another retailer's list. */}
+          {tab === 'all' && (!store || store === 'home-depot' || store === 'homedepot') && clearanceReports.length > 0 && (
             <>
               <div className="community-head">
                 <h3>Community clearance reports</h3>

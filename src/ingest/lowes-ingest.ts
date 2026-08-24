@@ -40,12 +40,35 @@ export function unitsConsistent(h: LowesHit): boolean {
   const computed = Math.round(((h.listPrice - h.price) / h.listPrice) * 100);
   if (computed > 90) return false;
   if (h.discountPct !== null && Math.abs(computed - h.discountPct) > 5) return false;
-  const qty = h.title.match(/(\d+(?:\.\d+)?)\s*(sq ?ft|SF|Pack)/i);
-  if (qty) {
-    const ratio = h.listPrice / h.price;
-    const n = parseFloat(qty[1]!);
-    if (n > 1 && Math.abs(ratio - n) / n < 0.12) return false;
+
+  const ratio = h.listPrice / h.price;
+  const near = (a: number, b: number) => b > 1 && Math.abs(a - b) / b < 0.15;
+
+  // Slug corruption writes 7.75 as "7 75", so repair digit pairs before a
+  // unit word — otherwise "7 75 sq ft" parses as 75 and the guard misses.
+  const t = h.title.replace(/(\d)\s+(\d{1,2})(?=\s*(sq ?ft|SF))/gi, '$1.$2');
+
+  // Trap 1: was/now ratio equals a stated sq-ft or pack size -> the "now" is a
+  // per-unit price, not a discount.
+  const qty = t.match(/(\d+(?:\.\d+)?)\s*(sq ?ft|SF|Pack)/i);
+  if (qty && near(ratio, parseFloat(qty[1]!))) return false;
+
+  // Trap 2: ratio equals the item's own area from its dimensions ("24 in x
+  // 48 in" = 8 sq ft). Catches tiles that never state sq ft in the title.
+  const dim = t.match(/(\d+(?:\.\d+)?)\s*in\s*x\s*(\d+(?:\.\d+)?)\s*in/i);
+  if (dim) {
+    const area = (parseFloat(dim[1]!) * parseFloat(dim[2]!)) / 144;
+    if (near(ratio, area)) return false;
   }
+
+  // Trap 3: category-level backstop. Tile/flooring under $20 with a 1.5-9x
+  // ratio is overwhelmingly the per-piece/per-sq-ft mismatch; a real tile
+  // markdown that deep on a sub-$20 item is not worth a customer's drive
+  // anyway, so the honest cost of this rule is ~zero.
+  if (/tile|flooring|plank|carton/i.test(t) && h.price < 20 && ratio > 1.5 && ratio < 9) {
+    return false;
+  }
+
   return true;
 }
 
