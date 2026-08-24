@@ -35,6 +35,13 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 
+  // Slugs hyphenate words AND decimals: "3-5-cu-ft" is "3.5 cu ft".
+  const titleFromSlug = (slug) => decodeURIComponent(slug)
+    .replace(/-/g, ' ')
+    .replace(/(\d)\s+(\d)(?=\s*(cu|in|ft|oz|lb|qt|gal|amp|volt|watt|hp))/gi, '$1.$2')
+    .replace(/\s+While Supplies Last\s*$/i, '')
+    .replace(/\s+/g, ' ').trim().slice(0, 160);
+
   /**
    * ANCHOR ON `finalPrice`, NOT ON THE PRODUCT LINK.
    *
@@ -53,7 +60,7 @@
     while ((m = re.exec(html)) !== null) {
       seen++;
       const fwd = html.slice(m.index, m.index + 2500);
-      const back = html.slice(Math.max(0, m.index - 9000), m.index);
+      const back = html.slice(Math.max(0, m.index - 4000), m.index);
 
       const final = num(m[1]);
       const base = num((fwd.match(/"basePrice"\s*:\s*([0-9.]+)/) ||
@@ -61,47 +68,30 @@
       const pctRaw = num((fwd.match(/"totalPercentage"\s*:\s*([0-9.]+)/) || [])[1]);
       const ends = (fwd.match(/"endDateTime"\s*:\s*"([^"]+)"/) || [])[1] || null;
 
-      // Last occurrence before the price belongs to this product.
-      const idM = [...back.matchAll(/"itemNumber"\s*:\s*"?(\d{7,10})"?/g)].pop();
-      const id = idM && idM[1];
-      if (!id || base === null || final === null || final >= base) continue;
+      // THE ID MUST BE THE 10-DIGIT ONE FROM THE /pd/ LINK. The `itemNumber`
+      // beside the price is 7 digits and returns 404 from the detail endpoint;
+      // the 10-digit id in the preceding /pd/ link returns 200. The link also
+      // carries the slug, which is the product name — so no enrichment call.
+      const link = [...back.matchAll(/\/pd\/([^"'\\]{0,140}?)\/(\d{10})/g)].pop();
+      if (!link || base === null || final === null || final >= base) continue;
 
       const pct = pctRaw !== null ? pctRaw : Math.round(((base - final) / base) * 100);
       if (!meetsFloor(final, pct)) continue;
 
+      const slug = link[1] || '';
       hits.push({
-        itemNumber: id,
-        title: null,              // filled by the enrich pass below
+        itemNumber: link[2],
+        title: titleFromSlug(slug),
         brand: null,
         price: final,
         listPrice: base,
         discountPct: pct,
         endsAt: ends,             // every Lowe's markdown expires — it is a SALE
         imageUrl: null,
-        productUrl: 'https://www.lowes.com/pd/-/' + id,
+        productUrl: 'https://www.lowes.com/pd/' + slug + '/' + link[2],
       });
     }
     return { hits, seen };
-  }
-
-  /**
-   * The list has no clean product name — only marketing copy and model ids —
-   * so each kept hit gets one detail call for its title and image.
-   */
-  async function enrich(hit) {
-    try {
-      const r = await fetch(`/wpd/${hit.itemNumber}/productdetail/1155/Guest/78232`,
-                            { credentials: 'include' });
-      if (r.status !== 200) return;
-      const j = await r.json();
-      const pr = j && j.productDetails && j.productDetails[hit.itemNumber]
-        ? j.productDetails[hit.itemNumber].product : null;
-      if (!pr) return;
-      hit.title = (pr.description || pr.productTitle || '').slice(0, 160) || null;
-      hit.brand = pr.brand || null;
-      const im = pr.imageUrl || null;
-      hit.imageUrl = im ? (im.startsWith('http') ? im : 'https://mobileimages.lowes.com' + im) : null;
-    } catch (e) { /* leave the placeholder */ }
   }
 
   const state = { done: false, pages: 0, scanned: 0, hits: [], errs: 0 };
@@ -125,11 +115,8 @@
       }
       await sleep(DELAY_MS);
     }
-    // Enrich the best hits by absolute saving — that is the reseller's margin.
+    // Best first by absolute saving — that is the reseller's margin.
     state.hits.sort((a, b) => (b.listPrice - b.price) - (a.listPrice - a.price));
-    const top = state.hits.slice(0, 24);
-    for (const hit of top) { await enrich(hit); await sleep(600); }
-    state.hits = top;
 
     state.done = true;
     console.log(`[lowes-sweep] pages ${state.pages} · scanned ${state.scanned} · hits ${state.hits.length} · errors ${state.errs}`);

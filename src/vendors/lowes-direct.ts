@@ -50,7 +50,21 @@ import { meetsTieredFloor } from '../engine/deal-floor.js';
 
 const ORIGIN = 'https://www.lowes.com';
 
-/** "The Back Aisle" — Lowe's clearance browse. 24 items per page. */
+/**
+ * WARNING — THIS CATEGORY ID IS NOT SITE-WIDE CLEARANCE.
+ *
+ * `/pl/Clearance/4294857977` returns 200 and looks right, but its <title> is
+ * "Washing Machines for Front & Top Load Laundry". The word "Clearance" in the
+ * path is cosmetic; the NUMERIC ID is what routes, and this one is washing
+ * machines. A 20-page sweep returned 63 hits of which 62 were washers.
+ *
+ * The parser, the id extraction and the titles are all correct and verified
+ * against this list — only the category is wrong. Find Lowe's real site-wide
+ * clearance category id and this module is ready to run.
+ *
+ * `/pl/Deals/1611079983848` ("Deals at Lowes.com") IS category-diverse but
+ * exposes only ~10 product links per page, so it is not a drop-in replacement.
+ */
 export const CLEARANCE_PATH = '/pl/Clearance/4294857977';
 export const PAGE_SIZE = 24;
 
@@ -78,6 +92,20 @@ export function clearanceUrl(offset = 0): string {
 
 export function detailUrl(itemNumber: string, storeNumber = DEFAULT_STORE, zip = '78232'): string {
   return `${ORIGIN}/wpd/${itemNumber}/productdetail/${storeNumber}/Guest/${zip}`;
+}
+
+/**
+ * Lowe's slugs hyphenate both words AND decimals, so "3-5-cu-ft" means
+ * "3.5 cu ft". Rejoin digits that sit either side of a unit word.
+ */
+function titleFromSlug(slug: string): string {
+  return decodeURIComponent(slug)
+    .replace(/-/g, ' ')
+    .replace(/(\d)\s+(\d)(?=\s*(cu|in|ft|oz|lb|qt|gal|amp|volt|watt|hp))/gi, '$1.$2')
+    .replace(/\s+While Supplies Last\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160);
 }
 
 const num = (v: unknown): number | null => {
@@ -118,7 +146,7 @@ export function parseClearancePage(html: string): { hits: LowesHit[]; seen: numb
   while ((m = priceRe.exec(html)) !== null) {
     seen++;
     const fwd = html.slice(m.index, m.index + 2500);
-    const back = html.slice(Math.max(0, m.index - 9000), m.index);
+    const back = html.slice(Math.max(0, m.index - 4000), m.index);
 
     const final = num(m[1]);
     const base = num(fwd.match(/"basePrice"\s*:\s*([0-9.]+)/)?.[1] ??
@@ -126,34 +154,36 @@ export function parseClearancePage(html: string): { hits: LowesHit[]; seen: numb
     const pctRaw = num(fwd.match(/"totalPercentage"\s*:\s*([0-9.]+)/)?.[1]);
     const ends = fwd.match(/"endDateTime"\s*:\s*"([^"]+)"/)?.[1] ?? null;
 
-    // Last occurrence before the price belongs to this product.
-    const idM = [...back.matchAll(/"itemNumber"\s*:\s*"?(\d{7,10})"?/g)].pop();
-    const brandM = [...back.matchAll(/"brand"\s*:\s*"([^"]{1,40})"/g)].pop();
-    const modelM = [...back.matchAll(/"modelId"\s*:\s*"([^"]{1,40})"/g)].pop();
-    const imgM = [...back.matchAll(/"imageUrl"\s*:\s*"([^"]+)"/g)].pop();
-
-    const itemNumber = idM?.[1];
-    if (!itemNumber || base === null || final === null || final >= base) continue;
+    /**
+     * THE ID MUST BE THE 10-DIGIT ONE FROM THE /pd/ LINK.
+     *
+     * Lowe's carries two id formats and only one works. The `itemNumber`
+     * beside the price is 7 digits (5684052) and returns **404** from the
+     * detail endpoint. The usable product id is 10 digits (1000064061) and
+     * lives in the /pd/ link that precedes each price by ~1,500 chars inside
+     * the data blob — verified 200 against the detail endpoint.
+     *
+     * The link also carries the product SLUG, which is the human title. That
+     * removes the per-item enrichment call entirely: one page fetch yields id,
+     * price, percentage, expiry AND name for 24 products.
+     */
+    const link = [...back.matchAll(/\/pd\/([^"'\\]{0,140}?)\/(\d{10})/g)].pop();
+    if (!link || base === null || final === null || final >= base) continue;
 
     const pct = pctRaw ?? Math.round(((base - final) / base) * 100);
     if (!meetsTieredFloor(final, pct)) continue;
 
-    const brand = brandM?.[1] ?? null;
-    const model = modelM?.[1] ?? null;
-    const img = imgM?.[1] ?? null;
-
+    const slug = link[1] ?? '';
     hits.push({
-      itemNumber,
-      // The list carries no clean product name; the detail endpoint does. This
-      // is a placeholder the sweep replaces per item.
-      title: [brand, model].filter(Boolean).join(' ') || `Item ${itemNumber}`,
-      brand,
+      itemNumber: link[2]!,
+      title: titleFromSlug(slug),
+      brand: null,
       price: final,
       listPrice: base,
       discountPct: pct,
       endsAt: ends,
-      imageUrl: img ? (img.startsWith('http') ? img : `https://mobileimages.lowes.com${img}`) : null,
-      productUrl: `${ORIGIN}/pd/-/${itemNumber}`,
+      imageUrl: null,
+      productUrl: `${ORIGIN}/pd/${slug}/${link[2]}`,
     });
   }
 

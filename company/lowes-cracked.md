@@ -223,3 +223,45 @@ title path is still unfound.
 Cards without product names are useless, so nothing was ingested and the rail
 entry is held back rather than shipping a nav item that opens an empty feed.
 Find the title field and Lowe's is ready.
+
+
+---
+
+## CORRECTION — the discovery category is wrong
+
+I identified `/pl/Clearance/4294857977` as Lowe's clearance browse and called it
+"The Back Aisle". **That was wrong.** The Back Aisle title came from a page I
+navigated to separately, not from this endpoint.
+
+Proof, from the served HTML's own title tag:
+
+| url | title tag | categories in 20 links |
+|---|---|---|
+| `/pl/Clearance/4294857977` | **"Washing Machines for Front & Top Load Laundry"** | 20/20 washers |
+| `/pl/Deals/1611079983848` | "Deals at Lowes.com" | mixed, but only ~10 links/page |
+
+The word "Clearance" in that path is cosmetic — the NUMERIC id routes, and
+4294857977 is washing machines. A full 20-page sweep returned 63 hits of which
+**62 were washers**.
+
+### What this does and does not invalidate
+
+STILL VERIFIED, and re-checked against real pages:
+- the endpoint is free, public and browser-only (403 server-side)
+- the `finalPrice` anchor is correct — 336 items parsed cleanly, 0 errors
+- the 10-digit `/pd/` id is the usable one (7-digit `itemNumber` 404s), proven
+  by a 200 from the detail endpoint
+- the slug gives clean titles with decimals repaired: "LG 5.0 cu ft Washer
+  Dryer Combo, $3,299 → $1,999, 39% off"
+- every markdown carries an expiry, so these are sales rather than clearance
+
+INVALID:
+- the claim that this list is site-wide clearance
+- the "47% hit rate" as a general figure — it is 47% *within washing machines*,
+  where everything is discounted at once
+
+### The one remaining task
+
+Find Lowe's real site-wide clearance category id. Everything downstream of it
+already works and is tested. Nothing was ingested, because a Lowe's tab
+containing nothing but washing machines is not the product.
