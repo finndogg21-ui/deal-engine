@@ -46,7 +46,8 @@ export function unitsConsistent(h: LowesHit): boolean {
 
   // Slug corruption writes 7.75 as "7 75", so repair digit pairs before a
   // unit word — otherwise "7 75 sq ft" parses as 75 and the guard misses.
-  const t = h.title.replace(/(\d)\s+(\d{1,2})(?=\s*(sq ?ft|SF))/gi, '$1.$2');
+  // The corruption hits dimensions too: "23 62 in x 11 81 in" is 23.62 x 11.81.
+  const t = h.title.replace(/(\d)\s+(\d{1,2})(?=\s*(sq ?ft|SF|in))/gi, '$1.$2');
 
   // Trap 1: was/now ratio equals a stated sq-ft or pack size -> the "now" is a
   // per-unit price, not a discount.
