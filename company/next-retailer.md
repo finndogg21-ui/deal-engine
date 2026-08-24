@@ -13,21 +13,18 @@ where a research claim touched something we could check directly.
 
 **Headline recommendation: TARGET, then LOWE'S. Not Walmart. Not Costco (yet).**
 
-**STATUS (2026-08-23, later same day): Target shipped.** Target has since
-been built (`company/target-cracked.md`, commits `a380682`/`2a51a05`) and it
-beat this recon's own cost estimate — RedSky turned out to be **free**
-(browser-reachable, same Akamai-blocks-servers/browser-gets-through pattern
-as Home Depot), not the ~$15-75/mo Traject-vendor estimate below, and its
-`location_available_to_promise_quantity` field was confirmed live to track
-real per-store stock (`IN_STOCK`/`LIMITED_STOCK`/`OUT_OF_STOCK` matching
-exact counts across four SKUs) — Open Question #1 below is now **resolved,
-answer: yes**. That makes the question this file was built to answer —
-"which retailer after Home Depot" — already answered and shipped. **See the
-"What's next after Target" update near the bottom for the current-dated
-recommendation of what to build next now that this file's original question
-is moot.** The original four-retailer analysis below is left intact as the
-historical record and because its Lowe's/Walmart/Costco findings are still
-the live basis for that updated recommendation.
+**STATUS (2026-08-24): Target AND Lowe's have both shipped.** Target shipped
+2026-08-23 (`company/target-cracked.md`, commits `a380682`/`2a51a05`) — RedSky
+turned out to be **free**, not the ~$15-75/mo estimate below. Lowe's shipped
+the same night (`company/lowes-cracked.md`, commits `915bc75` through
+`c65edbd`/`bebd925` — endpoint cracked free, browser-only, 45 deals
+published, a units-guard hardening pass applied after). **Three of the four
+retailers this file was built to rank are now live: Home Depot, Target,
+Lowe's.** The only two names left from the original scheduled-task scope
+(LOWE'S, COSTCO, WALMART, TARGET) are **Costco and Walmart** — see the
+**"2026-08-24 update — Costco vs. Walmart"** section near the bottom for the
+current-dated recommendation between the two. The original four-retailer
+analysis below is left intact as the historical record.
 
 ---
 
@@ -468,3 +465,225 @@ surfaced because the recommendation was cross-checked against this repo's
 own code rather than taken at the research pass's word — the same discipline
 `penny-recon.md` and `architecture-verdict.md` already established should be
 applied to every claim in this space, including our own.
+
+---
+
+## 2026-08-24 update — Costco vs. Walmart (the only two names left)
+
+**Method note:** WebSearch-only, run against a live repo where Home Depot,
+Target, and Lowe's are already shipped (verified via `git log` and
+`src/vendors/` — `hd-direct.ts`, `target-direct.ts`, `lowes-direct.ts` all
+exist). No endpoint was called, no page was loaded, no browser session was
+run — same discipline as every prior pass. This section answers the
+scheduled task's original four-way question narrowed to the two names not
+yet resolved by that shipped work.
+
+### Headline: neither Costco nor Walmart has Home Depot/Target/Lowe's shape. Recommend Costco — but as a new module *type* (crowdsourced report), not a fourth scrape adapter.
+
+The pattern that made HD, Target, and Lowe's cheap wins — a storefront
+endpoint that answers with a genuine per-store price/stock signal, reachable
+free from a browser — **does not exist for either remaining retailer**, for
+two different reasons:
+
+- **Walmart's hidden-clearance signal is physically gated to a device
+  standing in the store**, not a server-queryable field at all.
+  **[verified: 2+ independent sources, converging on the same mechanism —
+  GOBankingRates, Krazy Coupon Lady, ConsumerAffairs]**: the "Check a Price"
+  in-app scanner requires either device location services or an in-store
+  WiFi connection, and it is *that scan* — not the product page — which
+  sometimes returns a lower price than the shelf tag. **[inference]** This
+  means even a perfect, free Walmart scraper would return the same *online
+  listing* price every paid vendor already sells — it would not reach the
+  in-app hidden-clearance signal at all, because that signal is bound to a
+  physical scan event, not an endpoint. This is the same physically-gated
+  finding the 2026-08-23 pass already made; this pass re-confirmed it
+  in-app (not just app-review-derived) and found no update to it.
+- **Costco's in-warehouse manager-markdown signal mostly never reaches
+  Costco.com at all** — unchanged from `penny-recon.md` Part D1
+  **[verified: 2+ sources including Costco's own customer-service FAQ]** —
+  and this pass found no new vendor or endpoint that changes that. Both
+  Bright Data and Oxylabs will scrape Costco.com's *online catalog* (Bright
+  Data confirmed at its premium **$2.50/1,000 requests** tier, same rate as
+  Lowe's **[verified: 2+ sources, Bright Data's and a comparison blog's own
+  published rate]**), but that only reaches what's listed online — the thing
+  we'd actually want (the .97/asterisk in-warehouse markdown) mostly isn't
+  there to scrape.
+
+**So this is not "which retailer is cheaper to scrape" — it's "which
+retailer's real signal can be reached at all, and how."** For Walmart, the
+signal is trapped on a shopper's phone in the aisle. For Costco, the signal
+is trapped on a physical price tag with no online record. **Both require a
+human standing in front of the item** — which is exactly the mechanism
+`architecture-verdict.md` already named as a first-class, free asset
+("keep the Found-it/Not-there loop — free ground truth") and exactly what
+the working precedent in the wild (CostLow) already proves converts to a
+real, engaged user base at Costco specifically.
+
+### 1. Cost to find deals
+
+| Retailer | Named vendor path | Real $/mo at our scale | Free option | Bot defense | Does it reach the real signal? |
+|---|---|---|---|---|---|
+| **Walmart** | Traject Data BlueCart (from **$15/mo**, vendor's own price [claim]); SerpApi Walmart engine (store_id-scoped price/availability fields, confirmed in SerpApi's own docs [verified]); Unwrangle Walmart Product Data API (**2.5 credits/request**, plans $10-99/100k credits [verified: vendor docs + Datarade]) | **~$15-99/mo** for online-listing scraping | **None** for store-level data — the free in-app "Check a Price" scanner is not remotely callable | **PerimeterX confirmed** [verified: 2+ sources — scrapingdog's own docs describe clearing "PerimeterX press-and-hold challenges"; prior pass independently found Akamai+PerimeterX/HUMAN stacked, 9/10 difficulty] | **No** — every vendor above returns the same online listing price; none reach the in-app scan signal |
+| **Costco** | Bright Data / Oxylabs, both premium-tier scraping (**$2.50/1,000 req**, Bright Data confirmed) | **~$50-250/mo** [inference, same arithmetic as the Lowe's estimate] for online catalog only | **None** for warehouse markdown data at any price | Reported Akamai, **[single source, unconfirmed]** — unchanged from prior pass | **No** — the manager-markdown signal is largely not listed online to scrape in the first place |
+
+**Flag:** neither retailer has a free option, unlike HD/Target/Lowe's. This
+is a structural change from the last three modules, not a vendor-shopping
+problem a cheaper plan fixes.
+
+### 2. Module design
+
+**Walmart**, if built as a conventional adapter (`src/vendors/walmart.ts` /
+`walmart-direct.ts` following the `contracts.ts` shape), would be honest
+only as "leads from online listing price drops" — the same
+lead-not-fact framing every non-HD/Target/Lowe's competitor already uses
+(`penny-recon.md` Part B.5). **No equivalent of Target's
+`mixed_current_price_type` or HD's `alternatePriceDisplay` was found for
+Walmart's product-page API** — only the physically-gated app scan carries
+that signal. Price-ending folklore is **mixed, not confirmed**
+**[inference from directly conflicting sources]** — Krazy Coupon Lady/The US
+Sun call the ".00 means extra discount" idea a myth, while other sources
+(mysavings.com, Yahoo) say a `.00`/`.01` ending signals the final markdown
+floor; treat as unverified, same caution `next-retailer.md`'s original pass
+already applied to Target/Lowe's digit lore. **Do not build a Walmart
+digit-parsing heuristic without in-store photo validation first.**
+
+**Costco** cannot be a scrape+verify adapter at all — there is no per-store
+API surface to verify against, so `costco-direct.ts` in the HD/Target/Lowe's
+sense isn't buildable. The only working precedent in this space (CostLow)
+confirms the real architecture: **a crowdsourced report-and-confirm
+feature**, warehouse-scoped, price-tag-photo or manual-entry driven, with
+push alerts to members watching that warehouse. The .97 / .00 / .88 /
+asterisk convention is now **[verified: 2+ independent, converging sources
+this pass — costlowapp.com, retailshout.com, thrifle.com, and
+mojosalesandbranding.com all describe the same four codes the same way]**,
+though still folklore in the sense that **[single source, explicitly stated
+by one of those same guide sites]** "Costco has never published these
+codes" — treat the convention as strong, repeated crowd-knowledge, not a
+company-confirmed spec, and validate it against real submitted photos before
+scoring on it.
+
+**What this means for `src/engine/discovery.ts`:** a Costco module is the
+first real test of the "retailer-agnostic verify interface" and "shared
+clearance-signal detector" both prior passes already flagged as the thing to
+build once. Costco has *no* remote signal at all — its whole confidence
+score would come from a human report — which is the low-confidence end of
+exactly the scoring spectrum `penny-recon.md` Part C already designed for.
+Building the report-and-confirm feature for Costco is also, directly, the
+same "Found-it/Not-there loop" `architecture-verdict.md` already recommended
+building as free ground truth for HD/Target/Lowe's penny leads — **it is not
+a Costco-only feature**, it is shared infrastructure that happens to be
+*required*, not optional, for Costco to exist at all.
+
+### 3. Demand
+
+**Costco has the single largest demand number found across every retailer
+researched in this file, HD included.** The "Costco Finds" Facebook group is
+now **[verified: 2+ independent sources this pass — a LinkedIn post citing
+membership directly, and a Yahoo/AOL syndicated article — both converge on
+1.4 million members]**, upgrading the prior pass's single-source tag on the
+same figure. CostLow's own feature set (receipt-scan price-adjustment
+tracking, a submission leaderboard, push alerts per warehouse) is real,
+shipped evidence that people will actively participate in exactly the
+report-and-confirm loop a Costco module would need — this is a proof of
+mechanism, not just a demand number.
+
+**Walmart's demand is real but still unquantified** — a second, more
+targeted search pass for subreddit/community subscriber counts again found
+**no hard numbers** **[no data found, two independent attempts across two
+passes now]**, only qualitative claims ("thousands of customers... sharing
+daily" **[claim, unquantified, GOBankingRates]**). Combined with the
+already-established finding that Walmart is the most saturated retailer in
+the entire tracked competitor set (all seven `penny-recon.md` competitors
+already cover it), the demand case for Walmart is "large but already served
+everywhere," not "large and open."
+
+**Demand-to-cost ratio: Costco wins clearly.** Costco pairs the largest
+verified demand number in this whole document with a $0 cost path (the
+report-and-confirm feature has no per-request vendor bill — its cost is
+engineering time, not a monthly data bill). Walmart pairs merely-large,
+unquantified, saturated demand with a real **$15-99/mo** vendor bill that
+buys a signal we already know doesn't reach the differentiator.
+
+### 4. What makes this module faster/better, and what not to repeat
+
+- **Build the report-and-confirm feature as shared infrastructure, not a
+  Costco-only screen.** A generic `community_reports`-backed "Found it /
+  Not there" flow (the table already exists per `src/db/schema.sql`,
+  retailer-keyed) that Costco *requires* to exist at all is the same
+  free-ground-truth loop `architecture-verdict.md` already wants for
+  HD/Target/Lowe's. Building it Costco-first forces it to be good enough to
+  be a primary data source, not a nice-to-have overlay — a higher bar that
+  benefits every other retailer once it's built.
+- **Do not repeat the Home Depot build's mistake of trusting a vendor's own
+  coverage claim without checking cost against what the signal actually
+  is.** Applied here: a Bright Data or Oxylabs Costco/Walmart scrape *looks*
+  like the same shape as the Lowe's win (a $2.50/1,000-req premium tier) —
+  but unlike Lowe's, where the scraped endpoint at least returns real
+  markdown data (`penny-recon.md`/`lowes-cracked.md`), paying that same rate
+  for Costco or Walmart buys online listing data that structurally cannot
+  carry the clearance signal we need. Same vendor price, very different
+  value — don't let the familiar cost anchor imply a familiar payoff.
+- **Do not build a Costco or Walmart price-ending scoring heuristic before
+  validating it against real submitted photos/scans** — both retailers'
+  digit conventions are folklore-level (Costco: repeated-but-unpublished;
+  Walmart: directly disputed across sources) in a way HD's
+  `alternatePriceDisplay` never was (that one was a real API field, not
+  lore).
+
+### Recommendation
+
+**Build the crowdsourced report-and-confirm feature next, aimed first at
+Costco.** This is the honest framing: it is not "add Costco the way we added
+Lowe's," because that path doesn't exist. It is "build the shared
+confirmation-loop infrastructure the architecture already called for, and
+ship its first real use case against the retailer with the best
+demand-to-cost ratio in this whole survey." Walmart should stay off the
+build list — not forever, but until either (a) a cheap way is found to tie
+the in-app scan signal to something server-reachable (no evidence found this
+pass that one exists), or (b) the report-and-confirm feature is live and
+proven, at which point Walmart becomes a second, easy target for the same
+mechanism (it has no worse a claim to the report-and-confirm model than
+Costco does — it just has a less differentiated demand case to justify going
+first).
+
+### Open questions and the cheap test for each
+
+9. **Does Walmart's in-app "Check a Price" scan write anything to a
+   server-side record we could ever legally/technically read** (e.g. does
+   scanning create a queryable event, the way a receipt upload does for
+   CostLow)? **[no data found]** — nothing in this pass suggests it does;
+   the feature reads as a local, ephemeral price-check, not a submission.
+   **Cheap test:** none available without an actual in-app session and,
+   likely, Walmart engineering documentation this recon method cannot reach
+   — treat as closed-negative unless someone with app access reports
+   otherwise.
+10. **Would a Costco report-and-confirm feature actually get submissions at
+    launch, or does it need the 1.4M-member Facebook group's existing
+    behavior redirected to it (a cold-start problem)?** **[inference]**
+    CostLow proves the mechanism works generally, but says nothing about
+    whether a brand-new, small-user-base version of it gets enough
+    submissions to be useful in, e.g., San Antonio specifically before it
+    has a Costco-sized user base. **Cheap test:** ship the feature scoped
+    to HD/Target/Lowe's penny leads first (where it's a confirmation
+    overlay on top of an already-working feed, so zero submissions is still
+    a functioning product), measure real submission rate over 1-2 weeks,
+    then decide whether that rate justifies standing up Costco as a
+    submission-only retailer before it has its own feed.
+11. **Is the Costco .97/.00/.88/asterisk convention actually reliable
+    enough to auto-score, or only useful as free-text guidance shown to a
+    human submitter?** **[inference]** Four independent guide sites
+    converging on the same codes is a stronger signal than the disputed
+    Walmart digit lore, but "widely repeated" and "verified against real
+    receipts" are different claims. **Cheap test:** once the report feature
+    has even a handful of real Costco submissions, check whether the
+    submitted price actually matches the code convention before building
+    any auto-scoring on top of it — same validation discipline the original
+    Part C.5 proposed for HD tag-endings.
+12. **Bot-defense vendor on Costco.com** — still **[single source,
+    unconfirmed]** whether it's genuinely Akamai. Doesn't block the
+    recommendation above (a report-and-confirm feature doesn't scrape
+    Costco.com at all), but matters if a future online-listing discovery
+    layer is ever added on top. **Cheap test:** a single browser page-load
+    against costco.com watching response headers/challenge behavior would
+    settle this in minutes — same low-cost check every previous "cracked"
+    doc in this repo used, just not yet run here.
