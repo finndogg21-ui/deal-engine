@@ -51,21 +51,20 @@ import { meetsTieredFloor } from '../engine/deal-floor.js';
 const ORIGIN = 'https://www.lowes.com';
 
 /**
- * WARNING — THIS CATEGORY ID IS NOT SITE-WIDE CLEARANCE.
+ * THE REAL BACK AISLE — Lowe's site-wide clearance browse.
  *
- * `/pl/Clearance/4294857977` returns 200 and looks right, but its <title> is
- * "Washing Machines for Front & Top Load Laundry". The word "Clearance" in the
- * path is cosmetic; the NUMERIC ID is what routes, and this one is washing
- * machines. A 20-page sweep returned 63 hits of which 62 were washers.
+ * Found on Lowe's own /l/savings landing, verified by its title tag
+ * ("The Back Aisle at Lowes.com") and a genuinely mixed category spread:
+ * DeWalt saws, microwaves, vinyl fencing, Trex decking, Pergo flooring,
+ * lumber. 24 items per page with price inline in the HTML.
  *
- * The parser, the id extraction and the titles are all correct and verified
- * against this list — only the category is wrong. Find Lowe's real site-wide
- * clearance category id and this module is ready to run.
- *
- * `/pl/Deals/1611079983848` ("Deals at Lowes.com") IS category-diverse but
- * exposes only ~10 product links per page, so it is not a drop-in replacement.
+ * TRAP, paid for once already: /pl/Clearance/4294857977 also returns 200 and
+ * has "Clearance" in the path, but the path text is COSMETIC — the numeric id
+ * routes, and 4294857977 is "Washing Machines for Front & Top Load Laundry".
+ * A 20-page sweep of it returned 62 washers out of 63 hits. Verify a Lowe's
+ * list by its <title>, never by its path.
  */
-export const CLEARANCE_PATH = '/pl/Clearance/4294857977';
+export const CLEARANCE_PATH = '/pl/The-back-aisle/2021454685607';
 export const PAGE_SIZE = 24;
 
 /** Lowe's default pricing store. Chain-wide pricing makes the choice cosmetic. */

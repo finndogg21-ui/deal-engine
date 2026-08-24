@@ -51,10 +51,8 @@ export const RETAILERS: Retailer[] = [
     slug: 'lowes',
     name: "Lowe's",
     badge: 'LW',
-    // Module is built and the data is proven reachable; flip to 'in-store'
-    // once the first sweep publishes rows.
-    coverage: 'planned',
-    lede: 'Next up. Dated markdowns from the Back Aisle, priced the same chain-wide.',
+    coverage: 'in-store',
+    lede: 'Live. Dated markdowns from the Back Aisle, priced the same chain-wide.',
     howItWorks: [
       "Lowe's publishes its markdowns through a clearance browse it calls the Back Aisle.",
       'Every discount carries an end date, so these are time-limited sales rather than the permanent clearance Home Depot hides in store.',

@@ -23,6 +23,32 @@ import type { LowesHit } from '../vendors/lowes-direct.js';
 const RETAILER = 'lowes';
 
 /** Seed sweep hits as pending. Idempotent — an existing row keeps its status. */
+/**
+ * THE UNITS GUARD. Lowe's Back Aisle mixes units within one price object:
+ * flooring shows basePrice PER CARTON and finalPrice PER SQUARE FOOT, so
+ * "$80.47 -> $2.99" reads as 96% off when 80.47/27 sq ft = 2.98 — no discount
+ * at all. 83 of 140 raw hits in the first real sweep were this trap.
+ *
+ * A row is kept only when its numbers agree with themselves:
+ *   - the computed percentage matches the stated one (within 5 points), and
+ *   - the ratio does not equal a carton/pack size named in the title, and
+ *   - the discount is under 90% (deeper than that with no penny evidence is
+ *     not credible on a dated promo).
+ */
+export function unitsConsistent(h: LowesHit): boolean {
+  if (h.price === null || h.listPrice === null || h.listPrice <= h.price) return false;
+  const computed = Math.round(((h.listPrice - h.price) / h.listPrice) * 100);
+  if (computed > 90) return false;
+  if (h.discountPct !== null && Math.abs(computed - h.discountPct) > 5) return false;
+  const qty = h.title.match(/(\d+(?:\.\d+)?)\s*(sq ?ft|SF|Pack)/i);
+  if (qty) {
+    const ratio = h.listPrice / h.price;
+    const n = parseFloat(qty[1]!);
+    if (n > 1 && Math.abs(ratio - n) / n < 0.12) return false;
+  }
+  return true;
+}
+
 export async function seedLowesDiscovery(db: Db, hits: LowesHit[]): Promise<number> {
   let n = 0;
   for (const h of hits) {
@@ -95,7 +121,9 @@ async function main() {
     console.error('usage: tsx src/ingest/lowes-ingest.ts <sweep.json>');
     process.exit(1);
   }
-  const hits = JSON.parse(readFileSync(sweepPath, 'utf8')) as LowesHit[];
+  const raw = JSON.parse(readFileSync(sweepPath, 'utf8')) as LowesHit[];
+  const hits = raw.filter(unitsConsistent);
+  console.log(`units guard: ${raw.length} in, ${hits.length} kept, ${raw.length - hits.length} dropped`);
   const db = await getDb();
 
   const seeded = await seedLowesDiscovery(db, hits);

@@ -24,8 +24,10 @@
  */
 
 (() => {
-  const CLEARANCE = '/pl/Clearance/4294857977';
-  const PAGES = 20;          // 20 x 24 = ~480 items
+  // The REAL Back Aisle (site-wide clearance). /pl/Clearance/4294857977 looks
+  // right but is washing machines — the numeric id routes, not the path text.
+  const CLEARANCE = '/pl/The-back-aisle/2021454685607';
+  const PAGES = 30;          // 30 x 24 = ~720 items
   const DELAY_MS = 900;
 
   /** The same tiered floor the server enforces. */

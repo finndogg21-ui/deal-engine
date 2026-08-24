@@ -24,8 +24,7 @@ const STORE_ICON =
 const RETAILERS = [
   { slug: 'home-depot', name: 'Home Depot', badge: 'HD' },
   { slug: 'target', name: 'Target', badge: 'TG' },
-  // Lowe's is built but not seeded yet — adding it here before the first sweep
-  // lands would ship a nav entry that opens an empty feed.
+  { slug: 'lowes', name: "Lowe's", badge: 'LW' },
 ];
 
 export default function Sidebar() {
