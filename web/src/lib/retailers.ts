@@ -117,22 +117,21 @@ export const RETAILERS: Retailer[] = [
     slug: 'best-buy',
     name: 'Best Buy',
     badge: 'BB',
-    /* 'planned' until the API key exists and the first sweep publishes.
-       The module is built and waiting; the badge flips to 'online' the day
-       real rows land, not the day the code does. */
-    coverage: 'planned',
-    lede: 'Next up. The one retailer with an official API — no scraping, straight from the source.',
+    coverage: 'online',
+    lede: 'Live. Outlet markdowns on new-condition items, from Best Buy’s own listing feed.',
     howItWorks: [
-      'Best Buy publishes its catalog through a real developer API, so our sweep will read prices directly instead of cracking a site. It cannot be blocked and it does not miss days.',
-      'Clearance is where the deep cuts live. Sale prices step down over weeks, and the last step before delisting is often 70% or more off.',
+      'Best Buy runs an Outlet across every department: clearance, open-box, refurbished and pre-owned in one place.',
+      'We publish the new-condition markdowns — items Best Buy itself discounts, including its own Clearance-flagged rows.',
       'Deals here are national: one price online, the same everywhere.',
     ],
     weSee: [
-      'Nothing yet. This retailer is not live — the sweep is built and waiting on our API credentials.',
+      'The marked-down price, the original, and the percentage — Best Buy’s own numbers from its own listing.',
+      'Which deals carry Best Buy’s Clearance flag versus an ordinary outlet discount.',
+      'An expiration stamp when Best Buy publishes one, so dated deals are never shown as permanent.',
     ],
     weCannot: [
-      'See per-store shelf stock, ever. Best Buy retired store-level availability from its API years ago, so deals here will be about price, not about a shelf near you.',
-      'See open-box offers. That is a separate feed we have not wired.',
+      'Quote open-box, refurbished or pre-owned prices. Their listing returns the new-condition price even when filtered to open-box, so those conditions are excluded rather than mislabeled.',
+      'See per-store shelf stock, ever. Best Buy retired store-level availability years ago, so deals here are about price, not about a shelf near you.',
     ],
   },
 ];

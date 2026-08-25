@@ -26,6 +26,7 @@ const RETAILERS = [
   { slug: 'target', name: 'Target', badge: 'TG' },
   { slug: 'lowes', name: "Lowe's", badge: 'LW' },
   { slug: 'walmart', name: 'Walmart', badge: 'WM' },
+  { slug: 'best-buy', name: 'Best Buy', badge: 'BB' },
 ];
 
 export default function Sidebar() {

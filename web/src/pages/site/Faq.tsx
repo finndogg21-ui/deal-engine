@@ -23,8 +23,9 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: 'Which stores are covered?',
-    a: <>Home Depot and Lowe&rsquo;s are live with per-store stock. Walmart and Target are
-      planned but not live, because we cannot yet get reliable per-store quantities for them.
+    a: <>Home Depot and Target are live with per-store stock. Lowe&rsquo;s, Walmart, and
+      Best Buy are live with chain-wide prices only — those retailers do not publish
+      reliable per-store quantities, so we do not print any.
       See <Link to="/stores/home-depot">the store pages</Link> for what we can and cannot see
       at each one.</>,
   },
