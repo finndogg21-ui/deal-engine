@@ -159,3 +159,12 @@
 @media (prefers-reduced-motion: reduce) {
   .rail-item { transition: none; }
 }
+
+/* Four retailers no longer fit as named chips on a phone — names truncated to
+   two letters ("HO…", "WA…"). Below 760px the chip shows the BADGE (HD / TG /
+   LW / WM), which is designed to be short, and hides the name instead of the
+   badge. */
+@media (max-width: 760px) {
+  .rail-name { display: none; }
+  .rail-badge { display: inline; margin-left: 0; opacity: 1; font-size: 12px; }
+}
