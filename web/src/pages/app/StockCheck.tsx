@@ -38,6 +38,7 @@ const SLUGS: Record<string, string> = {
   lowes: 'lowes',
   walmart: 'walmart',
   target: 'target',
+  'best-buy': 'bestbuy',
 };
 
 export default function StockCheck() {

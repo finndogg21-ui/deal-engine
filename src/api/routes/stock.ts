@@ -29,6 +29,9 @@ const RETAILERS: Record<string, { label: string; perStoreStock: boolean }> = {
   lowes: { label: "Lowe's", perStoreStock: false },
   walmart: { label: 'Walmart', perStoreStock: false },
   target: { label: 'Target', perStoreStock: false },
+  // The Products API retired per-store availability years ago; this can never
+  // flip to true without a different vendor entirely.
+  bestbuy: { label: 'Best Buy', perStoreStock: false },
 };
 
 const TTL_MS = 60 * 60_000;

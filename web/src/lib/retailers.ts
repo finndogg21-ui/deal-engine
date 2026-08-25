@@ -113,6 +113,28 @@ export const RETAILERS: Retailer[] = [
       'See the aisle or endcap. Target does not publish a location inside the store.',
     ],
   },
+  {
+    slug: 'best-buy',
+    name: 'Best Buy',
+    badge: 'BB',
+    /* 'planned' until the API key exists and the first sweep publishes.
+       The module is built and waiting; the badge flips to 'online' the day
+       real rows land, not the day the code does. */
+    coverage: 'planned',
+    lede: 'Next up. The one retailer with an official API — no scraping, straight from the source.',
+    howItWorks: [
+      'Best Buy publishes its catalog through a real developer API, so our sweep will read prices directly instead of cracking a site. It cannot be blocked and it does not miss days.',
+      'Clearance is where the deep cuts live. Sale prices step down over weeks, and the last step before delisting is often 70% or more off.',
+      'Deals here are national: one price online, the same everywhere.',
+    ],
+    weSee: [
+      'Nothing yet. This retailer is not live — the sweep is built and waiting on our API credentials.',
+    ],
+    weCannot: [
+      'See per-store shelf stock, ever. Best Buy retired store-level availability from its API years ago, so deals here will be about price, not about a shelf near you.',
+      'See open-box offers. That is a separate feed we have not wired.',
+    ],
+  },
 ];
 
 export const getRetailer = (slug?: string) => RETAILERS.find((r) => r.slug === slug);

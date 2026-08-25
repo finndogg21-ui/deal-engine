@@ -46,6 +46,14 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
       'Nothing here is missing because prices were checked and came back full; it is missing because ' +
       'nothing has been checked. A Lowe’s source is a separate piece of work.',
   },
+  bestbuy: {
+    name: 'Best Buy',
+    live: false,
+    why:
+      'The Best Buy sweep is built — it reads the retailer’s own developer API, no scraping — ' +
+      'but it is waiting on our API credentials. Nothing here is missing because prices were ' +
+      'checked and came back full; nothing has been checked yet.',
+  },
 };
 
 export default function RetailerDeals() {

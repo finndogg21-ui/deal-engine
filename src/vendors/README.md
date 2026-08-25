@@ -10,6 +10,7 @@ real vendor is one file each, never a refactor.
 | File | Vendor | Needs | Blueprint |
 |---|---|---|---|
 | `apify.ts` | Apify DealWatch | `APIFY_TOKEN` | P0 — the daily clearance sweep |
+| `bestbuy-direct.ts` | Best Buy Products API (official) | `BESTBUY_API_KEY` | National clearance + deep onSale sweep; server-side, no browser handoff |
 | `unwrangle.ts` | Unwrangle | `UNWRANGLE_KEY` | Store-level stock, aisle, `discontinued` |
 | `keepa.ts` | Keepa | `KEEPA_KEY` | Amazon deals and price history |
 | `stripe.ts` | Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Billing |
