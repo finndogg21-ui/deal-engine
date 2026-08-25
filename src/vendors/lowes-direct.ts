@@ -65,6 +65,22 @@ const ORIGIN = 'https://www.lowes.com';
  * list by its <title>, never by its path.
  */
 export const CLEARANCE_PATH = '/pl/The-back-aisle/2021454685607';
+
+/**
+ * The OTHER deal lists Lowe's exposes on /l/savings (verified 2026-08-25).
+ * Category-scoped, so sweeping them alongside the Back Aisle gives spread a
+ * single list cannot. Every one goes through the same parser and the same
+ * units guard in lowes-ingest.
+ */
+export const DEAL_LISTS: Array<{ path: string; label: string }> = [
+  { path: '/pl/The-back-aisle/2021454685607', label: 'back-aisle' },
+  { path: '/pl/Deals/1611079983848', label: 'deals' },
+  { path: '/pl/Deals-on-tools-and-outdoor-power-equipment/3411464183736', label: 'tools' },
+  { path: '/pl/Lighting-deals/2590540003', label: 'lighting' },
+  { path: '/pl/Major-appliance-special-values/2920130986014', label: 'appliances' },
+  { path: '/pl/Deals-on-select-patio-furniture/3021376198016', label: 'patio' },
+  { path: '/pl/SHOP-BATHROOM-DEALS/2220627017920', label: 'bathroom' },
+];
 export const PAGE_SIZE = 24;
 
 /** Lowe's default pricing store. Chain-wide pricing makes the choice cosmetic. */
