@@ -735,3 +735,58 @@ member deals, not the .97/asterisk manager markdowns resellers hunt, and
 virtually none would clear the price-tiered floor. The reseller-grade signal
 still never reaches the site. Crowdsourced report-and-confirm remains the only
 honest Costco route.
+
+---
+
+## 2026-08-25 update — CLOSING STATUS: the four-way question is fully resolved
+
+**Method note:** verified directly against this repo's own git history and
+current code (`git log`, `src/vendors/`, `src/db/schema.sql`,
+`src/ingest/community.ts`, `src/api/routes/`) — not a new WebSearch pass.
+Nothing new was found to research; this section exists to record that the
+scheduled task's original scope is done, and to name the one piece of
+follow-through work still outstanding.
+
+**All three named scrape-adapter retailers have shipped, in this order:**
+
+| Retailer | Shipped | Commit | Cost |
+|---|---|---|---|
+| Home Depot (baseline) | pre-existing | — | ~$10-15/mo (`architecture-verdict.md`) |
+| Target | 2026-08-23 | `a380682`/`2a51a05` | **$0** — RedSky, free |
+| Lowe's | 2026-08-23/24 | `915bc75`...`c65edbd`/`bebd925` | **$0** — endpoint cracked free, browser-only |
+| Walmart | 2026-08-24 | `f7810fd` | **$0** — `/shop/deals/clearance` `__NEXT_DATA__`, browser-only, first-party-seller-only |
+
+`src/vendors/` confirms all four adapters exist today: `hd-direct.ts`,
+`target-direct.ts`, `lowes-direct.ts`, `walmart-direct.ts`. **[verified:
+direct repo inspection]**
+
+**Costco was correctly never built as a fifth scrape adapter** — the
+2026-08-24 conclusion above (in-warehouse manager markdowns mostly never
+reach costco.com; the empirical browser probe found only the monthly member
+coupon book, not resale-grade clearance) stands unchanged and is not
+contradicted by anything in `penny-recon.md` Part F (2026-08-25), which
+targeted unrelated open questions (Lowe's bot vendor, Apify actor diligence,
+competitor funding claims) and found nothing that touches the Costco
+decision.
+
+**The one piece of unfinished, actionable work this whole recon thread
+pointed at: the Costco crowdsourced report-and-confirm feature has not been
+built.** Checked directly: `src/ingest/community.ts` and
+`src/api/routes/community-deals.ts` implement a real `community_reports`
+pipeline, but it is a one-way **ingest from public pages** (PennyCentral,
+Slickdeals, RebelSavings) scoped to Home Depot penny/clearance leads — it is
+not the in-app, photo-or-manual-entry, per-warehouse **user submission** flow
+the Costco recommendation above actually requires (the CostLow-style
+mechanism). The `community_reports` table is retailer-keyed already (per
+`src/db/schema.sql`), so the schema doesn't block this — the submission UI
+and endpoint don't exist yet.
+
+**Recommendation for whoever picks this up next:** stop re-running the
+"which retailer next" question — it's answered and the codebase confirms it.
+If Costco demand still looks worth it (1.4M-member Facebook group, largest
+raw number in this whole document, `[single source, moderate confidence]`
+per the original section above), the next concrete step is a small,
+scoped build: a `Found it / Not there`-style submission form against the
+existing `community_reports` table, gated to Costco, before any larger
+Costco-specific investment. That is a build task, not a research task — this
+recon method (WebSearch-only) has nothing further to add to it.
