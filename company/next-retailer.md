@@ -687,3 +687,51 @@ first).
     against costco.com watching response headers/challenge behavior would
     settle this in minutes — same low-cost check every previous "cracked"
     doc in this repo used, just not yet run here.
+
+---
+
+## 2026-08-24 late update — EMPIRICAL PROBE of the two rejects (browser pane, $0)
+
+The 08-24 verdicts above were WebSearch-derived. Tonight both were probed the
+same way Lowe's was cracked — live, in the browser pane, at zero cost. One
+verdict survives, one is half-overturned.
+
+### Walmart — HALF-OVERTURNED. Standard clearance is free and structured.
+
+Measured on walmart.com, no block, no press-and-hold, ~10 requests clean:
+
+- `/shop/deals/clearance` serves a **1.5MB `__NEXT_DATA__` with 692 products**:
+  `linePrice` / `wasPrice` / `savingsAmt`, an explicit `flag: "Clearance"`
+  (45 of 71 items on page 1), `availabilityStatusV2`, per-item `storeId`.
+- A product page carries an explicit **`"clearance": true` boolean** plus
+  structured current/was prices ($14.00 -> $7.00) — and is store-contextual
+  (`storeId: 1198, city: San Antonio`, auto-selected from location).
+- **THE MARKETPLACE TRAP, measured:** only **6 of 71** items on the clearance
+  browse are sold by Walmart itself; the rest are third-party listings with
+  inflated was-prices (a "$199.99 -> $24" smartwatch, 88% off, from
+  "Frontier of technology"). `sellerName` exists on every item, so the guard
+  is one filter: **first-party only, or the feed is fake-discount soup.**
+  First-party yield is real: Scoop jeans $29 -> $12.99 (55%), Reebok $14 -> $7.
+
+What REMAINS true from the research: the in-app "hidden clearance" price is
+physically gated to a device in the store (mechanism-verified) — that part is
+not reachable and we will not claim it. Per-store QUANTITY was not found in the
+payloads probed (no availableQuantity field surfaced). And the clean run was
+~10 requests — Walmart's Akamai+PerimeterX stack has not been tested at sweep
+volume [flag: small sample].
+
+**Revised Walmart verdict: BUILDABLE FREE** as "Walmart-sold clearance
+markdowns, national catalog, store-contextual" — same browser-harness shape as
+the other three. Our edge is the floor + seller guard + one cross-retailer
+feed, not exclusivity: this data is on walmart.com for anyone. The gated
+in-app price stays out of scope, honestly.
+
+### Costco — VERDICT SURVIVES the probe.
+
+costco.com loads unblocked, and the "warehouse savings" surface is real —
+but what it carries is the **monthly coupon book**: "$4 OFF / $3 OFF / $2 OFF"
+on CPG (measured: 12 tiles, $2.50-$25.50 prices, validity dates). These are
+member deals, not the .97/asterisk manager markdowns resellers hunt, and
+virtually none would clear the price-tiered floor. The reseller-grade signal
+still never reaches the site. Crowdsourced report-and-confirm remains the only
+honest Costco route.
