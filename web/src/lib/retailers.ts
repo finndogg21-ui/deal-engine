@@ -144,3 +144,15 @@ export const COVERAGE_LABEL: Record<Coverage, string> = {
   online: 'Live, online prices only',
   planned: 'Not live yet',
 };
+
+/** Retailers actually live today, in `retailers.ts` order. Copy that states
+ * coverage should read this instead of hand-writing a retailer list. */
+export const LIVE_RETAILERS = RETAILERS.filter((r) => r.coverage !== 'planned');
+
+/** "A", "A and B", "A, B, and C" — plain-English join for retailer-name lists. */
+export const joinNames = (names: string[]): string => {
+  if (names.length <= 1) return names[0] ?? '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  const last = names[names.length - 1];
+  return `${names.slice(0, -1).join(', ')}, and ${last}`;
+};

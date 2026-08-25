@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
+import { LIVE_RETAILERS, joinNames } from '../../lib/retailers.js';
+
+const liveRetailerList = joinNames(LIVE_RETAILERS.map((r) => r.name));
 
 const STEPS = [
   {
     n: '1',
     h: 'We record every clearance price, every day',
     p: [
-      'Home Depot and Lowe’s, store by store. Prices on clearance only move one direction, and we keep every step.',
+      `${liveRetailerList}, store by store. Prices on clearance only move one direction, and we keep every step.`,
       'This is the part that cannot be rushed. Nobody can go back and collect last month’s prices, which is why the recording started before the app did.',
     ],
   },

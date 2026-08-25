@@ -112,13 +112,22 @@ tool against Deal Soldier, Scavenger, BrickSeek Extreme, and Penny VIP.
   Still open, draft, no blockers found. **Does not resolve** whether
   `PUBLIC_PREVIEW=1` is actually live in production, or whether the funnel
   should be bounded — see Blueprint 2.
+- **PR #6** (`company/night-2026-08-25-faq-coverage-sync` → `main`): new this
+  pass. Builds Blueprint 1 — `Faq.tsx`'s "Which stores are covered?" answer,
+  `Landing.tsx`'s hero step 1, and `HowItWorks.tsx`'s matching step now all
+  derive their retailer list from `retailers.ts` (`LIVE_RETAILERS` +
+  `joinNames`, both added there) instead of a hand-written "Home Depot and
+  Lowe's" string, so all four live retailers plus Best Buy's planned status
+  are stated accurately and can't drift out of sync with `retailers.ts`
+  again. Frontend-only, no auth/gating/discount/penny-page changes. Still
+  open, draft, no blockers found.
 
 ---
 
 ## Ranked backlog
 
 ### 1. Fix the FAQ's now-false "Walmart and Target are planned but not live" — and sync all copy to the real 4-retailer coverage
-**status:** todo — new this pass, top priority
+**status:** in-pr (PR #6) — built this pass, not yet merged
 **problem:** `web/src/lib/retailers.ts` (the single source of truth for the
 nav, footer, store pages, and app sidebar) has correctly listed Walmart and
 Target as live since they shipped — but three other surfaces never got the
