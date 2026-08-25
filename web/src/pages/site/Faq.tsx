@@ -1,4 +1,10 @@
 import { Link } from 'react-router-dom';
+import { RETAILERS, joinNames } from '../../lib/retailers.js';
+
+const inStoreNames = joinNames(RETAILERS.filter((r) => r.coverage === 'in-store').map((r) => r.name));
+const onlineNames = joinNames(RETAILERS.filter((r) => r.coverage === 'online').map((r) => r.name));
+const onlineCount = RETAILERS.filter((r) => r.coverage === 'online').length;
+const plannedRetailers = RETAILERS.filter((r) => r.coverage === 'planned');
 
 const QA: { q: string; a: React.ReactNode }[] = [
   {
@@ -23,10 +29,14 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: 'Which stores are covered?',
-    a: <>Home Depot and Lowe&rsquo;s are live with per-store stock. Walmart and Target are
-      planned but not live, because we cannot yet get reliable per-store quantities for them.
-      See <Link to="/stores/home-depot">the store pages</Link> for what we can and cannot see
-      at each one.</>,
+    a: <>{inStoreNames} are live with real per-store stock counts. {onlineNames}{' '}
+      {onlineCount > 1 ? 'are' : 'is'} live too, with the marked-down price straight from the
+      retailer, but no per-store quantity to show. {plannedRetailers.length > 0 && <>
+      {joinNames(plannedRetailers.map((r) => r.name))}{' '}
+      {plannedRetailers.length > 1 ? 'are' : 'is'} built and waiting on{' '}
+      {plannedRetailers.length > 1 ? 'their' : 'its'} data source, not live yet. </>}
+      See <Link to="/stores/home-depot">the store pages</Link> for exactly what we can and
+      cannot see at each one.</>,
   },
   {
     q: 'Do I have to report what I find?',

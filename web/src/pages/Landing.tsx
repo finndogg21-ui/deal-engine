@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
+import { LIVE_RETAILERS, joinNames } from '../lib/retailers.js';
 import '../landing.css';
+
+const liveRetailerList = joinNames(LIVE_RETAILERS.map((r) => r.name));
 
 export default function Landing() {
   return (
@@ -44,7 +47,7 @@ export default function Landing() {
             <div>
               <h3>We record every clearance price, every day</h3>
               <p>
-                Home Depot and Lowe’s, store by store. Items walk down a ladder, twenty
+                {liveRetailerList}, store by store. Items walk down a ladder, twenty
                 percent off, then half, then ninety, and we keep every rung. Nobody can go
                 back and collect yesterday’s prices, which is why we started early.
               </p>
