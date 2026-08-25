@@ -76,17 +76,20 @@ export const RETAILERS: Retailer[] = [
     slug: 'walmart',
     name: 'Walmart',
     badge: 'WM',
-    coverage: 'planned',
-    lede: 'Planned. Store-level stock is the blocker, not the deals.',
+    coverage: 'online',
+    lede: "Live. Walmart's own Clearance-badged markdowns, first-party only.",
     howItWorks: [
-      'Walmart marks clearance down in stages and the endings on price tags tell you roughly where an item sits.',
-      'Rollbacks are not clearance. They come back up, and treating them as finds wastes trips.',
+      'Walmart badges true clearance on its site; rollbacks and "reduced price" are different animals and are left out.',
+      'The clearance browse is dominated by third-party marketplace sellers with invented was-prices. We publish only items sold by Walmart itself.',
+      'The famous in-app "hidden clearance" price only exists on a phone standing in the store — no website, ours included, can see it.',
     ],
     weSee: [
-      'Nothing yet. This retailer is not live.',
+      "The marked-down price, the original, and the percentage — Walmart's own numbers, from its own Clearance badge.",
+      'Only first-party listings. The marketplace fake-discount soup is filtered before it ever reaches the pool.',
     ],
     weCannot: [
-      'Confirm per-store quantity yet. Until a data source gives us reliable stock counts, an alert here would be a guess with a store name attached, which is worse than no alert.',
+      'See per-store stock. No Walmart payload we probed carries a shelf count, so the ledger stays empty rather than inventing one.',
+      'See the in-app hidden clearance price. It is gated to a device in the aisle — scan the item in the app when you get there.',
     ],
   },
   {
