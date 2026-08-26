@@ -11,11 +11,110 @@
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
-import { tieredFloorSql } from '../../engine/deal-floor.js';
+import { tieredFloorSql, meetsTieredFloor } from '../../engine/deal-floor.js';
+import { recordReport } from '../../engine/reputation.js';
 
 export const communityDeals = Router();
 
 const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+
+const num = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(String(v).replace(/[$,]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Only https links reach an href/img src. Never a javascript:/data: URL. */
+function httpsOrNull(v: unknown): string | null {
+  if (!v) return null;
+  const raw = String(v).slice(0, 500);
+  return /^https:\/\//i.test(raw) ? raw : null;
+}
+
+/* ---------------------------------------------------------------------------
+ * POST /api/community-deals/report — a member's own Dollar General penny find.
+ *
+ * This is the ONLY sanctioned DG source. DG's penny price is register-only, so
+ * there is nothing to scrape; the crowd IS the sensor. A report is one person's
+ * confirmed shelf scan, written to community_reports as hearsay and always
+ * labelled as such — never presented as verified stock. Sourcing rule (see
+ * company/routines/dollar-general-reports.md): member scans, never leaked lists.
+ * ------------------------------------------------------------------------- */
+communityDeals.post(
+  '/community-deals/report',
+  ...paid,
+  rateLimit({ key: 'community-report', max: 30, windowMs: 60_000 }),
+  route(async (req, res) => {
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const kind = b.kind === 'clearance' ? 'clearance' : 'penny';
+
+    const title = String(b.title ?? '').trim();
+    if (title.length < 3) return res.status(400).json({ error: 'What is it? A product name is required.' });
+
+    // Store: a number, or at least the state, so a find is never location-less.
+    const storeNumber = b.store_number ? String(b.store_number).replace(/\D/g, '').slice(0, 6) : null;
+    const state = b.state ? String(b.state).trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) : null;
+    const city = b.city ? String(b.city).trim().slice(0, 80) : null;
+    if (!storeNumber && !state) {
+      return res.status(400).json({ error: 'Which store? Give a store number, or at least the state.' });
+    }
+
+    const sku = b.sku ? String(b.sku).replace(/[^0-9]/g, '').slice(0, 20) : null;
+    const productUrl = httpsOrNull(b.product_url);
+    const imageUrl = httpsOrNull(b.image_url);
+
+    let price: number | null;
+    let listPrice = num(b.list_price);
+    let discountPct: number | null;
+    if (kind === 'penny') {
+      // A penny is $0.01, ~100% off whatever it was. list_price is optional
+      // context (so a margin can be shown), never required.
+      price = 0.01;
+      discountPct = 100;
+    } else {
+      price = num(b.price);
+      if (price === null || listPrice === null || listPrice <= price) {
+        return res.status(400).json({ error: 'For a clearance find, give both the price and what it was, with the price lower.' });
+      }
+      discountPct = Math.round(((listPrice - price) / listPrice) * 100);
+      if (!meetsTieredFloor(price, discountPct)) {
+        return res.status(400).json({ error: 'That discount is below the floor we publish — it would not clear as a deal.' });
+      }
+    }
+
+    const userId = req.user!.user_id;
+    // One member's find of one SKU at one store is one report; re-reporting it
+    // refreshes the row instead of stacking duplicates.
+    const dedupeKey = `u${userId}:${sku ?? title.toLowerCase().slice(0, 40)}:${storeNumber ?? state}`;
+
+    const conn = await getDb();
+    const inserted = await conn.query<{ report_id: string }>(
+      `INSERT INTO community_reports
+         (source, kind, retailer, dedupe_key, sku, item_id, title, price, list_price,
+          discount_pct, state, city, store_number, product_url, source_url, image_url,
+          reported_at, fetched_at, raw)
+       VALUES ('dg-members',$1,'dollargeneral',$2,$3,$3,$4,$5,$6,$7,$8,$9,$10,$11,NULL,$12,now(),now(),$13)
+       ON CONFLICT (source, dedupe_key) DO UPDATE SET
+         kind = EXCLUDED.kind, title = EXCLUDED.title, price = EXCLUDED.price,
+         list_price = EXCLUDED.list_price, discount_pct = EXCLUDED.discount_pct,
+         state = EXCLUDED.state, city = EXCLUDED.city, store_number = EXCLUDED.store_number,
+         product_url = EXCLUDED.product_url, image_url = EXCLUDED.image_url,
+         reported_at = now(), fetched_at = now()
+       RETURNING report_id`,
+      [
+        kind, dedupeKey, sku, title, price, listPrice, discountPct,
+        state, city, storeNumber, productUrl, imageUrl,
+        JSON.stringify({ reported_by: userId }),
+      ],
+    );
+
+    // Credit the reporter — this is exactly the reciprocity the reputation
+    // system rewards, the same recordReport a verified find calls.
+    await recordReport(conn, userId);
+
+    res.status(201).json({ report_id: String(inserted.rows[0]!.report_id) });
+  }),
+);
 
 /**
  * GET /api/community-deals/:id — EVERYTHING we know about one report, for the
@@ -32,7 +131,7 @@ communityDeals.get(
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Bad report id.' });
     const db = await getDb();
     const { rows } = await db.query<Record<string, unknown>>(
-      `SELECT report_id, source, kind, sku, item_id, title, price, list_price,
+      `SELECT report_id, source, kind, retailer, sku, item_id, title, price, list_price,
               discount_pct, state, city, store_number, product_url, source_url,
               image_url, reported_at, fetched_at, raw
          FROM community_reports WHERE report_id = $1`,
@@ -89,17 +188,26 @@ communityDeals.get(
     // suspenders with the ingest-time check); pennies are 100%-off by nature.
     const floor = kind === 'clearance' ? `AND ${tieredFloorSql('price', 'discount_pct')}` : '';
 
+    // Optional retailer scope. Slugs arrive dashless ('dollargeneral') to match
+    // the stored column; a dashed slug is normalised so the client can pass
+    // either form.
+    const retailerParam = req.query.retailer ? String(req.query.retailer).replace(/-/g, '') : null;
+    const retailerFilter = retailerParam ? 'AND retailer = $3' : '';
+
+    const params: unknown[] = [kind, limit];
+    if (retailerParam) params.push(retailerParam);
+
     const { rows } = await db.query<Record<string, unknown>>(
-      `SELECT report_id, source, kind, sku, item_id, title, price, list_price,
+      `SELECT report_id, source, kind, retailer, sku, item_id, title, price, list_price,
               discount_pct, state, city, store_number, product_url, source_url,
               image_url, reported_at, fetched_at,
               -- Reported shelf count at the reported store (rebelsavings rows).
               NULLIF(raw->>'stock', '')::int AS stock_reported
          FROM community_reports
-        WHERE kind = $1 ${floor}
+        WHERE kind = $1 ${floor} ${retailerFilter}
         ORDER BY COALESCE(reported_at, fetched_at) DESC
         LIMIT $2`,
-      [kind, limit],
+      params,
     );
 
     res.json({ kind, count: rows.length, reports: rows });

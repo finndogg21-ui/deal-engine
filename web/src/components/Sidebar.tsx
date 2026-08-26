@@ -27,6 +27,10 @@ const RETAILERS = [
   { slug: 'lowes', name: "Lowe's", badge: 'LW' },
   { slug: 'walmart', name: 'Walmart', badge: 'WM' },
   { slug: 'best-buy', name: 'Best Buy', badge: 'BB' },
+  // Dollar General is penny-only and community-fed: its rows come from members,
+  // and it opens on the Penny track (tab=penny) where those live — an 'all'
+  // track would read as empty for a retailer that has no scanned feed.
+  { slug: 'dollar-general', name: 'Dollar General', badge: 'DG', tab: 'penny' as const },
 ];
 
 export default function Sidebar() {
@@ -40,7 +44,7 @@ export default function Sidebar() {
       {RETAILERS.map((r) => (
         <Link
           key={r.slug}
-          to={`/app?store=${r.slug}&tab=all`}
+          to={`/app?store=${r.slug}&tab=${r.tab ?? 'all'}`}
           className={`rail-item${active === r.slug ? ' on' : ''}`}
           aria-current={active === r.slug ? 'page' : undefined}
         >

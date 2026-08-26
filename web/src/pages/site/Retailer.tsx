@@ -6,11 +6,15 @@ export default function RetailerPage() {
   const r = getRetailer(slug);
   if (!r) return <Navigate to="/stores/home-depot" replace />;
 
-  // 'community' retailers (Dollar General) have a real page and a real model,
-  // but no browsable feed until member reports exist — so they get the
-  // not-yet-shoppable CTA, same as 'planned', rather than a link to an empty
-  // feed. The distinction from 'planned' is the honest coverage label and copy.
-  const live = r.coverage !== 'planned' && r.coverage !== 'community';
+  const planned = r.coverage === 'planned';
+  const community = r.coverage === 'community';
+  // 'community' retailers (Dollar General) are usable in-app — members browse
+  // reported finds and add their own — so they get a real app CTA, just phrased
+  // for a crowd feed rather than a scanned one. Only 'planned' gets the
+  // not-yet-shoppable contact CTA.
+  const appHref = community
+    ? `/app?store=${r.slug}&tab=penny`
+    : '/app';
 
   return (
     <>
@@ -22,9 +26,11 @@ export default function RetailerPage() {
         <p className="lede">{r.lede}</p>
 
         <div style={{ display: 'flex', gap: 'var(--s3)', marginTop: 'var(--s5)', flexWrap: 'wrap' }}>
-          {live
-            ? <Link className="btn" to="/app">See {r.name} deals near you</Link>
-            : <Link className="btn btn-quiet" to="/contact">Tell us you want this store</Link>}
+          {planned
+            ? <Link className="btn btn-quiet" to="/contact">Tell us you want this store</Link>
+            : community
+              ? <Link className="btn" to={appHref}>See {r.name} penny finds</Link>
+              : <Link className="btn" to={appHref}>See {r.name} deals near you</Link>}
           <Link className="btn btn-quiet" to="/how-it-works">How the scoring works</Link>
         </div>
       </div>

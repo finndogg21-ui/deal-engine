@@ -19,6 +19,8 @@ interface CommunityReport {
   report_id: number;
   source: string;
   kind: string;
+  /** Which retailer the find is at. Absent on older HD-only rows. */
+  retailer?: string | null;
   sku: string | null;
   item_id: string | null;
   title: string;
@@ -771,14 +773,21 @@ export default function AllDeals() {
    * path for the scanned feed. */
   const communityScope = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const hd = !store || store === 'home-depot' || store === 'homedepot';
     const match = (t: string) => !term || displayTitle(t).toLowerCase().includes(term);
+    // Retailer-scoped, not Home-Depot-only. A report shows when no store is
+    // selected, or when the selected store matches the report's retailer
+    // (slugs arrive dashed, the column is dashless). Older HD rows have no
+    // retailer, so they default to homedepot. This is what lets Dollar General
+    // member reports appear under ?store=dollar-general.
+    const storeKey = store ? store.replace(/-/g, '') : null;
+    const inStore = (r: CommunityReport) =>
+      !storeKey || storeKey === (r.retailer ?? 'homedepot');
     // Tab-scoped as well, so these arrays are exactly what is on screen. The
     // empty state reads them, and a non-empty clearance list must not silence
     // it on a tab that never renders clearance.
     return {
-      penny: tab === 'penny' && hd ? sortedPennyReports.filter((r) => match(r.title)) : [],
-      clearance: tab === 'all' && hd ? clearanceReports.filter((r) => match(r.title)) : [],
+      penny: tab === 'penny' ? sortedPennyReports.filter((r) => inStore(r) && match(r.title)) : [],
+      clearance: tab === 'all' ? clearanceReports.filter((r) => inStore(r) && match(r.title)) : [],
     };
   }, [q, store, tab, sortedPennyReports, clearanceReports]);
 
@@ -957,6 +966,22 @@ export default function AllDeals() {
         {/* Keyed by tab: switching spools tears the old tape off and prints
             the new one (CSS: .deck animation). */}
         <div className="deck" key={tab}>
+          {/* Dollar General is the one retailer with no feed to scan: its penny
+              price is register-only, so every lead here is a member's own find.
+              The action bar makes that explicit and hands them the report form. */}
+          {store === 'dollar-general' && (
+            <div className="community-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--s4)', flexWrap: 'wrap' }}>
+              <div>
+                <h3>Dollar General is reported by hunters</h3>
+                <p>
+                  DG&rsquo;s penny price lives only in the register — nothing to scrape.
+                  Found one in the aisle? Add it so the next person knows.
+                </p>
+              </div>
+              <Link className="btn" to="/app/report">Report a penny find</Link>
+            </div>
+          )}
+
           {loading && <div className="empty">Loading deals</div>}
 
           {/* The paywall is the product boundary, so it gets a real screen
@@ -1017,7 +1042,7 @@ export default function AllDeals() {
                     {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <Ph />}
                   </div>
                   <div className="card-body">
-                    <span className="retailer">Home Depot</span>
+                    <span className="retailer">{retailerName(r.retailer ?? 'homedepot')}</span>
                     <p className="card-title">{displayTitle(r.title)}</p>
 
                     {off !== null && (
@@ -1057,7 +1082,15 @@ export default function AllDeals() {
 
           {!loading && !loadError && shown.length === 0 && communityScope.penny.length === 0 && communityScope.clearance.length === 0 && (
             <div className="empty">
-              {rows.length > 0 ? (
+              {store === 'dollar-general' ? (
+                /* DG has no scan — an empty feed here means no member has
+                   reported yet, not that anything is broken. Point at the form. */
+                <>
+                  <h2>No Dollar General finds reported yet</h2>
+                  <p>DG penny prices live only in the register, so this fills up as members report what they scan in store. Be the first.</p>
+                  <Link className="btn" to="/app/report">Report a penny find</Link>
+                </>
+              ) : rows.length > 0 ? (
                 'Nothing matches those filters. Try a different store or clear the search.'
               ) : coverage && !coverage.covered ? (
                 /* Not a failure of ours to explain away — a place we do not
@@ -1112,7 +1145,7 @@ export default function AllDeals() {
                     {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <Ph />}
                   </div>
                   <div className="card-body">
-                    <span className="retailer">Home Depot</span>
+                    <span className="retailer">{retailerName(r.retailer ?? 'homedepot')}</span>
                     <p className="card-title">{r.title}</p>
                     <div className="card-price">
                       <span className="now">{money(r.price !== null ? Number(r.price) : null)}</span>
@@ -1125,7 +1158,7 @@ export default function AllDeals() {
                       </span>
                       <span>via {r.source}{r.reported_at ? ` · ${ago(r.reported_at)}` : ''}</span>
                     </div>
-                    <span className="card-cta">Check on Home Depot</span>
+                    <span className="card-cta">Check on {retailerName(r.retailer ?? 'homedepot')}</span>
                   </div>
                 </button>
               ))}
