@@ -38,6 +38,12 @@ const RETAILERS: Record<string, RetailerCfg> = {
     allowPenny: false,
     lede: 'You found a red-tag clearance deal on the shelf. Tell the rest of us where — the price is national, but the stock never is.',
   },
+  costco: {
+    slug: 'costco',
+    name: 'Costco',
+    allowPenny: false,
+    lede: 'You spotted a .97 or asterisk markdown in the warehouse. Tell the rest of us where — these never show up on costco.com.',
+  },
 };
 
 export default function ReportFind() {

@@ -41,6 +41,7 @@ const SLUGS: Record<string, string> = {
   'best-buy': 'bestbuy',
   'dollar-general': 'dollargeneral',
   'tractor-supply': 'tractorsupply',
+  costco: 'costco',
 };
 
 export default function StockCheck() {

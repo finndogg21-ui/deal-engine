@@ -34,6 +34,9 @@ const RETAILERS = [
   // Tractor Supply is community-fed too, but clearance not penny — it opens on
   // the All track, where the community clearance block renders.
   { slug: 'tractor-supply', name: 'Tractor Supply', badge: 'TS' },
+  // Costco: community-fed warehouse markdowns (.97 / asterisk), clearance kind,
+  // All track.
+  { slug: 'costco', name: 'Costco', badge: 'CO' },
 ];
 
 export default function Sidebar() {

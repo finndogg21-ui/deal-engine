@@ -72,6 +72,14 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
       'come from members who spotted a clearance tag on a shelf and reported it. See the Tractor ' +
       'Supply store page for how it works.',
   },
+  costco: {
+    name: 'Costco',
+    live: false,
+    why:
+      'Costco’s manager markdowns — the .97 prices and asterisk tags — exist only in the warehouse ' +
+      'and never appear on costco.com. So there is nothing to scrape: Costco finds come from members ' +
+      'who spotted a markdown tag on the shelf and reported it. See the Costco store page for how it works.',
+  },
 };
 
 export default function RetailerDeals() {

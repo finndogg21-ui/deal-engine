@@ -31,7 +31,7 @@ import { meetsTieredFloor } from '../engine/deal-floor.js';
 const UA = 'deal-engine-community-reader/1.0 (polite; 1-2 fetches/day)';
 
 export interface CommunityReport {
-  source: 'pennycentral' | 'slickdeals' | 'rebelsavings' | 'dg-members' | 'tsc-members';
+  source: 'pennycentral' | 'slickdeals' | 'rebelsavings' | 'dg-members' | 'tsc-members' | 'costco-members';
   /** Which retailer the find is at. Defaults to homedepot for the HD-only
    *  sources that predate multi-retailer crowd reports. Dollar General penny
    *  finds ride this same path — $0.01 is register-only at DG too. */

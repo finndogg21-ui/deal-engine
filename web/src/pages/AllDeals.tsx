@@ -201,6 +201,13 @@ const COMMUNITY_STORES: Record<string, { name: string; find: string; blurb: stri
     report: '/app/report?retailer=tractor-supply',
     empty: 'TSC’s deep markdowns are in-store red-tag only, so this fills up as members report what they find on the shelf. Be the first.',
   },
+  costco: {
+    name: 'Costco',
+    find: 'markdown find',
+    blurb: 'Costco’s .97 and asterisk markdowns live only in the warehouse, never on costco.com. Spotted one? Add it so the next person knows.',
+    report: '/app/report?retailer=costco',
+    empty: 'Costco’s manager markdowns are warehouse-only, so this fills up as members report what they find on the shelf. Be the first.',
+  },
 };
 
 const TABS = [

@@ -189,6 +189,31 @@ export const RETAILERS: Retailer[] = [
       'Show a price we measured. There is no TSC feed we can reach; if it is not a member report, we do not have it.',
     ],
   },
+  {
+    slug: 'costco',
+    name: 'Costco',
+    badge: 'CO',
+    /* Community, like DG and TSC. Costco's manager markdowns — the famous .97
+       prices and the asterisk/'death star' tags — exist only in the warehouse
+       and never appear on costco.com. There is no penny mechanic; these are
+       percent markdowns on discontinued stock. So the crowd is the only sensor. */
+    coverage: 'community',
+    lede: 'Reported by members. Costco’s markdowns live only in the warehouse — the .97 prices and asterisk tags never reach the website.',
+    howItWorks: [
+      'Costco marks discontinued stock down in the warehouse, not online. A price ending in .97 is a manager markdown; .00 or .88 is the final closeout, the deepest it goes; and an asterisk in the top-right corner of the sign means the item is not being reordered — once it is gone, it is gone. (A plain .99 is just the regular price.)',
+      'These markdowns never appear on costco.com, and they vary warehouse to warehouse. There is no penny here — just real percent cuts on the way out the door.',
+      'So the deals worth chasing are the ones a member spotted on the shelf and reported. Stock is warehouse-by-warehouse and never guaranteed.',
+    ],
+    weSee: [
+      'Markdown finds — the .97 and asterisk tags — that members confirmed in a warehouse, with the location and when it was seen.',
+      'The marked price and what it was, so the depth of the cut is plain.',
+    ],
+    weCannot: [
+      'Promise it is at your warehouse. Manager markdowns are local and sell through fast — every find here is one member’s shelf, not live stock.',
+      'Show these from the website. Costco keeps warehouse markdowns off costco.com entirely — a member report is the only way they surface.',
+      'Show a price we measured. There is no Costco markdown feed anywhere online; if it is not a member report, we do not have it.',
+    ],
+  },
 ];
 
 export const getRetailer = (slug?: string) => RETAILERS.find((r) => r.slug === slug);

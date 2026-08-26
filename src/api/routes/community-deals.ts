@@ -54,6 +54,7 @@ communityDeals.post(
     const REPORT_SOURCES: Record<string, string> = {
       dollargeneral: 'dg-members',
       tractorsupply: 'tsc-members',
+      costco: 'costco-members',
     };
     const retailer = REPORT_SOURCES[String(b.retailer ?? 'dollargeneral')]
       ? String(b.retailer ?? 'dollargeneral')

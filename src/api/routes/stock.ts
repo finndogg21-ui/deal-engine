@@ -38,6 +38,9 @@ const RETAILERS: Record<string, { label: string; perStoreStock: boolean }> = {
   // TSC is Akamai-walled and its clearance stock is store-YMMV; no endpoint we
   // can reach answers a stock check.
   tractorsupply: { label: 'Tractor Supply', perStoreStock: false },
+  // Costco's manager markdowns live only in the warehouse — nothing online, no
+  // per-warehouse stock endpoint. A stock check can only say so.
+  costco: { label: 'Costco', perStoreStock: false },
 };
 
 const TTL_MS = 60 * 60_000;
