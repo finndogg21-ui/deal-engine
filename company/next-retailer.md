@@ -790,3 +790,115 @@ scoped build: a `Found it / Not there`-style submission form against the
 existing `community_reports` table, gated to Costco, before any larger
 Costco-specific investment. That is a build task, not a research task — this
 recon method (WebSearch-only) has nothing further to add to it.
+
+---
+
+## 2026-08-26 update — re-verified against the live repo: scope now fully overtaken by events; ONE concrete action item left
+
+**Method note:** this pass is a repo-state re-verification (`git log`, `ls
+src/vendors`, `grep` across `src/`, reading the routine files directly), not a
+new WebSearch sweep. The prior 2026-08-25 closing section already called the
+original four-way question answered; this pass exists to confirm that verdict
+still holds one day later and to check whether anything material changed. It
+did — twice, and in a direction the original scheduled-task scope (LOWE'S,
+COSTCO, WALMART, TARGET) never anticipated.
+
+### What actually shipped since the 2026-08-25 close
+
+**[verified: direct repo inspection — `git log --oneline`, `ls src/vendors/`]**
+
+| Retailer | Status | Evidence |
+|---|---|---|
+| Home Depot (baseline) | live scrape adapter | `src/vendors/hd-direct.ts` |
+| Target | live scrape adapter, $0 | `src/vendors/target-direct.ts` |
+| Lowe's | live scrape adapter, $0 | `src/vendors/lowes-direct.ts` |
+| Walmart | live scrape adapter, $0 | `src/vendors/walmart-direct.ts`, commit `f7810fd` |
+| **Best Buy** | **live scrape adapter, official Products API** | `src/vendors/bestbuy-direct.ts` + `bestbuy-gateway.ts`, commits `7257803`/`e6207ef`; `company/routines/bestbuy-scan.md` |
+| **Dollar General** | **live, but as a community-report retailer, not a scrape adapter — $0** | commit `611ff7a`; wired into `src/engine/discovery.ts:34` (`dollargeneral: 'Dollar General'`) and `src/api/routes/stock.ts:37` (`coverage: 'community'`); `company/routines/dollar-general-reports.md` |
+| Costco | **recon complete, still not wired** | no `costco` string anywhere in `src/` (checked via `grep -ril`); no `company/routines/costco-*.md` |
+
+**Best Buy was never one of the four names this scheduled task was set up to
+choose between, and it shipped anyway** — via its own official Products API
+(not a reverse-engineered endpoint), a genuinely different and better path
+than any of HD/Target/Lowe's/Walmart. **Dollar General also shipped outside
+the original scope**, and it did so via exactly the mechanism this file's
+2026-08-25 close said Costco should use: DG's own recon
+(`company/dollar-general-recon.md`) found the same structural wall Costco
+has — the real markdown/penny signal is register-only, invisible on every web
+surface — and rather than treating that as a dead end, it was shipped as a
+**community-report retailer**: `retailer: 'dollargeneral'`,
+`coverage: 'community'`, a `dg-members` report source, and a dedicated
+routine file (`company/routines/dollar-general-reports.md`) governing the one
+hard rule (only member-scanned reports, never republished third-party leaked
+lists — a real legal-exposure distinction, not a style choice). Cost: **$0**,
+engineering time only, same as every scrape adapter.
+
+### This is the template Costco was already recommended to use — now proven, not just proposed
+
+The prior close (2026-08-25) recommended Costco get a `Found it/Not there`
+submission flow against `community_reports`. **That is now a proven pattern
+in this exact codebase, not a hypothesis** — DG shipped it, end to end, one
+day later. The remaining Costco work is now *lower*-risk than when it was
+last written up, because there's a working, shipped reference
+implementation to copy: same table, same `coverage: 'community'` shape, same
+`retailers.ts`/`RetailerDeals.tsx` wiring on the frontend, same routine-file
+governance pattern. **[inference, but grounded directly in the DG diff and
+routine file]** A Costco version is realistically a small, scoped build
+(new `costco: 'Costco'` line + `coverage: 'community'` entry + a
+`community_reports` source key + a `company/routines/costco-reports.md`
+governance file mirroring DG's) — not a research task, and not blocked on
+anything this WebSearch-only recon method could add.
+
+### Answering the scheduled task's original four-way question, as asked, today
+
+Ranked, for the record, since the prompt still asks it every run:
+
+1. **Target** — shipped, $0, live.
+2. **Lowe's** — shipped, $0, live.
+3. **Walmart** — shipped, $0, live (first-party-seller-only, per the
+   2026-08-24 empirical probe above).
+4. **Costco** — correctly never built as a scrape adapter (the in-warehouse
+   manager-markdown signal doesn't reach costco.com — verified multiple
+   passes, re-confirmed by a live browser probe on 2026-08-24). The one
+   remaining action is the community-report build described above, which is
+   now unblocked by a working DG reference implementation.
+
+**Monthly cost table, current and actual (not vendor-unit-price inference —
+this is what's actually running):**
+
+| Retailer | Mechanism | Monthly cost |
+|---|---|---|
+| Home Depot | own storefront GraphQL, browser-verified | ~$10-15/mo (sweep infra, per `architecture-verdict.md`) |
+| Target | own RedSky API, browser-verified | $0 |
+| Lowe's | own `/wpd/` endpoint, browser-verified | $0 |
+| Walmart | own `__NEXT_DATA__`, browser-verified, first-party-only | $0 |
+| Best Buy | official Products API | $0 (pending/using an issued API key) |
+| Dollar General | community_reports, member-submitted | $0 (engineering time only) |
+| Costco | **not yet built** — community_reports, DG's template | $0 when built |
+
+### The actual open item this task should stop re-asking about
+
+**The "which retailer after Home Depot" question is closed and has been for
+two days; re-running it is no longer useful.** What's still genuinely open
+and actionable:
+
+1. **Build the Costco community-report retailer**, copying the DG diff
+   almost line-for-line. This is a build task. Cheap test / definition of
+   done: `costco: 'Costco'` appears in `src/engine/discovery.ts` and
+   `src/api/routes/stock.ts` the way `dollargeneral` does, a
+   `company/routines/costco-reports.md` exists with the same
+   provenance-and-etiquette rules DG's routine has (Costco's own
+   "Costco Finds" Facebook group carries the same leaked-corporate-list risk
+   DG's routine explicitly guards against — worth checking before wiring a
+   source, not assumed safe by default).
+2. **If a genuinely new *scrape-adapter* retailer is wanted next** (a true
+   sixth or seventh HD/Target/Lowe's/Walmart/Best-Buy-shaped module), that is
+   a new research question this file has never asked, and this task's
+   standing prompt should be updated to ask it explicitly (naming candidate
+   retailers) rather than continuing to re-ask about Lowe's/Costco/Walmart/
+   Target, three of which have been live for three days.
+3. **Recommend to whoever owns this scheduled task:** either retire this
+   routine now that its founding question is answered, or repoint its prompt
+   at the two live open items above (Costco community-build status; next
+   scrape-adapter candidate) so future runs produce new information instead
+   of re-deriving a settled verdict.
