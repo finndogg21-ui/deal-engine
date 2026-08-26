@@ -257,9 +257,12 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         {/* The percentage moved out of this corner and into the body, where it
             is the hero. Repeating it here would be the same fact twice. */}
         {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
+        {/* A score of 0 is "no penny signal", not information — every pool row
+            (all of Best Buy, Walmart, Lowe's) carries 0, and a corner full of
+            zeros reads as broken. The chip earns its corner or stays home. */}
         {c.in_store_only
           ? <span className="badge-instore">In store</span>
-          : <span className="badge-score">{c.penny_score}</span>}
+          : c.penny_score > 0 && <span className="badge-score">{c.penny_score}</span>}
         {showImg
           ? <img src={c.image_url!} alt="" loading="lazy" decoding="async" onError={() => setImgFailed(true)} />
           : <Ph />}
@@ -337,7 +340,12 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           <span className="card-possible">
             {c.hidden_clearance && clearedPrice !== null
               ? `Cheapest at ${c.clearance_store ?? 'a nearby store'} · scan yours to confirm`
-              : 'Possible deal · check your store'}
+              /* Best Buy is the one retailer whose price is genuinely national
+                 (one price online, same everywhere) — "check your store" there
+                 sends someone hunting for a variation that cannot exist. */
+              : c.retailer === 'bestbuy'
+                ? 'National price · same everywhere online'
+                : 'Possible deal · check your store'}
           </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>
