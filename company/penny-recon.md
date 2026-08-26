@@ -18,6 +18,29 @@ affirmatively confirms no competitor publishes real cadence/freshness data,
 strengthening the case for deal-engine to be first); two new candidate
 signals (compressing markdown cadence, smart-home/OPE categories) surface
 but are blog-genre-sourced only. Nothing in Parts A–D was contradicted.
+**2026-08-26 update note:** Same pattern — a three-way parallel delta pass
+against the open-questions list left by Part F. New findings appended
+below as **Part G**. Two items get a real resolution downgrade rather
+than an upgrade: Deal Soldier's "4.92/5" rating turns out to be
+self-sourced (including a "Reddit Reviews" page the company itself
+publishes on its own domain), and the negative "accuracy problems" claim
+that was supposed to contradict it could not be re-located either — both
+sides of question #11 are now unverifiable, not one credible and one not.
+Scavenger.ai's funding status stays unknown (question #10, no new
+evidence either way). The OPE category question stays thin and picks up
+one new counter-signal (a blog claim that "power tools rarely penny
+out"). The refresh-cadence gap (question #3) is reconfirmed unchanged —
+still zero competitors publishing verified cadence. The two blocked
+economics questions move the most this pass: current 2025–2026 proxy/API
+vendor pricing was found (Bright Data's Web Unlocker price cut to
+~$1.50/1,000 in Jan 2025, Oxylabs ~$1.15/1,000), letting a labeled
+**[inference]** cost model be built for the first time — daily-cadence
+metro scanning lands near $90–180/mo, hourly lands $2,160–4,320/mo at
+one request per store, but a realistic multi-page-per-store hourly crawl
+could run $10,000–20,000+/mo. `pulsewatch/dealwatch-scraper` picked up a
+concrete reliability data point (0.0 rating, 0 reviews, 73-day issue
+response) that hardens the existing do-not-use call. Nothing in Parts
+A–F is otherwise contradicted.
 **2026-08-25 update note:** Same pattern — a five-way parallel delta pass
 against the open-questions list left by Part E. New findings appended as
 **Part F**. Two items resolve (Lowe's bot-mitigation vendor confirmed;
@@ -972,76 +995,228 @@ theoretically blocked than before.
 
 ---
 
+## Part G — 2026-08-26 update: two claims downgrade to unverifiable, cost model gets a first real anchor, actor diligence hardens
+
+### G1. Deal Soldier accuracy reputation (open question #11) — RESOLVED to "both sides unverifiable," not "one side wins"
+
+**[verified: 2+ independent sources]** Deal Soldier has **no native app** on
+either the Apple App Store or Google Play Store — it runs as a paid
+Discord community (three independent sources — aijournalnow.com,
+kickback.money, renewreminder.com — agree the product surface is Discord,
+not a standalone app). **[single source, and a compromised one]** Every
+instance of the "4.92/5, 1,200+ reviews" figure traces back to either
+dealsoldier.com's own `/reviews` and `/is-deal-soldier-legit` pages, or
+the Whop marketplace listing (a platform a seller can influence). Worse:
+`dealsoldier.com/reddit` is a **self-published page titled "Deal Soldier
+Reddit Reviews," hosted on the company's own domain** — i.e. Deal Soldier
+is manufacturing the appearance of third-party Reddit discussion on its
+own site rather than this being organic. **Downgrade the 4.92/5 figure to
+[claim], flagged as self-sourced marketing, not independent review data.**
+No Trustpilot listing, BBB profile, or genuine third-party Reddit thread
+was found in this pass either — meaning the *original* "accuracy
+problems / low trust" claim that was supposed to contradict the rating
+could not be re-located and independently confirmed this pass. **Decision
+for the file:** stop treating this as "positive claim vs. credible
+complaint" — both sides are now unverified. Deal Soldier's actual
+accuracy reputation is **unknown**, not "under dispute between a strong
+and a weak source." This is a research-integrity downgrade, not new bad
+news about Deal Soldier specifically.
+
+### G2. Scavenger.ai / Scale Ventures LLC funding (open question #10) — STILL UNKNOWN, no new evidence
+
+**[verified: 2+ independent sources]** Re-confirmed the $4.12M/13-investor
+figure belongs to an unrelated Frankfurt, Germany B2B analytics startup
+(also named "Scavenger," founded 2023, €2.5M seed led by BMH with
+HTGF/Calm Storm/xdeck) — not the Home Depot scanner. **[verified: search
+exhausted, no result]** No Crunchbase, PitchBook, or LinkedIn company page
+was found for the real entity (Scale Ventures LLC, described elsewhere as
+Michigan-organized). A direct search for "Scale Ventures LLC" + Michigan +
+Scavenger returned only unrelated firms ("Scale Venture Partners," "Scale
+Up Ventures"). **Decision unchanged from F6: treat Scavenger.ai's funding
+status as unknown**, not as evidence either way about how well-resourced
+the competitor is.
+
+### G3. Outdoor power equipment category (open question #9) — stays thin, one new counter-signal
+
+**[inference, weak]** A fresh multi-angle search (Slickdeals, The Garage
+Journal, Reddit-targeted queries, general web) surfaced no new
+primary-source posts describing mowers, blowers, generators, or trimmers
+actually pennying/clearing at Home Depot, beyond the single thin data
+point already on file. Garage Journal's general clearance-search-method
+thread mentions users searching store kiosks by keyword (e.g. "mower,"
+"Husky") and discusses generators like the Honda EU3000is being
+*discussed* in clearance contexts, but no concrete penny-priced OPE find
+was quoted **[single source, and ambiguous even on its own terms]**. One
+new counter-signal: a Krazy Coupon Lady/Endless-adjacent blog states
+"power tools rarely penny out" **[claim, marketing-adjacent, not a primary
+source]** — directionally consistent with OPE being a poor bet, though not
+independent proof either. **Caveat:** direct Reddit search (including
+r/PenniesAtHomeDepot-style queries) returned zero indexed results this
+pass, which reads as a WebSearch indexing limitation on Reddit rather than
+confirmed absence of discussion — so this is not a strong negative
+result, just a continued absence of positive evidence. **Decision
+unchanged: do not commit an OPE scoring signal.**
+
+### G4. Refresh-cadence transparency (open question #3) — reconfirmed unchanged, gap still open
+
+**[verified: 2+ independent sources, negative result]** A fresh check
+across Hidden Clearances, Scavenger.ai, Deal Soldier, PennyCentral, Rebel
+Savings, Endless, and BrickSeek found the same pattern as Parts C/E3:
+every cadence/freshness claim ("surfaced every minute," "scans... 24/7,"
+"updated live," "real-time inventory monitoring") traces to the vendor's
+own marketing copy, with zero independent, third-party verification of
+actual scan frequency anywhere. BrickSeek's independent app-store/review
+signals lean the other direction — user complaints about stale/inaccurate
+data — but that's a negative anecdote, not a measured cadence figure
+either. No new 2026 entrant was found making a verified freshness claim.
+**Recommendation #4 (publish an honest, verifiable freshness widget as a
+differentiator) remains a genuinely uncontested market gap.**
+
+### G5. Scraping-cost economics (open question #1) — first real cost model, still needs a live trial to confirm
+
+**[single source per vendor, but current 2025–2026 pricing, multiple
+vendors triangulated]** Bright Data's Web Unlocker (the product built to
+handle Akamai Bot Manager specifically, which is what protects both Home
+Depot and Lowe's per Part F1) cut pricing roughly 50% in January 2025 to
+approximately **$1.50 per 1,000 requests**, pay-only-for-success; older
+anchor pricing (Part F7) was $2.50–3/1,000. Oxylabs' comparable tier
+(non-Amazon-specific, so likely the applicable Home Depot bracket) runs
+**~$1.15/1,000** with a $49/mo minimum; ScraperAPI is $49/mo for 100k
+credits (~$0.49/1,000). No case study tying any of these specifically to
+Home Depot was found — this remains general e-commerce/Akamai-target
+pricing, not a Home-Depot-validated number. **[inference, first time this
+recon has modeled it end-to-end]** Building a monthly-cost estimate from
+these anchors, for a ~2,000-store-location metro/national sweep at one
+request per store per scan:
+- **Daily cadence** (2,000 req/day × 30 = 60,000/mo): **~$90/mo** at
+  $1.50/1,000, **~$150–180/mo** at the older $2.50–3/1,000 anchor.
+- **Hourly cadence** (2,000 × 24 × 30 = 1.44M/mo): **~$2,160/mo** at
+  $1.50/1,000, **~$3,600–4,320/mo** at the older anchor.
+- **Caveat that matters:** clearance/penny detection realistically needs
+  multiple category or product-listing pages per store, not one request
+  per store — a 5-page/store hourly design could land **$10,000–20,000+/mo**
+  at these same per-request rates. The daily/hourly single-request figures
+  above are a **floor**, not a realistic production estimate, until this
+  repo's actual page-count-per-store-per-scan is modeled against them.
+**Decision:** open question #1 is now anchored to real, current vendor
+pricing instead of a single non-retail case study, and the model above
+gives the 5AM blueprint run a concrete range to react to — but it is
+still **[inference]** until validated against an actual Apify/Bright
+Data/Oxylabs metered trial with this repo's real request pattern.
+
+### G6. Apify actor status (open question #2) — do-not-use call hardens, side-by-side trial still required
+
+**[single source, low confidence — WebSearch cannot reliably read Apify's
+client-rendered rating fields]** `pulsewatch/dealwatch-scraper` is
+confirmed still live on Apify Store, still marketed as "Home Depot &
+Lowe's Price Tracker with Penny Detection," and now shows a concrete
+reliability data point: **0.0 rating, 0 reviews, 73-day average issue
+response time**, pricing from $0.00005/actor-start (structure unclear).
+This is the first hard number behind the Part E1 do-not-use call —
+**decision reinforced, not just repeated.** `scrapyspider/home-depot-
+clearance-scraper` is still live, still GraphQL-based (not
+browser-rendering), explicitly markets ".02/.03 → .01" penny detection,
+runs **$0.50–1.50 per full store run** in platform credits with a $5 free
+trial credit — but still no visible review/rating count in search
+snippets, so its reliability remains unconfirmed either way.
+`ecomscrape/homedepot-product-details-scraper` pricing reconfirmed at
+$3.50/1,000 items **[2 sources, same underlying listing — not independent
+corroboration]**. `scraptivo/homedepot-scraper` pricing is now
+**conflicting across snippets** ($10/1,000 vs. $15/1,000) — the Part F7
+"dropped to $10" figure is not confirmed, treat as unresolved rather than
+as a price cut. No new Home Depot-specific penny/clearance actors beyond
+the previously known set were found. **Decision unchanged: the paid
+side-by-side trial (scrapyspider vs. ecomscrape/scraptivo) that Parts C/E1
+already call for is still the only way to resolve reliability** — search
+snippets do not expose Apify's real star ratings or run-count/popularity
+signals for the two actors still in contention.
+
+---
+
 ## Open questions for the 5AM blueprint run
 
-*(revised 2026-08-25 — see Part F)*
+*(revised 2026-08-26 — see Part G)*
 
-1. **Vendor cost at scale** — still open, but less theoretically blocked
-   (F7): a real (non-HD-specific) case study now anchors Akamai-class
-   scraping at ~$2.50–3/1,000 requests, suggesting metro-scale cost is
-   plausibly "low hundreds of dollars/month," not the $1,200–10,000+/mo
-   enterprise figure previously the only anchor — but this is
-   **[inference]** until modeled against this repo's actual request volume.
-   Still fundamentally needs a live trial run against an actual Apify
-   Pricing tab / a metered trial of 2+ candidate actors —
-   blocked-on-direct-access, not blocked-on-more-research.
-2. **Apify actor pick — still RESOLVED to a decision, unchanged**: do NOT
-   wire `pulsewatch/dealwatch-scraper` (E1). F7 found no material status
-   change on the alternatives; `scraptivo/homedepot-scraper`'s price may
-   have dropped to $10/1,000 (unconfirmed, flag only). Still needs the
-   paid side-by-side trial (`scrapyspider` vs. `ecomscrape`/`scraptivo`)
-   before committing — none of the three has an independent reliability
-   track record.
-3. **Refresh cadence we can honestly claim**: unresolved, unchanged from
-   E3 — still zero user-observed cadence data anywhere, still no
-   competitor publishing a freshness-transparency widget. Recommendation
-   #4 remains a genuinely uncontested differentiator, still depends on
-   resolving #1.
+1. **Vendor cost at scale** — still open, now with a real inference model
+   (G5): current 2025–2026 vendor pricing (Bright Data Web Unlocker
+   ~$1.50/1,000, Oxylabs ~$1.15/1,000) puts a metro-scale daily sweep at
+   roughly **$90–180/mo** and an hourly sweep at **$2,160–4,320/mo**, one
+   request per store — but a realistic multi-page-per-store hourly crawl
+   could run **$10,000–20,000+/mo** at the same rates, so the range is wide
+   until this repo's real page-count-per-store is modeled. Still
+   fundamentally needs a live trial run against an actual Apify Pricing tab
+   / a metered trial of 2+ candidate actors — blocked-on-direct-access, not
+   blocked-on-more-research.
+2. **Apify actor pick — still RESOLVED to a decision, hardened further**:
+   do NOT wire `pulsewatch/dealwatch-scraper` — now backed by a concrete
+   number (G6: 0.0 rating, 0 reviews, 73-day issue response), not just a
+   diligence flag. `scraptivo/homedepot-scraper`'s pricing is unresolved
+   (conflicting $10 vs. $15/1,000 snippets, G6) — do not treat the lower
+   figure as confirmed. Still needs the paid side-by-side trial
+   (`scrapyspider` vs. `ecomscrape`/`scraptivo`) before committing — none
+   of the three has an independent reliability track record visible via
+   search.
+3. **Refresh cadence we can honestly claim**: unresolved, reconfirmed
+   unchanged by G4 — still zero user-observed cadence data anywhere, still
+   no competitor publishing a freshness-transparency widget, still no new
+   2026 entrant claiming this. Recommendation #4 remains a genuinely
+   uncontested differentiator, still depends on resolving #1.
 4. **Legal exposure**: unchanged — Home Depot's and Lowe's ToS both
    prohibit automated collection (Part B.1, D2); F6 reconfirms no HD/Lowe's
    lawsuit targets scraping specifically; unrelated 2026 HD data-privacy
    suits remain a mild signal to keep on the radar, not resolve.
-5. **Scoring model signals** — mostly advanced now (F3): Unwrangle's
-   `discontinued` field is confirmed (via changelog snippet — verify exact
-   casing against the live doc before wiring), `list_price`/`in_stock`/
-   store-ID fields remain confirmed, and there is still **no price-history
-   field at all** (must be self-built via polling, per the existing
-   `raw_payload` design in `src/vendors/README.md`). SerpApi's reverted-
-   price/per-store-OOS field is now confirmed **absent** after two
-   independent search passes (E2, F3) — treat SerpApi as not offering this
-   signal, not as an open question. **Lowe's bot-mitigation vendor is now
-   RESOLVED** (F1: Akamai, same as Home Depot) — remaining Lowe's gap is
-   the tag-ending heuristic, now shown **actively contradictory across
-   sources** (F2), not just thin; do not build a Lowe's scoring signal on
-   tag-ending digits.
+5. **Scoring model signals** — mostly advanced (F3), untouched this pass:
+   Unwrangle's `discontinued` field is confirmed (via changelog snippet —
+   verify exact casing against the live doc before wiring), `list_price`/
+   `in_stock`/store-ID fields remain confirmed, and there is still **no
+   price-history field at all** (must be self-built via polling, per the
+   existing `raw_payload` design in `src/vendors/README.md`). SerpApi's
+   reverted-price/per-store-OOS field is confirmed **absent**. Lowe's
+   bot-mitigation vendor is RESOLVED (F1: Akamai, same as Home Depot);
+   remaining Lowe's gap is the tag-ending heuristic, shown **actively
+   contradictory across sources** (F2) — do not build a Lowe's scoring
+   signal on tag-ending digits.
 6. **Costco path** — already acted on operationally; no longer an open
    research question, listed here only for continuity.
 7. ~~Rebel Savings naming collision~~ — **RESOLVED** (E6).
-8. **Markdown-cadence-compression claim — RESOLVED, and reversed**: F4
-   found this traces to templated marketing copy shared verbatim (same
-   branded term, same "14 days" figure) across three competing sites
-   (scavenger.ai, pennycentral.com, endless.page) with zero primary-source
-   corroboration, while a dedicated primary-source search found no posters
-   describing cadence compression or tag-ending unreliability. **Decision:
-   do not act on this claim** — Home Depot's `.02/.03/.04` heuristic (Part
-   A.8) stands as the working signal until deal-engine's own scan history
-   says otherwise.
-9. **Smart-home / OPE categories — partially resolved**: Wyze smart-plug
-   clearance is now a **confirmed candidate category** (F5: 9 independent
-   Slickdeals posts, not 2) and can be added to Recommendation #2's scoring
-   model directly. Outdoor power equipment remains unconfirmed (1 thin data
-   point) — keep watching, don't commit.
-10. **New from this pass (F6): Scavenger.ai funding figure needs
-    re-verification.** The $4.12M/13-investor claim in Part D4 likely
-    describes a different, unrelated "Scavenger AI" (a Frankfurt B2B
-    analytics startup), not the Home Depot-scanner Scavenger (Scale
-    Ventures LLC). Treat Scavenger.ai's funding status as **unknown**, not
-    "better-funded than assumed," until a source ties capital raised
-    specifically to the penny-scanner entity. Does not affect the
-    independently-verified billing-complaint pattern, which stands.
-11. **New from this pass (F6): Deal Soldier's accuracy reputation is an
-    open contradiction**, not a settled "leads not accurate" read — new
-    promotional pages claim "4.92/5, 1,200+ reviews," directly conflicting
-    with the previously-sourced complaint. Both sides of this conflict are
-    low-trust sources; needs a higher-quality source (e.g. App Store/Google
-    Play review distribution, if Deal Soldier has a listed app) to resolve.
+8. **Markdown-cadence-compression claim — RESOLVED, and reversed** (F4):
+   traces to templated marketing copy shared verbatim across three
+   competing sites, zero primary-source corroboration. **Decision: do not
+   act on this claim** — Home Depot's `.02/.03/.04` heuristic (Part A.8)
+   stands as the working signal until deal-engine's own scan history says
+   otherwise.
+9. **Smart-home / OPE categories — Wyze resolved, OPE still thin, one new
+   counter-signal**: Wyze smart-plug clearance is a **confirmed candidate
+   category** (F5: 9 independent Slickdeals posts) and can be added to
+   Recommendation #2's scoring model directly. Outdoor power equipment
+   remains unconfirmed after a dedicated fresh search this pass (G3: still
+   1 thin/ambiguous data point) and now has a mild counter-signal ("power
+   tools rarely penny out," blog-sourced) — keep watching, do not commit a
+   scoring signal.
+10. **Scavenger.ai funding figure — RESOLVED to "still unknown"** (G2):
+    the $4.12M/13-investor claim is confirmed to describe a different,
+    unrelated Frankfurt company; a fresh direct search for the actual
+    entity (Scale Ventures LLC) found no Crunchbase/PitchBook/LinkedIn
+    presence at all. Treat funding status as unknown, not as a competitive
+    signal either way. Does not affect the independently-verified
+    billing-complaint pattern, which stands. No further search action
+    needed unless a new source surfaces on its own.
+11. **Deal Soldier's accuracy reputation — RESOLVED to "unverifiable," not
+    "an open contradiction"** (G1): the "4.92/5, 1,200+ reviews" figure is
+    confirmed self-sourced (Deal Soldier's own pages plus a
+    self-published "Reddit Reviews" page on its own domain manufacturing
+    the appearance of third-party discussion — a notable trust red flag in
+    itself). No Trustpilot, BBB, or genuine third-party Reddit thread was
+    found this pass for either the positive claim or the original negative
+    complaint that was supposed to contradict it. **Decision: stop framing
+    this as two competing claims — both are unverified. Deal Soldier's
+    real accuracy reputation is unknown**, and the self-published fake-
+    Reddit page is itself worth noting in any competitive writeup as a
+    trust-signal red flag for that competitor, independent of the
+    underlying accuracy question.
+12. **New from this pass (G1): Deal Soldier has no native app** — it is a
+    Discord-only paid community (confirmed by 3 independent sources), which
+    also means "App Store/Google Play reviews" is not an available path to
+    resolve #11 further; any future resolution attempt needs a different
+    higher-quality source (e.g. a genuine, locatable Reddit thread with
+    real engagement, not a search for one).
