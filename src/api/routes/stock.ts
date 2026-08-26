@@ -32,6 +32,9 @@ const RETAILERS: Record<string, { label: string; perStoreStock: boolean }> = {
   // The Products API retired per-store availability years ago; this can never
   // flip to true without a different vendor entirely.
   bestbuy: { label: 'Best Buy', perStoreStock: false },
+  // DG has no price/stock endpoint at all — penny/clearance is register-only.
+  // A "stock check" is structurally impossible; it can only ever say so.
+  dollargeneral: { label: 'Dollar General', perStoreStock: false },
 };
 
 const TTL_MS = 60 * 60_000;

@@ -6,7 +6,11 @@ export default function RetailerPage() {
   const r = getRetailer(slug);
   if (!r) return <Navigate to="/stores/home-depot" replace />;
 
-  const live = r.coverage !== 'planned';
+  // 'community' retailers (Dollar General) have a real page and a real model,
+  // but no browsable feed until member reports exist — so they get the
+  // not-yet-shoppable CTA, same as 'planned', rather than a link to an empty
+  // feed. The distinction from 'planned' is the honest coverage label and copy.
+  const live = r.coverage !== 'planned' && r.coverage !== 'community';
 
   return (
     <>

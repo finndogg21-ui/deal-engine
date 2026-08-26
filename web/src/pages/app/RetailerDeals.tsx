@@ -54,6 +54,15 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
       'but it is waiting on our API credentials. Nothing here is missing because prices were ' +
       'checked and came back full; nothing has been checked yet.',
   },
+  dollargeneral: {
+    name: 'Dollar General',
+    live: false,
+    why:
+      'Dollar General has no price feed to check — its penny price exists only in the register, ' +
+      'on no website and no shelf tag. So DG can never be a scrape. Its finds come only from ' +
+      'members who confirmed a penny on a shelf and reported it, and that reporting flow is the ' +
+      'next thing being built. See the Dollar General store page for how it works.',
+  },
 };
 
 export default function RetailerDeals() {

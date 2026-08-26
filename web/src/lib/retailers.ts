@@ -8,7 +8,7 @@
  * cannot keep.
  */
 
-export type Coverage = 'in-store' | 'online' | 'planned';
+export type Coverage = 'in-store' | 'online' | 'planned' | 'community';
 
 export interface Retailer {
   slug: string;
@@ -134,6 +134,34 @@ export const RETAILERS: Retailer[] = [
       'See per-store shelf stock, ever. Best Buy retired store-level availability years ago, so deals here are about price, not about a shelf near you.',
     ],
   },
+  {
+    slug: 'dollar-general',
+    name: 'Dollar General',
+    badge: 'DG',
+    /* Not 'online' and not 'in-store'. DG's penny/clearance price is a
+       register-only state — it exists on no web surface, exactly like Home
+       Depot's penny. The only way it becomes visible is a person scanning the
+       barcode in the DG app while standing in the aisle. So DG can only ever be
+       a COMMUNITY-reported retailer: we publish what members confirmed on a
+       shelf, never a price we measured. Ships as 'community' the day member
+       reports exist; until then the page states plainly that nothing is live. */
+    coverage: 'community',
+    lede: 'Reported by hunters, not scraped. DG’s penny price lives only in the register — the crowd is the only sensor there is.',
+    howItWorks: [
+      'DG marks discontinued items down a ladder — 10, 25, 50, 75, 90 percent — and finally to one cent, which is the register’s signal for staff to pull the item. Penny day is Tuesday.',
+      'That one-cent price appears on no website and no shelf tag. The only way to see it is to scan the barcode in the DG app while standing in the store.',
+      'So there is nothing to scrape. Every DG penny lead here is a find a real shopper confirmed at a register and reported back — hearsay, labelled as hearsay, never presented as verified stock.',
+    ],
+    weSee: [
+      'Penny and deep-clearance finds that members confirmed on a shelf, with the store and when it was seen.',
+      'The markdown ladder for an item, so you can tell what is one or two Tuesdays from a penny.',
+    ],
+    weCannot: [
+      'Promise the item is still there, or there at your store. A penny at one DG is full price at the next, and staff may have already pulled it — a report is one person’s find, not live stock.',
+      'Promise the store will sell it. DG’s own policy says to honour a found penny item, but plenty of registers refuse — bring it to the counter, and if they say no, just have them take it off the sale.',
+      'Show a price we measured. There is no DG price feed; if it is not a member report, we do not have it.',
+    ],
+  },
 ];
 
 export const getRetailer = (slug?: string) => RETAILERS.find((r) => r.slug === slug);
@@ -142,4 +170,5 @@ export const COVERAGE_LABEL: Record<Coverage, string> = {
   'in-store': 'Live, with in-store stock',
   online: 'Live, online prices only',
   planned: 'Not live yet',
+  community: 'Community-reported finds',
 };

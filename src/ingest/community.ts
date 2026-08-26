@@ -31,7 +31,11 @@ import { meetsTieredFloor } from '../engine/deal-floor.js';
 const UA = 'deal-engine-community-reader/1.0 (polite; 1-2 fetches/day)';
 
 export interface CommunityReport {
-  source: 'pennycentral' | 'slickdeals' | 'rebelsavings';
+  source: 'pennycentral' | 'slickdeals' | 'rebelsavings' | 'dg-members';
+  /** Which retailer the find is at. Defaults to homedepot for the HD-only
+   *  sources that predate multi-retailer crowd reports. Dollar General penny
+   *  finds ride this same path — $0.01 is register-only at DG too. */
+  retailer?: string;
   kind: 'penny' | 'clearance';
   dedupeKey: string;
   sku?: string | null;
@@ -363,15 +367,19 @@ export async function ingestCommunity(db: Db): Promise<Array<{ source: string; f
              (source, kind, retailer, dedupe_key, sku, item_id, title, price, list_price,
               discount_pct, state, city, store_number, product_url, source_url, image_url,
               reported_at, fetched_at, raw)
-           VALUES ($1,$2,'homedepot',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,now(),$17)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,now(),$18)
            ON CONFLICT (source, dedupe_key) DO UPDATE SET
+             retailer = EXCLUDED.retailer,
              price = EXCLUDED.price, list_price = EXCLUDED.list_price,
              discount_pct = EXCLUDED.discount_pct, state = EXCLUDED.state,
              city = EXCLUDED.city, store_number = EXCLUDED.store_number,
              reported_at = COALESCE(EXCLUDED.reported_at, community_reports.reported_at),
              fetched_at = now()`,
           [
-            r.source, r.kind, r.dedupeKey, r.sku ?? null, r.itemId ?? null, r.title,
+            // retailer was hardcoded 'homedepot' here — correct the moment a
+            // second retailer (Dollar General) uses this path.
+            r.source, r.kind, r.retailer ?? 'homedepot', r.dedupeKey,
+            r.sku ?? null, r.itemId ?? null, r.title,
             r.price ?? null, r.listPrice ?? null, r.discountPct ?? null,
             r.state ?? null, r.city ?? null, r.storeNumber ?? null,
             r.productUrl ?? null, r.sourceUrl ?? null, r.imageUrl ?? null,
