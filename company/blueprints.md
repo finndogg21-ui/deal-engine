@@ -111,17 +111,37 @@ duplicate its line items either.
   production, or whether the funnel should be bounded — see Blueprint 2.
 - **PR #6** (`company/night-2026-08-25-faq-coverage-sync` → `main`): still
   open, draft — but see the market-snapshot note above. The FAQ fix it was
-  built for already shipped directly to `main` in a later commit. BUILD:
-  verify before merging; likely needs to be closed and replaced rather than
-  merged as-is.
+  built for already shipped directly to `main` in a later commit, and its
+  Landing/HowItWorks retailer-copy fix now also has a superseding
+  replacement (see Blueprint 1's 2026-08-26 note). BUILD: close PR #6 rather
+  than merging or rebasing it.
+- **PR #7** (`company/night-2026-08-26-landing-howitworks-retailer-sync` →
+  `main`): this run. Rewrites `Landing.tsx`/`HowItWorks.tsx` step 1 to derive
+  the retailer list from `retailers.ts` (now 7 retailers: 5 scanned, 2
+  community-reported) instead of a hardcoded string. Supersedes PR #6's
+  Landing/HowItWorks scope. Still open, draft, no blockers found.
 
 ---
 
 ## Ranked backlog
 
 ### 1. Sync Landing.tsx and HowItWorks.tsx to the real 6-retailer coverage — the gap has doubled since last pass
-**status:** todo — sharper and more urgent than last pass; FAQ portion
-already done directly on `main`, Landing/HowItWorks are not
+**status:** in-pr (new PR, this run) — see note below; FAQ portion
+already done directly on `main`, Landing/HowItWorks now fixed in-pr
+
+**2026-08-26 BUILD note:** shipped on `company/night-2026-08-26-landing-howitworks-retailer-sync`.
+Also found that coverage grew again since this file's last pass — Tractor
+Supply landed as a seventh retailer (community-reported, no penny mechanic)
+in commits after this file was last written — so the real gap was Landing/
+HowItWorks describing a 2-retailer product against an actual 7 (5 scanned +
+2 community). Added `SCANNED_RETAILERS`, `COMMUNITY_RETAILERS`, and
+`joinNames` to `retailers.ts` and rewrote both files' step-1 copy to derive
+the retailer list from `retailers.ts` rather than hand-counting, per this
+blueprint's own instruction — so the copy won't go stale again as coverage
+keeps growing. **PR #6 is superseded, not extended**: it targeted the same
+two files for the old 4-retailer count and predates both Best Buy/DG's
+"live" status and Tractor Supply entirely; recommend closing it in favor of
+this PR rather than trying to rebase it forward.
 **problem:** `web/src/pages/Landing.tsx`'s hero step 1 and
 `web/src/pages/site/HowItWorks.tsx`'s matching step both still read, word
 for word, *"Home Depot and Lowe's, store by store."* `web/src/lib/

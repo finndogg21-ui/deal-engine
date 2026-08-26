@@ -193,6 +193,22 @@ export const RETAILERS: Retailer[] = [
 
 export const getRetailer = (slug?: string) => RETAILERS.find((r) => r.slug === slug);
 
+/** Retailers we actually scan (price data we measured), as opposed to relying on a member. */
+export const SCANNED_RETAILERS = RETAILERS.filter(
+  (r) => r.coverage === 'in-store' || r.coverage === 'online',
+);
+
+/** Retailers whose penny/clearance price only exists at the register, so coverage is
+    member-reported finds rather than a scan. */
+export const COMMUNITY_RETAILERS = RETAILERS.filter((r) => r.coverage === 'community');
+
+/** "A", "A and B", or "A, B, and C" — never a hand-written list that can drift from `RETAILERS`. */
+export const joinNames = (names: string[]): string => {
+  if (names.length <= 1) return names[0] ?? '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+};
+
 export const COVERAGE_LABEL: Record<Coverage, string> = {
   'in-store': 'Live, with in-store stock',
   online: 'Live, online prices only',
