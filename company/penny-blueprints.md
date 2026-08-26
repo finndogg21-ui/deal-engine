@@ -2,38 +2,40 @@
 
 Maintained by the BLUEPRINTS sector. Scope: the DATA-METHOD and scan/score/
 verify engine specifically (not marketing/UI copy — see `company/blueprints.md`
-for that track). Built from `company/penny-recon.md` (2026-08-22 recon, Parts
-D/E/F added 2026-08-23/24/25), `company/next-retailer.md` (2026-08-23,
-2026-08-24 Costco/Walmart probe, 2026-08-25 closing-status update),
-`company/lowes-cracked.md`, `company/target-cracked.md`, `company/
-architecture-verdict.md`, plus a direct read of the current code, `schema.sql`,
-and git history — so this does not re-propose anything already shipped,
-already resolved by a later recon pass, or already sitting unused in the
-repo. Open GitHub PRs (#1–#5, all marketing/UI track — header state, contact
-form, false-claim removal, freshness bar, hero copy) were checked and don't
-overlap this file.
+for that track). Built from `company/penny-recon.md` (2026-08-22 recon through
+**Part G, 2026-08-26**), `company/next-retailer.md` (through its 2026-08-26
+re-verification pass), `company/dollar-general-recon.md` (2026-08-25),
+`company/lowes-cracked.md`, `company/target-cracked.md`,
+`company/architecture-verdict.md`, plus a direct read of the current code
+(`src/vendors/`, `src/engine/discovery.ts`, `src/api/routes/`, `schema.sql`,
+`package.json`, `.env.example`) and git history — so this does not re-propose
+anything already shipped, already resolved by a later recon pass, or already
+sitting unused in the repo.
 
-**Last pass:** 2026-08-25 (this pass). Previous pass: 2026-08-24.
+**Last pass:** 2026-08-26 (this pass). Previous pass: 2026-08-25
+(`b83bbcc`).
 
 **Product vision this backlog serves:** Home Depot penny deals = the free hook
 for the RESELLING tier; the PAID tier later adds Lowe's + Costco.
 
-**What changed since 2026-08-24, in one line:** Walmart shipped as retailer
-#4 — same $0 browser-direct pattern as Target and Lowe's, first-party-only via
-a `sellerName` guard, 10 deals live — making it four-for-four on the free
-method, not three-for-three; `penny-recon.md` Part F landed (two resolves, one
-reversed claim, one strengthened category, a corrected funding figure); and
-this repo's own `next-retailer.md` closed the "which retailer next" question
-directly against the code rather than another WebSearch pass, confirming the
-Costco crowdsourcing feature still isn't built and — on this pass's own check
-below — was pointed at the wrong table.
+**What changed since 2026-08-25, in one line:** two retailers shipped
+*outside* this file's tracking since the last pass — Best Buy (a fifth,
+independent proof of the free browser-direct pattern, plus a parallel
+official-API path waiting only on a free key) and Dollar General (wired as a
+retailer label/coverage-tier, but — checked directly against the code this
+pass — **without** the actual member-report submission endpoint, contradicting
+`next-retailer.md`'s 2026-08-26 claim that it "shipped, end to end"); recon
+Part G lands a real, dollar-anchored cost model for the still-undecided
+discovery-sweep vendor and hardens the do-not-wire call on
+`pulsewatch/dealwatch-scraper`; and this pass corrects an overclaim made by
+this repo's own most recent research file rather than an external source.
 
 ---
 
 ## KEY STRATEGIC DECISION — which data method to run with
 
-**Recommendation (unchanged in shape for the third pass running, now backed by
-a fourth repeated proof, not a third): keep the two-layer hybrid — a broad
+**Recommendation (unchanged in shape for the fourth pass running, now backed
+by a FIFTH proof, not a fourth): keep the two-layer hybrid — a broad
 DISCOVERY sweep to generate candidates, plus a per-item CONFIRM call before
 publishing a lead — but run both layers, for as many retailers as will bear
 it, through that retailer's own internal storefront endpoint called from a
@@ -42,17 +44,28 @@ not by building a penny-SKU corpus as the core method.**
 
 **Why, plainly:** every retailer this project has actually inspected live —
 Home Depot (`hd-direct.ts`), Target (`target-direct.ts`), Lowe's
-(`lowes-direct.ts`), and now Walmart (`walmart-direct.ts`) — turned out to
-expose real price (and for HD, real per-store stock) through its own
-undocumented internal API, reachable for **$0** from a real browser session,
-while refusing a server-side/raw-HTTP request with a 403/206. That is four
-independent tries, four confirmations, zero counterexamples. Every paid
+(`lowes-direct.ts`), Walmart (`walmart-direct.ts`), and now **Best Buy**
+(`bestbuy-gateway.ts`, cracked 2026-08-25) — turned out to expose real price
+(and for HD and Best Buy's own clearance flag, real markdown status) through
+its own undocumented internal API, reachable for **$0** from a real browser
+session, while refusing a server-side/raw-HTTP request. That is five
+independent tries, five confirmations, zero counterexamples. Every paid
 vendor this recon surveyed (Unwrangle, SerpApi, BigBox API, the Apify actors)
 is calling the *same* underlying endpoints behind their own bot-mitigation
 layer — paying them buys their bot-mitigation engineering, not a different or
 more authoritative data source (`penny-recon.md` Part B.1–B.3). At this
-project's current scale (one metro, four retailers), the free path has won
+project's current scale (one metro, five retailers), the free path has won
 every time it's been tried head-to-head.
+
+**Best Buy is the one genuine exception worth naming, and it doesn't break
+the pattern — it sharpens it.** Best Buy is also the only retailer in the
+lineup with a real, sanctioned, free official API (`bestbuy-direct.ts`,
+`BESTBUY_API_KEY` from developer.bestbuy.com, 5 req/s / 50k calls/day, no
+Akamai, no browser, no proxy). That module is built and correct today; it
+just doesn't have a key yet, so the browser-gateway crack (`bestbuy-gateway.ts`)
+is what ships rows in the meantime, on purpose, side by side — see Blueprint 0
+below. **This is the cheapest, lowest-risk fix in this entire backlog and
+should happen before anything else in this file.**
 
 **Reject, explicitly, the other two options named in this pass's scope:**
 
@@ -62,97 +75,111 @@ every time it's been tried head-to-head.
   candidate, so a confirm-only API without a discovery layer in front of it
   doesn't work. It's also the more expensive path — Unwrangle alone is
   $99/mo+ before a single request pays off, versus $0 for the browser-direct
-  calls already proven working four times over.
+  calls already proven working five times over.
 - **The current clearance-listing SCRAPE via a paid Apify actor, as the
   primary/only discovery method.** Rejected as the *sole* method, not as a
-  concept. **New this pass — a real, unresolved contradiction worth stating
-  plainly:** `.env.example` and `company/architecture-verdict.md` (2026-08-22)
-  already point `APIFY_ACTOR_ID` at `scrapyspider/home-depot-clearance-
-  scraper`, with an internal note claiming "measured 2026-08-16: 17 monthly
-  users, 98.7% success, 24-48h support, $0.85/1k results" — described as
-  **VERIFIED vendor pricing** from a "6-agent research workflow." But
-  `penny-recon.md` Part E1 (2026-08-24), working from Apify's own
-  platform-reported usage stats via WebSearch, found the **same actor**
-  showing **0.0/5 rating, 0 reviews** — one of three "generic, not
-  clearance-specific, all 0.0/5" alternatives, not a differentiated pick.
-  Neither of these two internal, self-reported numbers can be verified
-  against the other from outside this recon's method — one is this repo's
-  own prior "verified" claim, the other is a fresh WebSearch read of the same
-  actor's public page two months later. **Do not trust either number as
-  settled.** This is exactly the kind of discrepancy that only a real trial
-  run resolves — see Blueprint 3.
+  concept, and the case against the specific actor already configured
+  (`scrapyspider/home-depot-clearance-scraper`) got stronger, not weaker,
+  this pass. `.env.example` and `company/architecture-verdict.md` still claim
+  this actor was internally "measured 2026-08-16: 17 monthly users, 98.7%
+  success" — but `penny-recon.md` Part G6 (2026-08-26) independently
+  re-checked the *other* named actor in that same family,
+  `pulsewatch/dealwatch-scraper`, and found a concrete, hard number behind
+  the prior pass's suspicion: **0.0 rating, 0 reviews, 73-day average issue
+  response time.** Neither this repo's own internal "verified" claim nor the
+  external recon's read can be checked against the other from outside this
+  process. **Do not trust either number as settled — this is exactly the
+  kind of discrepancy only a real trial run resolves (Blueprint 3).**
 - **A penny-SKU crowdsourced corpus as the CORE method.** Rejected as the
-  core method for the fourth pass running (recon Part A.5/A.9, Part C.5) —
-  but this is not a hole in the plan, it's already built as a supporting
-  layer: `community.ts` (PennyCentral/Slickdeals/RebelSavings ingest, public
+  core method for the fifth pass running (recon Part A.5/A.9, Part C.5) —
+  but this is not a hole in the plan, it's a supporting layer, partially
+  built: `community.ts` (PennyCentral/Slickdeals/RebelSavings ingest, public
   pages only) and `finds.ts` + `reputation.ts` (first-party, reputation-
   weighted "found it / not there" submissions against an already-scanned
-  candidate) are both shipped and running. Crowdsourcing is correctly used
-  here as corroboration and ground truth, never as the primary discovery
-  signal.
+  candidate) are both shipped and running for the four scanned retailers.
+  **What is not yet built, corrected this pass: a user-facing submission
+  path into `community_reports` itself** — see Blueprint 1 below. DG and
+  Costco both need exactly this, and neither has it yet.
 
 **The honest, load-bearing catch — stated plainly, not softened, for the
-fourth pass running: nothing about this recommendation lets deal-engine read
-a real $0.01 price from any public endpoint, across any of the four
-retailers now live.** `penny-recon.md` Part B.5 remains true and was not
-contradicted again this pass (Part F targeted unrelated open questions and
-found nothing that touches it): the register-level $0.01 state does not
-exist online. HD's `alternatePriceDisplay`, Target's per-store quantity,
-Lowe's markdown fields, and Walmart's `flag:"Clearance"` are all genuinely
-more than most competitors show — but they are still leads (real price, real
-stock where available, real markdown/clearance flag), not confirmed penny
-prices. Every "verified" claim this repo makes must keep saying that.
-**This plan is lead-and-verify by construction; it does not, and structurally
-cannot, promise a penny.**
+fifth pass running: nothing about this recommendation lets deal-engine read
+a real $0.01 price from any public endpoint, across any of the five
+retailers now live, or the sixth retailer (Dollar General) partially wired.**
+`penny-recon.md` Part B.5 remains true and was not contradicted again this
+pass: the register-level $0.01 state does not exist online. HD's
+`alternatePriceDisplay`, Target's per-store quantity, Lowe's markdown fields,
+Walmart's `flag:"Clearance"`, and Best Buy's own `currentoffers_facet`
+clearance flag are all genuinely more than most competitors show — but they
+are still leads (real price, real markdown/clearance flag, real stock where
+available), not confirmed penny prices. Every "verified" claim this repo
+makes must keep saying that. **This plan is lead-and-verify by construction;
+it does not, and structurally cannot, promise a penny.**
 
 **Honest tradeoffs, costs, and risks:**
 
-1. **Akamai/bot-blocking is real for all four retailers now, not one or
-   three.** HD (Akamai, 206), Target (403 + captcha), Lowe's (403
-   server-side, Akamai confirmed this pass — Part F1), and now Walmart
-   (Akamai **plus** PerimeterX, per `next-retailer.md`'s 2026-08-24 probe) —
-   all reject a raw HTTP request and only answer a real browser session. The
-   mitigation this repo has actually used so far — a human manually drives
-   the browser and hands off JSON, or (for Walmart) a browser-pane harness
-   script — works, but is not automation; see Blueprint 1.
+1. **Akamai/bot-blocking is real for five of six retailers now, with one
+   structural exception.** HD (Akamai, 206), Target (403 + captcha), Lowe's
+   (403 server-side, Akamai confirmed — recon Part F1), Walmart (Akamai
+   **plus** PerimeterX), and Best Buy (its own gateway blocks a raw
+   server-side request the same way) all reject a raw HTTP request and only
+   answer a real browser session. Dollar General is the one exception: its
+   clearance/penny price isn't gated behind bot defense at all, it simply
+   **does not exist on any web surface, ever** (`dollar-general-recon.md`,
+   firsthand endpoint probe) — a harder problem than bot-blocking, not an
+   easier one. The mitigation this repo has actually used so far for the
+   five bot-gated retailers — a human manually drives the browser and hands
+   off JSON, or a browser-pane harness script — works, but is not
+   automation; see Blueprint 2.
 2. **Cost genuinely does scale with store/request count for a broad SWEEP,
-   not for the confirm call — and this pass found the first real
-   order-of-magnitude anchor for that cost.** `penny-recon.md` Part F7
-   surfaces a non-HD-specific case study: an Akamai-protected target burned
-   through unblocker-proxy pricing around **$2.50–$3 per 1,000 requests**.
-   **[inference, not modeled against this repo's actual request volume]** —
-   at that rate, a metro-scale daily sweep (this repo's current San Antonio
-   scope) plausibly lands in the "low hundreds of dollars/month" range, not
-   the $1,200–10,000+/mo enterprise figure Part E4 had as the only prior
-   anchor. This is directional, not a number to budget against yet — see
-   Blueprint 3. The browser-direct confirm call has the opposite cost
-   shape — not per-request-metered, but it needs somewhere to run a real
-   headless browser on a schedule (~$5–20/mo of compute, realistically) and
-   it trades a vendor SLA for engineering time when a retailer changes its
-   endpoint or DOM with zero notice.
-3. **Legal exposure now spans four retailers, not three.** Home Depot's and
-   Lowe's ToS both explicitly prohibit automated collection (`penny-recon.md`
-   Part B.1, D2, F1). Target's and **Walmart's** terms are both **unchecked**
-   — confirmed by a direct grep of this repo's own vendor files this pass;
-   neither `target-direct.ts` nor `walmart-direct.ts` records a ToS check.
-   No file in this repo makes an explicit, on-purpose, written risk-
-   acceptance decision covering all four. See Blueprint 4.
+   not for the confirm call — and this pass has the sharpest cost anchor
+   yet, with real spread.** `penny-recon.md` Part G5 (2026-08-26) triangulates
+   current 2025–2026 vendor pricing across three named vendors (Bright Data
+   Web Unlocker ~$1.50/1,000 after a Jan-2025 price cut, Oxylabs ~$1.15/1,000,
+   ScraperAPI ~$0.49/1,000) into a modeled range for a ~2,000-store sweep:
+   **~$90-180/mo at daily cadence, one request per store; ~$2,160-4,320/mo at
+   hourly cadence.** The load-bearing caveat, stated plainly by the recon
+   itself: penny/clearance detection realistically needs multiple
+   category/product pages per store, not one request — at that pattern, a
+   **realistic hourly production sweep could run $10,000-20,000+/mo** at the
+   same per-request rates. Treat the low end as a floor, not a budget. The
+   browser-direct confirm call has the opposite cost shape — not
+   per-request-metered, but it needs somewhere to run a real headless browser
+   on a schedule (~$5-20/mo of compute) and it trades a vendor SLA for
+   engineering time when a retailer changes its endpoint or DOM with zero
+   notice — Best Buy's own commit history is a live example of exactly that
+   trade (a GraphQL gateway crack shipped the same day the official API was
+   still waiting on a key).
+3. **Legal exposure now spans five scraped retailers, not four, plus a
+   distinct exposure class for DG.** Home Depot's and Lowe's ToS both
+   explicitly prohibit automated collection (`penny-recon.md` Part B.1, D2,
+   F1). Target's, Walmart's, and **Best Buy's** terms are all **unchecked** —
+   confirmed by a direct grep of this repo's vendor files this pass; none of
+   `target-direct.ts`, `walmart-direct.ts`, or `bestbuy-gateway.ts` records a
+   ToS check. **Dollar General carries a different risk shape entirely, not
+   a ToS-scraping one:** `dollar-general-recon.md`'s own RISKS pass found the
+   real tripwire is republishing *insider pre-release leaks* (DG employees
+   leaking the Tuesday penny list a week early) — the routine file
+   (`company/routines/dollar-general-reports.md`) already encodes the
+   member-scans-only rule as a hard guard, which is correct and should not
+   be diluted. No file in this repo makes a single, explicit, written
+   risk-acceptance decision covering all five scraped retailers together.
+   See Blueprint 3.
 4. **The $0.01-cannot-be-read-from-a-public-API limit is fully respected in
    the codebase and in this recommendation**, and nothing proposed below
-   changes that. Walmart's own ingest commit message says this explicitly:
-   the in-app hidden-clearance price is "physically gated to a device in the
-   aisle" and is never claimed; Walmart rows carry no per-store stock claim
-   either, same discipline already applied to Lowe's.
+   changes that. Best Buy's own module docstring is explicit about what it
+   deliberately does not claim (per-store stock, open-box condition); DG's
+   store page ships with honest "community-reported penny finds" framing,
+   never "online prices" or "in-store stock" — same discipline already
+   applied to Lowe's and Walmart.
 
 **Confidence:** the *shape* (sweep for discovery, browser-direct confirm
 before trusting a lead, crowdsourcing as corroboration not core) is
 well-supported and has now been independently reached by the recon (WebSearch
-only) and proven **four** separate times by this repo's own first-hand
-browser tests — two different methods converging on the same answer, with
-zero counterexamples across HD/Target/Lowe's/Walmart. The *specific Apify
-actor pick* for the discovery sweep is still genuinely open and, per the new
-scrapyspider contradiction above, arguably **less** settled than it looked
-last pass, not more — it needs a real trial, not another recon pass and not
+only) and proven **five** separate times by this repo's own first-hand
+browser tests, with zero counterexamples across HD/Target/Lowe's/Walmart/Best
+Buy. The *specific Apify actor pick* for the discovery sweep remains
+genuinely open and, per Part G6, is now backed by a harder negative number
+than any prior pass — it needs a real trial, not another recon pass and not
 trust in either self-reported number on file.
 
 ---
@@ -162,38 +189,49 @@ trust in either self-reported number on file.
 - Two-vendor sweep+confirm architecture (`src/vendors/`, `README.md`) — still
   not wired (`APIFY_TOKEN`, `UNWRANGLE_KEY` both blank in `.env.example`,
   checked again this pass).
-- **Home Depot, Target, Lowe's, and now Walmart direct-confirm/discovery
-  modules — all four individually verified live, all four still run by
-  hand or by a one-off browser-pane harness script, not a scheduler.**
-  `hd-direct.ts`, `target-direct.ts`, `lowes-direct.ts`, and
-  `walmart-direct.ts` each document a real, browser-verified result at $0.
-  `target-ingest.ts`, `lowes-ingest.ts`, and `walmart-ingest.ts` all take a
-  browser-collected JSON file as a CLI argument and write it to the DB —
-  this is the actual shipping mechanism for three of four retailers today,
-  and it is a manual handoff, not a scheduled job. Walmart's own commit
-  documents the load-bearing guard for this pattern generalizing safely: an
-  **exact-match `sellerName` guard**, run twice (harness + ingest), because
-  only 6 of 71 measured items were first-party — marketplace sellers invent
-  was-prices otherwise. This is the same "treat every untrusted input as
-  untrusted twice" discipline Lowe's units-guard already established.
+- **Home Depot, Target, Lowe's, Walmart, and now Best Buy direct-confirm/
+  discovery modules — all five individually verified live, all run by hand or
+  by a one-off browser-pane harness script, not a scheduler.** `hd-direct.ts`,
+  `target-direct.ts`, `lowes-direct.ts`, `walmart-direct.ts`, and
+  `bestbuy-gateway.ts` each document a real, browser-verified result at $0.
+  Best Buy's *official* path, `bestbuy-direct.ts`, is also built and correct
+  but idle, waiting on `BESTBUY_API_KEY` — see Blueprint 0.
 - The report-and-confirm loop for **already-scanned** candidates — fully
   built. `src/api/routes/finds.ts` (`POST /api/finds`, reputation-weighted
   via `reputation.ts`, reciprocity-gated `GET /api/finds/verified`,
   `GET /api/me/spotter`) plus the `finds`/`spotter_stats` tables is a
   complete "found it / not there" submission-and-corroboration system,
-  already live for Home Depot/Target/Lowe's/Walmart candidates. **Important
-  scope correction made this pass, see Blueprint 2:** this system requires an
-  existing `products`/`stores` row and an `sku_state.penny_score` to grade
-  against — it is not the right extension point for a catalog-free retailer
-  like Costco, and last pass's Blueprint 2 aimed at the wrong table.
+  already live for Home Depot/Target/Lowe's/Walmart/Best Buy candidates. This
+  system requires an existing `products`/`stores` row and an
+  `sku_state.penny_score` to grade against — it is the right extension point
+  for scanned retailers, and structurally the wrong one for a catalog-free
+  retailer like DG or Costco (see Blueprint 1).
 - Community third-party ingest (`community.ts`, served by
   `community-deals.ts`): PennyCentral, Slickdeals RSS, RebelSavings — public
   pages only, 1–2 polls/day, feeding `community_reports` (retailer-keyed,
   no FK into `products`/`stores`) as labeled hearsay, separate from
-  `price_observations`. **This table, not `finds`, is the actual shape a
-  catalog-free submission feature would extend — see Blueprint 2.** As
-  built today it is one-way ingest only: there is no `POST` endpoint, so a
-  human user cannot submit into it yet.
+  `price_observations`. **Still one-way ingest only — checked directly
+  against `community-deals.ts` this pass: there is no `POST` route in that
+  file at all**, so a human user still cannot submit into it.
+- **Dollar General wired as a first-class retailer label and coverage tier —
+  but NOT the member-report submission mechanism itself, confirmed by direct
+  code inspection this pass.** `discovery.ts` carries the `dollargeneral`
+  reject-reason label, `stock.ts` marks it `coverage: 'community'` /
+  `perStoreStock: false`, and a live honest page exists at
+  `/stores/dollar-general`. `dollar-general-recon.md`'s own "What shipped on
+  this pass" section says this explicitly: **"Deliberately NOT shipped: any
+  live DG data source. The member-report submission flow (auth'd POST + UI +
+  moderation) is the next build."** A grep of `community-deals.ts` and
+  `community.ts` this pass confirms no `dg-members` producer or POST route
+  exists yet — only a `'dg-members'` string reserved in the `source` type
+  union. **This directly contradicts `next-retailer.md`'s 2026-08-26 claim
+  that DG "shipped it, end to end, one day later" as a template Costco could
+  copy.** DG shipped the *retailer scaffolding* (labels, coverage tier,
+  honest page copy, a routine file governing sourcing ethics) — a real,
+  useful head start — but not the actual submission endpoint any user could
+  hit today. Blueprint 1 below is now scoped to build that missing piece
+  once, for both DG and Costco together, rather than treating either as done
+  or as a template that already works.
 - Multi-signal, replayable scoring model (`score.ts`), markdown-ladder/
   stockDivergence detection (`stages.ts`), fabrication guard
   (`looksFabricated()`), append-only `price_observations` + `scan_runs`,
@@ -201,169 +239,200 @@ trust in either self-reported number on file.
   spotter reputation/corroboration (`reputation.ts`), metro-scoped coverage
   gating (`coverage.ts`).
 - On-demand async stock-lookup worker (`store-lookup-async.ts`).
-- **Costco data-method question, resolved three times now (not built).**
-  `penny-recon.md` Part D1, `next-retailer.md`'s 2026-08-23 pass, and
-  `next-retailer.md`'s 2026-08-24 live browser probe (Part "Probe the
-  rejects," `170bfe6`) all independently conclude Costco's warehouse-specific
-  manager-markdown clearance is structurally invisible on costco.com — the
-  2026-08-24 probe found only the monthly member coupon book ($2–4 off CPG,
-  dated), which the reseller-grade price floor would reject almost entirely.
-  See "Decided, not building" below.
-- **Walmart data-method question, resolved and reversed since last pass.**
-  Last pass's `next-retailer.md` ranking said "decided NOT next"; a live
-  2026-08-24 probe overturned that WebSearch-only verdict and shipped it the
-  same night. Nothing further to decide here — see "Already shipped" above.
+- **Costco data-method question, resolved three times, still not built.**
+  `penny-recon.md` Part D1, and `next-retailer.md`'s 2026-08-23 and
+  2026-08-24 (live browser probe) passes all independently conclude Costco's
+  warehouse-specific manager-markdown clearance is structurally invisible on
+  costco.com. See "Decided, not building" below.
+- **Walmart and Best Buy data-method questions, both resolved via a live
+  browser probe reversing or extending a WebSearch-only verdict.** Walmart:
+  last pass's WebSearch-only "decided NOT next" was overturned by a live
+  2026-08-24 probe and shipped the same night. Best Buy: never one of the
+  four names this scheduled task's scope originally asked about at all —
+  it shipped anyway, 2026-08-25, via its own official-API module plus a
+  same-day browser-gateway crack, the same live-probe-beats-WebSearch pattern
+  repeating for a second retailer outside the original scope.
 
 ---
 
 ## Ranked backlog
 
-### 1. Build the automation to run the $0 browser-direct handoff that's now shipped FOUR times by hand
-**status:** todo — top priority for the fourth pass running; scope grew again,
-not shrank
-**problem:** `hd-direct.ts`, `target-direct.ts`, `lowes-direct.ts`, and
-`walmart-direct.ts` are each individually, first-hand verified to return
-correct price (and, for HD, stock) for $0. But the actual pipeline for all
-four is: a human opens a browser, watches network traffic or runs a manual
-fetch or a one-off harness script (`scripts/walmart-sweep.browser.js`), saves
-JSON, then runs a CLI script by hand. There is still no Playwright/Puppeteer
-dependency in `package.json` (checked again this pass — unchanged), no
-scheduler, and no `npm run` script for the Lowe's or Walmart ingest paths at
-all (only `scan`/`scan:dry` exist, both Apify-only). Every "10 Walmart deals
-published" or "45 Lowe's deals published" claim in this repo describes a
-one-time manual session, not a running system. Walmart's own commit is
-explicit that "sweep-volume behavior beyond [~22 clean requests] is
-untested" — meaning even the manual process hasn't been run at the volume a
-real daily job would need yet.
+### 0. Get the free Best Buy API key — the cheapest, lowest-risk item in this file
+**status:** todo — new this pass
+**problem:** `bestbuy-direct.ts` (the official, sanctioned Products API path —
+no Akamai, no browser, no proxy, 5 req/s / 50k calls/day) is fully built and
+correct, but idle: `BESTBUY_API_KEY` is blank in `.env.example` and there is
+no `.env` file in this checkout at all. Every Best Buy row on the site today
+comes from `bestbuy-gateway.ts`, a browser-gateway crack that works but, per
+its own docstring, is a companion to the real path, not a replacement, and
+carries the same "breaks with zero notice" risk every cracked endpoint in
+this file carries.
+**what to build:** not code — register for a free key at
+developer.bestbuy.com (a same-day, no-cost signup per the vendor's own
+public terms), set `BESTBUY_API_KEY` in the real `.env`, and let
+`bestbuy-direct.ts` start running alongside `bestbuy-gateway.ts` exactly as
+designed — the module's own comment says both can run at once and
+`ON CONFLICT` keeps them from double-writing.
+**data-method:** cites `bestbuy-direct.ts`'s and `bestbuy-gateway.ts`'s own
+docstrings and `.env.example`.
+**why it beats today / beats Hidden Clearances:** removes this repo's single
+highest-fragility dependency (a gateway crack) for a retailer where a
+zero-cost sanctioned alternative already exists and is already coded — no
+competitor surveyed in `penny-recon.md` has an official-API retailer at all,
+they are all scraping or crowdsourcing every single one of their sources.
+**effort:** S — a signup form and an env var, not an engineering task.
+**cost:** $0.
+**success metric:** `bestbuyReady()` returns true in production and at least
+one `bestbuy-direct.ts` sweep runs successfully alongside the gateway crack,
+recorded with a date in this file.
+
+### 1. Build the shared catalog-free report-and-confirm submission endpoint — for DG and Costco together, since neither has it
+**status:** todo — carried forward from last pass's Blueprint 2, scope
+corrected this pass to also cover DG, not just Costco
+**problem:** two retailers now structurally require a user-facing submission
+path into `community_reports` because their real signal is register-only and
+invisible on every web surface: **Dollar General** (`dollar-general-recon.md`,
+firsthand endpoint probe — confirmed this pass to still lack the endpoint
+despite retailer scaffolding shipping) and **Costco**
+(`next-retailer.md`, `penny-recon.md` Part D1 — warehouse manager-markdowns
+mostly never reach costco.com). Last pass's proposal (and a claim in
+`next-retailer.md`'s 2026-08-26 section) both assumed DG had already solved
+this and Costco could just copy it. **Checked directly against the code this
+pass: it has not.** `finds.ts` is the wrong extension point for either — it
+requires `product_id`/`store_id` `NOT NULL` foreign keys into
+`products`/`stores` (`schema.sql` lines 186-189) and grades against an
+existing `sku_state.penny_score`, which neither DG nor Costco has, since
+neither runs a scan pipeline. `community_reports` (`schema.sql` lines
+578-601) is the right table — already retailer-keyed, `sku`/`item_id` are
+plain nullable `TEXT` — but it has no `user_id` column, no link to
+`spotter_stats`, and `community-deals.ts` exposes only `GET` routes, checked
+directly this pass, confirming last pass's read.
+**what to build:** add a nullable `user_id` (and `evidence_url`, matching
+`finds`'s pattern) to `community_reports`; a `POST /api/community-deals`
+endpoint, authenticated, rate-limited like `finds.post` and
+`community-deals.get` already are; and a narrow corroboration rule reusing
+`reputation.ts`'s formula (`reputationFrom()`) but keyed off
+`(retailer, dedupe_key)` or `(retailer, store_number, title)` instead of
+`(product_id, store_id)`, since there's no product row to key against. Build
+it retailer-agnostic from the start so DG and Costco both plug into the same
+endpoint — one submission form, one moderation/fabrication gate, two
+`retailer` values. For DG specifically, wire the endpoint to write
+`source: 'dg-members'` only (never a third-party leaked-list ingest — the
+routine file's hard rule stands unchanged). For Costco, this is also the
+*first* piece of Costco infrastructure of any kind in this codebase — no
+`costco` string exists anywhere in `src/` yet (checked via grep this pass,
+matching `next-retailer.md`'s 2026-08-26 finding).
+**data-method:** cites `dollar-general-recon.md`'s "what shipped on this
+pass" section, `next-retailer.md`'s Costco sections, and this pass's own
+direct read of `schema.sql`/`finds.ts`/`community-deals.ts`/`community.ts`.
+**why it beats today / beats Hidden Clearances:** no competitor surveyed in
+`penny-recon.md` publishes a transparent, reputation-weighted confirmation
+loop at all for any retailer, let alone a catalog-free one. Building it once
+for both DG and Costco means the second retailer to need it (whichever one
+that turns out to be) costs a fraction of what the first one does — a
+retailer-agnostic endpoint is cheaper to extend than a DG-specific one would
+be to generalize later. DG demand is large (`dollar-general-recon.md`: DG's
+own community incumbents, e.g. TheFreebieGuy, self-report 1M+ members) and
+mainstream; Costco pairs the single largest verified demand figure in the
+whole competitor survey (~1.4M-member Facebook group) with a $0 cost path.
+**effort:** M — larger than a DG-only or Costco-only build would look in
+isolation, but the schema change, new endpoint, and no-product-row keying
+scheme are shared work, done once.
+**cost:** $0 incremental — no vendor, no scraping surface, no bot-mitigation
+risk, for either retailer.
+**success metric:** a real DG submission and a real Costco submission both
+accepted end-to-end through the same endpoint (free-text item, store/
+warehouse number, price), each visible in its own retailer's corroborated
+feed once a second report lands. **Honest caveat, carried forward unchanged:**
+whether either gets real submissions at a small user base before a large
+existing audience (DG's incumbent FB groups, Costco's 1.4M-member group) is
+redirected to it is unproven — measure real submission rate over 1-2 weeks
+before writing marketing copy that assumes either retailer's crowd shows up
+on day one.
+
+### 2. Build the automation to run the $0 browser-direct handoff that's now shipped FIVE times by hand
+**status:** todo — top data-infrastructure priority for the fifth pass
+running; scope grew again, not shrank
+**problem:** `hd-direct.ts`, `target-direct.ts`, `lowes-direct.ts`,
+`walmart-direct.ts`, and now `bestbuy-gateway.ts` are each individually,
+first-hand verified to return correct price (and for HD and Best Buy, a real
+clearance/markdown flag) for $0. But the actual pipeline for all five is: a
+human opens a browser, watches network traffic or runs a manual fetch or a
+one-off harness script, saves JSON, then runs a CLI script by hand. There is
+still no Playwright/Puppeteer dependency in `package.json` (checked again
+this pass — unchanged), no scheduler, and no `npm run` script for the Lowe's,
+Walmart, or Best Buy ingest paths at all (only `scan`/`scan:dry` exist,
+both Apify-only). Every "1,758 Best Buy deals published" or "10 Walmart
+deals published" claim in this repo describes a one-time manual session, not
+a running system.
 **what to build:** a minimal headless-browser runner (Playwright is the
 natural fit — nothing in `package.json` conflicts) that, on a schedule, loads
-each retailer's storefront in a real browser context, calls the existing
-`clearanceUrl()`/`detailUrl()`-style builders already written in each
-`*-direct.ts` module (and generalizes `walmart-sweep.browser.js`'s
-pagination-plus-seller-guard pattern) for a batch of candidates, and writes
-results into the same tables `verify-deals.ts` / `*-ingest.ts` already
-target. Treat every failure as "unknown," never "no stock" — `hd-direct.ts`'s
-own header already says this. Keep the seller-exact-match guard and the
-units guard running twice (harness + ingest) exactly as shipped, not
-simplified. Keep Unwrangle/Apify stock-lookup wired as a fallback, not
-deleted (Blueprint 3).
-**data-method:** cites `hd-direct.ts`, `target-cracked.md`,
-`lowes-cracked.md`, and Walmart's `170bfe6`/`f7810fd` commits — four
+each retailer's storefront/gateway in a real browser context, calls the
+existing builders already written in each `*-direct.ts`/`*-gateway.ts`
+module for a batch of candidates, and writes results into the same tables
+`verify-deals.ts` / `*-ingest.ts` already target. Treat every failure as
+"unknown," never "no stock" — `hd-direct.ts`'s own header already says this.
+Keep every existing guard running exactly as shipped, not simplified: the
+seller-exact-match guard (Walmart), the units guard (Lowe's), and Best Buy's
+new-condition-only facet discipline. Keep Unwrangle/Apify stock-lookup wired
+as a fallback, not deleted (Blueprint 3).
+**data-method:** cites `hd-direct.ts`, `target-cracked.md`, `lowes-cracked.md`,
+Walmart's `170bfe6`/`f7810fd` commits, and Best Buy's `e6207ef` commit — five
 independently verified results, all converging on the same architecture.
-**why it beats today / beats Hidden Clearances:** turns four
-manually-verified facts into one running, free, accurate pipeline — something
-no competitor in `penny-recon.md`'s survey is documented doing (every one of
-them scrapes listing pages or crowdsources; none showed evidence of a direct
-internal-API browser call across even two retailers, let alone four). It also
-fixes today's operational reality: shipping or maintaining a retailer today
-means someone sits down and drives a browser by hand, which does not scale
-past four and will not survive anyone being unavailable.
+**why it beats today / beats Hidden Clearances:** turns five manually-verified
+facts into one running, free, accurate pipeline — something no competitor in
+`penny-recon.md`'s survey is documented doing (every one of them scrapes
+listing pages or crowdsources; none showed evidence of a direct internal-API
+browser call across even two retailers, let alone five). It also fixes
+today's operational reality: shipping or maintaining a retailer today means
+someone sits down and drives a browser by hand, which does not scale past
+five and will not survive anyone being unavailable.
 **effort:** M-L — new infrastructure (a browser-automation dependency, a
-scheduled runner, four existing modules to wire into it), unchanged in size
+scheduled runner, five existing modules to wire into it), unchanged in size
 from last pass's estimate despite covering one more retailer.
-**cost:** no per-request API fee; realistic infra cost ~$5–20/mo for a small
+**cost:** no per-request API fee; realistic infra cost ~$5-20/mo for a small
 scheduled headless-browser runtime — well under Unwrangle's $99/mo+ tier —
 plus ongoing engineering time to notice and fix breakage when a retailer
 changes its endpoint or DOM, which a paid vendor would otherwise absorb.
 **success metric:** N consecutive days (recommend 7) of unattended, scheduled
-calls against all four retailers' known candidates, spot-checked against a
+calls against all five retailers' known candidates, spot-checked against a
 manual check, feeding real rows into the DB — not another one-off manual
-session, and specifically including a real test of Walmart at sweep volume
-(beyond the ~22 requests run clean so far) without triggering a block.
-
-### 2. Build the catalog-free report-and-confirm feature — on `community_reports`, not `finds` (scope corrected this pass)
-**status:** todo — carried forward, gap re-analyzed against the actual schema
-**problem:** `next-retailer.md`'s 2026-08-25 closing-status update
-(`1d1b092`) checked this repo's own code directly and confirmed: the report-
-and-confirm feature Costco structurally needs (per Part D1/the 2026-08-24
-probe: warehouse markdowns don't reach costco.com, so crowdsourcing is the
-*only* honest route) has still not been built. **This pass went one step
-further and found last pass's proposed fix pointed at the wrong table.**
-Last pass's Blueprint 2 proposed extending `finds.ts` (`POST /api/finds`) to
-accept catalog-free submissions. But `finds` requires `product_id` and
-`store_id` as `NOT NULL` foreign keys into `products`/`stores`
-(`schema.sql` lines 186-189) **and** its whole design is graded against an
-existing `sku_state.penny_score` prediction (`finds.ts` line 50) — it is an
-answer key for a candidate our own scan already flagged, which Costco, having
-no scan pipeline, structurally never will. `community_reports`
-(`schema.sql` lines 578-601) is the actual better fit — already
-retailer-keyed, `sku`/`item_id` are plain nullable `TEXT`, no FK into
-`products`/`stores` at all — **but it has no `user_id` column, no link to
-`spotter_stats`, and no `POST` endpoint**; `community-deals.ts` only exposes
-`GET` routes today. So the real gap is not "loosen two NOT NULL columns," it's
-"design and build a lightweight, user-attributed submission path for a table
-that was built anonymous-ingest-only."
-**what to build:** add a nullable `user_id` (and `evidence_url`, matching
-`finds`'s pattern) to `community_reports`, or a small parallel table with the
-same shape plus user attribution; a `POST /api/community-deals` endpoint,
-authenticated, rate-limited like `finds.post` and `community-deals.get`
-already are; and a narrow corroboration rule reusing `reputation.ts`'s
-formula (`reputationFrom()`) but keyed off `(retailer, dedupe_key)` or
-`(retailer, store_number, title)` instead of `(product_id, store_id)`, since
-there's no product row to key against. Gate the corroboration window and
-weight formula identically to `finds` — don't invent a second one.
-**data-method:** cites `next-retailer.md`'s 2026-08-25 closing note (which
-names the CostLow precedent: photo-and-manual-entry, no scraping at all) and
-this pass's own direct read of `schema.sql`/`finds.ts`/`community-deals.ts`.
-**why it beats today / beats Hidden Clearances:** per `next-retailer.md`,
-Costco pairs the largest verified demand figure found in the entire
-competitor survey (Costco Finds Facebook group, **[verified: 2+ independent
-sources]** ~1.4M members) with a $0 cost path — no vendor bill, because the
-cost is engineering time on infrastructure this repo already built most of.
-No competitor surveyed (Part C) publishes a transparent, reputation-weighted
-confirmation loop at all; Costco would be the first retailer where that loop
-*is* the entire product.
-**effort:** S-M — larger than last pass's "S" estimate now that the real gap
-(schema change + new endpoint + a keying scheme with no product row) is
-understood, but still reuses `reputation.ts`'s math and `finds.ts`'s
-auth/rate-limit pattern rather than building either from scratch.
-**cost:** $0 incremental — no vendor, no scraping surface, no bot-mitigation
-risk, because there is nothing to scrape.
-**success metric:** a real Costco submission accepted end-to-end (free-text
-item, warehouse number, price) with no existing catalog row, visible in a
-corroborated feed once a second report lands. **Honest caveat, carried
-forward unchanged from last pass, still unresolved:** whether this actually
-gets submissions at a small user base before Costco's 1.4M-member audience is
-ever redirected to it is unproven — the cheap test is still to launch this
-against HD/Target/Lowe's/Walmart leads first (harder now, since `finds`
-already covers scanned candidates there) or ship it Costco-only and measure
-real submission rate over 1-2 weeks before deciding whether it's worth more
-investment. **Do this measurement before writing Costco marketing copy.**
+session, and specifically including a real test of Walmart and Best Buy at
+sweep volume beyond what's been run clean so far without triggering a block.
 
 ### 3. Decide the discovery-sweep vendor for real, then turn the sweep on
-**status:** todo — merges and updates last pass's Blueprint 3; the "decision"
-this file previously described as merely narrowed is, per this pass's own
-finding above, now shown to be actively contradictory on file
+**status:** todo — merges and updates last pass's Blueprint 3 with Part G's
+sharper cost model and hardened do-not-use call
 **problem:** `APIFY_TOKEN` and `UNWRANGLE_KEY` are still both blank in
 `.env.example` (checked again this pass). Outside manual test runs and the
-four retailers' one-off manual handoffs, no real append-only price history is
+five retailers' one-off manual handoffs, no real append-only price history is
 accumulating anywhere; `coverage.ts` requires 14 days before scores mean
-anything. `.env.example`'s `APIFY_ACTOR_ID` is already pointed at
+anything. `.env.example`'s `APIFY_ACTOR_ID` is still pointed at
 `scrapyspider/home-depot-clearance-scraper` with an internal note claiming
 verified 98.7% success and 17 monthly users (2026-08-16) — but
-`penny-recon.md` Part E1 independently found the same actor at 0.0/5, 0
-reviews, lumped with two other "generic, not penny-specific" alternatives.
-This is a genuine, unresolved contradiction between this repo's own prior
-"verified" claim and an independent later read of the same public page — see
-the strategic decision section above. Turning the sweep on "as configured"
-today means trusting one of two conflicting numbers about the same actor,
-neither externally confirmable from outside.
-**what to build:** two sequenced steps, not one, unchanged from last pass but
-now with a sharper reason to do step one first: run a small paid trial of
-`scrapyspider/home-depot-clearance-scraper` against at least one alternative
-(`ecomscrape` or `scraptivo` — `scraptivo`'s price may have dropped to
-$10/1,000 per Part F7, unconfirmed) and **directly reconcile the trial's real
-success rate against both the 98.7% figure on file and the 0.0/5-rating
-figure the recon found** — whichever the live trial actually shows should
-overwrite both stale, conflicting claims in `.env.example` and
-`architecture-verdict.md`. Second, once a vendor is picked (or the decision is
-"skip Apify, lean harder on Blueprint 1's browser-direct discovery instead" —
-a real option now that HD/Target/Lowe's/Walmart all expose free
+`penny-recon.md` Part G6 (2026-08-26) hardens the case against the
+closely-related `pulsewatch/dealwatch-scraper` actor with a concrete number
+(0.0 rating, 0 reviews, 73-day issue response), and Part E1 already flagged
+`scrapyspider`'s own marketing copy as near-identical templated language.
+This remains a genuine, unresolved contradiction between this repo's own
+prior "verified" claim and an independent later read of a related actor's
+public page.
+**what to build:** two sequenced steps, unchanged in shape from last pass but
+now with a real dollar range to size the decision against: run a small paid
+trial of `scrapyspider/home-depot-clearance-scraper` against at least one
+alternative (`ecomscrape` at a reconfirmed $3.50/1,000, or `scraptivo` — its
+$10 vs. $15/1,000 pricing is now flagged as **conflicting across snippets**,
+per Part G6, not a confirmed price cut) and directly reconcile the trial's
+real success rate against both the 98.7% figure on file and the negative
+signal the recon found for the related actor. Second, once a vendor is picked
+(or the decision is "skip Apify, lean harder on Blueprint 2's browser-direct
+discovery instead" — a real option now that five retailers expose free
 clearance-listing or search pages), run `probe:unwrangle` and `probe:stock`
 once against the documented ground-truth item with real keys and record the
 dated result in this file.
-**data-method:** cites recon Part B.2/B.4/E1/F7, `architecture-verdict.md`'s
-own conflicting claim, and this repo's own unresolved probe scripts.
+**data-method:** cites recon Part B.2/B.4/E1/F7/G5/G6, `architecture-
+verdict.md`'s own conflicting claim, and this repo's own unresolved probe
+scripts.
 **why it beats today / beats Hidden Clearances:** the actual moat — genuine
 per-store timestamped history — only exists from the moment a real, working
 sweep is actually running, on a vendor whose real success rate this repo has
@@ -372,112 +441,112 @@ external recon snapshot.
 **effort:** M — a paid trial, a reconciliation of the two conflicting
 internal claims, a decision, then ops/monitoring for the first two weeks
 watching for a repeat of the earlier fabrication incident.
-**cost:** the Apify trial is a few dollars (Part E1/F7 pricing anchors:
-`scraptivo` ~$10-15/1,000 products, `ecomscrape` ~$20/mo+usage — both
-**[claim, vendor listing]**); the probe runs are under $5 total; ongoing
-sweep cost at current San Antonio scope is plausibly low-hundreds-of-
-dollars/month at the new Part F7 cost anchor (**[inference]**, not yet
-modeled against this repo's real request volume), well below the
-$1,200-10,000+/mo enterprise figure that was the only anchor two passes ago.
+**cost:** the Apify trial is a few dollars; the probe runs are under $5
+total. Ongoing sweep cost, per Part G5's first real dollar-anchored model:
+**~$90-180/mo at daily cadence** (one request/store), **~$2,160-4,320/mo at
+hourly cadence**, but a realistic multi-page-per-store hourly crawl could run
+**$10,000-20,000+/mo** at the same per-request rates — treat the low end as a
+floor, not a number to budget against until this repo's real
+page-count-per-store-per-scan is modeled.
 **success metric:** a dated, written record in this file of which actor (if
 any) was trialed, its real observed success rate, and how that reconciles
-with the two conflicting numbers already on file — followed by 14 consecutive
+with the conflicting numbers already on file — followed by 14 consecutive
 real `scan_runs` with zero fabrication flags and ≥1 row/store/day across all
-four retailers; `coverage.ts`'s `scores_meaningful` flips true for San
+scanned retailers; `coverage.ts`'s `scores_meaningful` flips true for San
 Antonio.
 
-### 4. Put the legal/ToS risk decision in writing — now covering four retailers
+### 4. Put the legal/ToS risk decision in writing — now covering five scraped retailers plus DG's distinct exposure
 **status:** todo — scope widened again this pass
 **problem:** recon confirms Home Depot's and Lowe's ToS both prohibit
-automated collection. Target's terms were flagged unchecked two passes ago
-and remain unchecked. **Walmart's terms are unchecked too — confirmed by a
-direct grep of `walmart-direct.ts` and `target-direct.ts` this pass, neither
-records a ToS review.** No file in this repo makes an explicit, on-purpose
-written decision about any of the four, despite all four now being live,
-shipping data sources.
+automated collection. Target's, Walmart's, and now **Best Buy's** terms are
+all unchecked — confirmed by a direct grep of `bestbuy-gateway.ts`,
+`target-direct.ts`, and `walmart-direct.ts` this pass; none records a ToS
+review. No file in this repo makes an explicit, on-purpose written decision
+about any of the five, despite all five now being live, shipping data
+sources. Dollar General is a **separate risk category**, already correctly
+identified and guarded in `company/routines/dollar-general-reports.md`
+(insider-leak sourcing, not automated-collection ToS exposure) — that
+guard should not be diluted or merged into a generic "scraping risk" note,
+since the mitigation is different (source discipline, not request volume).
 **what to build:** not code — a short, explicit written risk note covering
-all four retailers now: who bears the exposure, what mitigates it (staying
-low-volume/browser-direct rather than a broad self-built crawler, keeping
-volume proportionate to a single metro, per-item confirm calls rather than
-full-catalog scraping, the seller/units guards that keep volume low by
-design).
-**data-method:** cites recon Part B.1, D2, F1, and this pass's confirmed
-Target-and-Walmart ToS gap.
+the five scraped retailers: who bears the exposure, what mitigates it
+(staying low-volume/browser-direct rather than a broad self-built crawler,
+keeping volume proportionate to a single metro, per-item confirm calls
+rather than full-catalog scraping, the seller/units/facet guards that keep
+volume low by design) — and a one-line cross-reference to DG's already-written
+risk note so a future reader finds both without assuming they're the same
+kind of risk.
+**data-method:** cites recon Part B.1, D2, F1, `dollar-general-recon.md`'s
+RISKS section, and this pass's confirmed Target/Walmart/Best-Buy ToS gap.
 **why it beats today / beats Hidden Clearances:** doesn't beat anyone
 technically — every competitor in this space carries identical exposure
 silently. Writing it down converts an unmanaged risk into a managed one,
-across four retailers instead of one.
+across five retailers instead of four, without collapsing DG's genuinely
+different risk into the same bucket.
 **effort:** S (a decision and a paragraph).
 **cost:** $0.
 **success metric:** a dated, explicit risk-acceptance note exists, covering
-Home Depot, Target, Lowe's, AND Walmart; for Target and Walmart specifically,
-either the ToS gets actually checked and the result stated, or the gap is
-stated as a deliberate, open, accepted risk — not silently assumed either
-way.
+Home Depot, Target, Lowe's, Walmart, AND Best Buy; for Target, Walmart, and
+Best Buy specifically, either the ToS gets actually checked and the result
+stated, or the gap is stated as a deliberate, open, accepted risk — not
+silently assumed either way.
 
-### 5. Close the score-calibration loop against real finds, with Part F's signal-weighting corrections applied
-**status:** todo — merges last pass's Blueprint 5 with Part F's reversed and
-strengthened signals
+### 5. Close the score-calibration loop against real finds, with Part F/G's signal-weighting corrections applied
+**status:** todo — merges last pass's Blueprint 5, unchanged in substance;
+Part G added no new signal-weighting corrections this pass
 **problem:** `score.ts` says weights should be tuned against measured hit
 rate, "never by feel" — real `finds` submissions now exist as a mechanism
 (shipped) but not yet at volume, since the underlying scan pipelines
-(Blueprint 1/3) aren't running unattended yet. Part F changed two specific
-inputs to that future calibration work since last pass: **(F4) the
-"14-day cadence compression" claim from Part E5 is now reversed, not just
-unconfirmed** — it traces to templated marketing copy shared verbatim across
-three competitor sites with zero primary-source corroboration, while a
-dedicated primary-source search found no posters describing the compression
-or tag-ending unreliability. **(F2) Lowe's tag-ending heuristic is downgraded
-from "thin" to "actively contradictory"** — four sources disagree with each
-other on the actual digits, unlike Home Depot's `.02/.03/.04` pattern which
-multiple independent sources agree on.
+(Blueprints 2/3) aren't running unattended yet. Two corrections from Part F
+remain to apply once real data exists: **(F4)** the "14-day cadence
+compression" claim is reversed, not just unconfirmed — templated marketing
+copy with zero primary-source corroboration; do not downweight HD's
+tag-ending signal based on it. **(F2)** Lowe's tag-ending heuristic is
+actively contradictory across sources, not just thin — build any
+Lowe's-specific scoring signal from Unwrangle's structured fields instead.
 **what to build:** once real `penny_candidate` alerts and `finds` submissions
 exist at volume, run a periodic review of score vs. confirmed outcome and
-adjust weights via `SCORE_VERSION` + replay. Two specific corrections to
-apply from this pass: **do not** downweight Home Depot's tag-ending signal
-based on the cadence-compression claim (F4 says don't act on it); **do**
-build any Lowe's-specific scoring signal from Unwrangle's structured fields
-(`inventory.status.discontinued`, `list_price`, etc. — Part F3) rather than
-from a tag-ending heuristic, which now has zero source agreement for Lowe's
-specifically. Also add **Wyze/smart-plug clearance** as a confirmed candidate
-category (Part F5: 9 independent Slickdeals posts, up from 2) alongside the
-existing Part B.7 category list; leave outdoor power equipment unconfirmed
-(still one thin data point).
+adjust weights via `SCORE_VERSION` + replay, applying the F2/F4 corrections
+above, and add **Wyze/smart-plug clearance** as a confirmed candidate
+category (Part F5: 9 independent Slickdeals posts) alongside the existing
+Part B.7 category list. Leave outdoor power equipment unconfirmed — Part G3
+(2026-08-26) ran a fresh, dedicated search and found no new primary-source
+penny finds for mowers/blowers/generators, plus one new mild counter-signal
+("power tools rarely penny out," blog-sourced, not primary) — the category
+stays a "keep watching," not a scoring input.
 **data-method:** cites `score.ts`'s own methodology, recon Part C.2, and Part
-F2/F3/F4/F5.
+F2/F3/F4/F5/G3.
 **why it beats today / beats Hidden Clearances:** makes the product's
 accuracy claim actually true over time, against real data, from a source no
-competitor researched publishes or even claims to track — and does it without
-importing a competitor-marketing artifact (the 14-day claim) as if it were
-real signal.
-**effort:** M, recurring; blocked on Blueprints 1 and 3 producing real data
+competitor researched publishes or even claims to track.
+**effort:** M, recurring; blocked on Blueprints 2 and 3 producing real data
 at volume.
 **cost:** $0.
 **success metric:** a documented hit-rate figure after the first real
-calibration pass, plus written confirmation that the F2/F4 corrections above
-were actually applied (Lowe's signal built from Unwrangle fields, not
-tag-ending; HD tag-ending weight left alone).
+calibration pass, plus written confirmation the F2/F4 corrections were
+actually applied and that OPE was correctly left out of the scoring model
+per G3.
 
 ### 6. Merge the freshness bar once real scan data exists behind it
 **status:** todo — already has an open PR; sequencing note only, not new work
 **problem:** PR #2 ("Add public live-scan freshness bar to marketing
 footer") is already open against this exact feature. A public "last scan: X
 min ago" widget is either dishonest or embarrassing without real, unattended
-scan data behind it (Blueprint 1/3) — this is a merge-timing question, not a
+scan data behind it (Blueprints 2/3) — this is a merge-timing question, not a
 code gap, and not this file's track (`company/blueprints.md` owns it).
 **what to build:** nothing new here — noted only so this file's dependency
-chain stays accurate: **do not merge PR #2 until Blueprint 1 or 3 is
+chain stays accurate: **do not merge PR #2 until Blueprint 2 or 3 is
 producing real, unattended scan history**, or the bar will show a stale or
-manually-faked timestamp. `penny-recon.md` Part E3/F confirms zero
-competitors publish real cadence data anywhere — this differentiator is still
-fully unclaimed and worth waiting to do honestly rather than rushing.
-**data-method:** cites recon Part C.4, E3.
+manually-faked timestamp. `penny-recon.md` Part E3/G4 confirms zero
+competitors publish real cadence data anywhere — this differentiator is
+still fully unclaimed and worth waiting to do honestly rather than rushing.
+**data-method:** cites recon Part C.4, E3, G4.
 **why it beats today / beats Hidden Clearances:** turns an unverifiable
 marketing-claim category into a checkable number, on our own site — but only
 once it's true.
 **effort:** S (already built as a PR; the remaining work is sequencing).
 **cost:** $0 incremental.
-**success metric:** PR #2 merges only after Blueprint 1/3's success metric is
+**success metric:** PR #2 merges only after Blueprint 2/3's success metric is
 met, showing a real, sub-26h timestamp on day one.
 
 ---
@@ -486,65 +555,64 @@ met, showing a real, sub-26h timestamp on day one.
 ## don't get re-asked)
 
 - **Costco — decided NOT to build as a scrape/vendor integration.** Confirmed
-  independently three times now: `penny-recon.md` Part D1, `next-retailer.md`'s
-  2026-08-23 research pass, and `next-retailer.md`'s 2026-08-24 **live browser
-  probe** (not just research — an actual $0 check of costco.com) all conclude
-  in-warehouse manager-markdown clearance is structurally invisible on
-  costco.com — the live probe specifically found only the monthly member
-  coupon book, which the reseller floor would reject almost entirely. **What
-  Costco needs instead is the catalog-free extension to community reporting —
-  Blueprint 2, above, now correctly scoped to `community_reports` — not a
-  scrape adapter.** Do not put Costco on a pricing page referencing
-  "automated scanning" — it would be false per this recon.
-- ~~Walmart — decided NOT next~~ — **REVERSED and shipped.** Last pass's
-  entry here (based on `next-retailer.md`'s 2026-08-23 WebSearch-only
-  ranking: dual Akamai+PerimeterX, 9/10 difficulty, most-saturated retailer
-  in the competitor set) was overturned by a live 2026-08-24 browser probe
-  that found the clearance browse page serving 200-300 structured products
-  per page in `__NEXT_DATA__`, and shipped as retailer #4 the same night.
-  Kept here only as a record of a WebSearch-only verdict a live check
-  reversed — a caution for weighting future WebSearch-only recon passes
-  against an actual $0 browser test when the two disagree, not a standing
-  decision anymore.
+  independently three times: `penny-recon.md` Part D1, and `next-retailer.md`'s
+  2026-08-23 research pass and 2026-08-24 **live browser probe** (an actual
+  $0 check of costco.com) — in-warehouse manager-markdown clearance is
+  structurally invisible on costco.com. **What Costco needs instead is the
+  catalog-free extension to community reporting — Blueprint 1, above.** Do
+  not put Costco on a pricing page referencing "automated scanning" — it
+  would be false per this recon.
+- ~~Walmart — decided NOT next~~ — **REVERSED and shipped.** Overturned by a
+  live 2026-08-24 browser probe finding a structured `__NEXT_DATA__` clearance
+  feed; shipped as retailer #4 the same night. Kept here as a caution about
+  weighting a WebSearch-only verdict against an actual $0 browser test when
+  the two disagree — the same lesson repeated a second time by Best Buy
+  shipping outside this task's original four-retailer scope entirely.
+- **Dollar General — decided the crowdsourced-report route, per its own
+  recon, is correct; scraping `/c/on-sale` national online sales is explicitly
+  rejected as off-brand and low-value.** Not re-litigated this pass. What
+  remains open is only the submission mechanism (Blueprint 1), not the
+  architecture choice.
 
 ---
 
 ## Open questions carried forward, with current status
 
-1. **Discovery-sweep vendor pick** — **less resolved than it looked last
-   pass, not more.** This pass found `.env.example`'s already-configured
-   pick (`scrapyspider`) directly contradicted by the recon's own Part E1
-   finding for the same actor. Settled by Blueprint 3's real trial, which now
-   also needs to reconcile that contradiction, not just pick a vendor cold.
-2. **Vendor cost at scale** — a real, non-HD-specific cost anchor now exists
-   (Part F7: ~$2.50-3/1,000 requests), suggesting metro-scale cost is
-   plausibly "low hundreds of dollars/month" — but this is **[inference]**,
-   unmodeled against this repo's actual request volume. Settled by
-   Blueprint 3.
-3. **Refresh cadence we can honestly claim** — still open; `penny-recon.md`
-   Part E3 hardens the case that no competitor anywhere publishes real
-   cadence data, strengthening the freshness-bar differentiator once
-   Blueprint 1/3 make it true. See Blueprint 6.
-4. **Legal exposure, now for four retailers** — still open as a written
-   decision; Target's and Walmart's ToS both specifically still unchecked.
-   See Blueprint 4.
+1. **Discovery-sweep vendor pick** — still open, harder to trust than it
+   looked two passes ago. Part G6 gives a concrete negative number for a
+   closely-related actor (`pulsewatch`: 0.0 rating, 0 reviews, 73-day
+   response); `scraptivo`'s pricing is now flagged as conflicting across
+   snippets, not confirmed lower. Settled by Blueprint 3's real trial.
+2. **Vendor cost at scale** — Part G5 gives the first real, dollar-anchored
+   model: **~$90-180/mo daily, ~$2,160-4,320/mo hourly, plausibly
+   $10,000-20,000+/mo for a realistic multi-page-per-store hourly crawl** —
+   still **[inference]**, unmodeled against this repo's actual request
+   volume. Settled by Blueprint 3.
+3. **Refresh cadence we can honestly claim** — still open; Part G4
+   reconfirms unchanged: zero competitors publish real cadence data anywhere.
+   See Blueprint 6.
+4. **Legal exposure, now for five scraped retailers plus DG's distinct
+   sourcing risk** — still open as a written decision; Target's, Walmart's,
+   and Best Buy's ToS all still unchecked. See Blueprint 4.
 5. **Store-confirm layer reliability** — resolved for the free path across
-   all four retailers now (Blueprint 1's problem is automation, not
+   all five scanned retailers (Blueprint 2's problem is automation, not
    reliability); still open for the paid-vendor fallback path (Blueprint 3).
-6. **Costco submission cold-start** — will a catalog-free report flow get
-   real submissions before Costco has a large dedicated user base? Cheap
-   test proposed in Blueprint 2: measure real submission rate on a small
-   base first before assuming the 1.4M-member Facebook audience transfers.
-7. **Is the HD markdown cadence actually compressing, and is the tag-ending
-   heuristic weakening as a result?** **RESOLVED this pass (F4), and
-   reversed:** no — the compression claim traces to templated marketing copy
-   with zero primary-source corroboration; do not act on it. HD's
-   `.02/.03/.04` heuristic stands as-is. (Lowe's tag-ending is a separate,
-   still-open problem — see Blueprint 5; it's actively contradictory, not
-   compressing.)
+6. **DG and Costco submission cold-start** — will a catalog-free report flow
+   get real submissions before either retailer has a large dedicated user
+   base redirected to it? Cheap test in Blueprint 1: ship it, measure real
+   submission rate over 1-2 weeks, before assuming either retailer's existing
+   crowd (DG's incumbent FB/blog audiences, Costco's 1.4M-member group)
+   transfers on its own.
+7. **Is the HD markdown cadence actually compressing?** RESOLVED and reversed
+   (F4): no — templated marketing copy, zero primary-source corroboration.
+   HD's `.02/.03/.04` heuristic stands as-is.
 8. **Is `scrapyspider/home-depot-clearance-scraper` actually a good pick, or
-   actually abandoned?** New this pass — this repo's own `.env.example`/
-   `architecture-verdict.md` and the independent recon (Part E1) give
-   directly conflicting answers about the same actor's real-world usage and
-   success rate. Neither can be verified from outside; only a real trial
+   actually abandoned?** Still open — this repo's own `.env.example`/
+   `architecture-verdict.md` and the independent recon (Parts E1/G6, closely
+   related actor) give directly conflicting signals. Only a real trial
    (Blueprint 3) settles it.
+9. **Is Best Buy's browser-gateway crack durable, or does it need the
+   official API as a safety net sooner rather than later?** New this pass —
+   `bestbuy-gateway.ts`'s own docstring already frames itself as a stopgap;
+   Blueprint 0 (get the free key) is the cheap, fast answer, not a research
+   question.
