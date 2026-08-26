@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SCANNED_RETAILERS, COMMUNITY_RETAILERS, joinNames } from '../lib/retailers';
 import '../landing.css';
 
 export default function Landing() {
@@ -44,9 +45,11 @@ export default function Landing() {
             <div>
               <h3>We record every clearance price, every day</h3>
               <p>
-                Home Depot and Lowe’s, store by store. Items walk down a ladder, twenty
-                percent off, then half, then ninety, and we keep every rung. Nobody can go
-                back and collect yesterday’s prices, which is why we started early.
+                {joinNames(SCANNED_RETAILERS.map((r) => r.name))}, store by store. Items walk
+                down a ladder, twenty percent off, then half, then ninety, and we keep every
+                rung. {joinNames(COMMUNITY_RETAILERS.map((r) => r.name))}’s deepest markdowns
+                never reach a website, so those come from hunters who found them on the shelf.
+                Nobody can go back and collect yesterday’s prices, which is why we started early.
               </p>
             </div>
           </div>

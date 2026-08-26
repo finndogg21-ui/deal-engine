@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
+import { SCANNED_RETAILERS, COMMUNITY_RETAILERS, joinNames } from '../../lib/retailers';
 
 const STEPS = [
   {
     n: '1',
     h: 'We record every clearance price, every day',
     p: [
-      'Home Depot and Lowe’s, store by store. Prices on clearance only move one direction, and we keep every step.',
+      `${joinNames(SCANNED_RETAILERS.map((r) => r.name))}, store by store. Prices on clearance only move one direction, and we keep every step.`,
+      `${joinNames(COMMUNITY_RETAILERS.map((r) => r.name))} never publish their deepest markdowns online, so those come from hunters who found them on the shelf and told us.`,
       'This is the part that cannot be rushed. Nobody can go back and collect last month’s prices, which is why the recording started before the app did.',
     ],
   },
