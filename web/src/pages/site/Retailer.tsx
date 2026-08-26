@@ -24,7 +24,9 @@ export default function RetailerPage() {
         <p style={{ color: 'var(--ink-faint)', margin: '0 0 var(--s2)', fontSize: 16 }}>
           {COVERAGE_LABEL[r.coverage]}
         </p>
-        <h1>{r.name} clearance and penny deals</h1>
+        {/* TSC has no penny mechanic, and its own body copy says so — don't
+            promise 'penny deals' in the same breath. */}
+        <h1>{r.name} clearance{r.slug === 'tractor-supply' ? ' deals' : ' and penny deals'}</h1>
         <p className="lede">{r.lede}</p>
 
         <div style={{ display: 'flex', gap: 'var(--s3)', marginTop: 'var(--s5)', flexWrap: 'wrap' }}>
