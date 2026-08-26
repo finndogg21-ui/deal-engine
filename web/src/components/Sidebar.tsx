@@ -31,6 +31,9 @@ const RETAILERS = [
   // and it opens on the Penny track (tab=penny) where those live — an 'all'
   // track would read as empty for a retailer that has no scanned feed.
   { slug: 'dollar-general', name: 'Dollar General', badge: 'DG', tab: 'penny' as const },
+  // Tractor Supply is community-fed too, but clearance not penny — it opens on
+  // the All track, where the community clearance block renders.
+  { slug: 'tractor-supply', name: 'Tractor Supply', badge: 'TS' },
 ];
 
 export default function Sidebar() {

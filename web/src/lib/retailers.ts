@@ -162,6 +162,33 @@ export const RETAILERS: Retailer[] = [
       'Show a price we measured. There is no DG price feed; if it is not a member report, we do not have it.',
     ],
   },
+  {
+    slug: 'tractor-supply',
+    name: 'Tractor Supply',
+    badge: 'TS',
+    /* Community, like Dollar General — but for a different reason. TSC's site
+       is walled by Akamai (we get "Access Denied" even from a real browser),
+       and its deepest markdowns are in-store red-tag remnants that never touch
+       the website. So the reachable, valuable tier is what members find on the
+       shelf. Unlike DG there is no penny: TSC clearance is plain percent
+       markdowns, and the price is NATIONAL — the same at every store. */
+    coverage: 'community',
+    lede: 'Reported by hunters. TSC’s deep markdowns are in-store red-tag remnants — the crowd is the only way to see them.',
+    howItWorks: [
+      'Tractor Supply clears seasonal, farm, pet and tool stock in plain percent markdowns — 40 to 80 percent off on a “was” tag. There is no penny and no secret price-ending code; that is Home Depot folklore, not TSC.',
+      'The online clearance price is national — the same at every store — but the deepest red-tag markdowns are set by the store and never appear on the website.',
+      'So the deals worth driving for are the ones a member found on a shelf and reported. Availability is store-by-store and never guaranteed.',
+    ],
+    weSee: [
+      'Red-tag and clearance finds that members confirmed on a shelf, with the store and when it was seen.',
+      'The marked price and what it was, so the depth of the cut is plain.',
+    ],
+    weCannot: [
+      'Promise it is at your store. The price is national but the stock is not — every clearance find here is YMMV, one person’s shelf, not live inventory.',
+      'Show the deep in-store markdowns from the website. TSC hides those behind Akamai and keeps the deepest ones off the site entirely — a report is the only way they surface.',
+      'Show a price we measured. There is no TSC feed we can reach; if it is not a member report, we do not have it.',
+    ],
+  },
 ];
 
 export const getRetailer = (slug?: string) => RETAILERS.find((r) => r.slug === slug);

@@ -1,27 +1,53 @@
 /**
- * Report a Dollar General penny find.
+ * Report a community find — Dollar General penny, or Tractor Supply clearance.
  *
- * DG's penny price is register-only — it exists on no feed, so the crowd is the
- * only sensor. This is the form a member fills after confirming a $0.01 (or deep
- * clearance) scan on a shelf. It writes a community_report, labelled hearsay,
- * and credits the reporter's reputation.
+ * Both retailers are register/in-store-only: DG's penny lives in the register,
+ * TSC's deep red-tag markdowns are walled off the website. The crowd is the
+ * only sensor, so this is the form a member fills after confirming a find on a
+ * shelf. It writes a community_report (labelled hearsay) and credits the
+ * reporter's reputation.
  *
- * Sourcing rule (company/routines/dollar-general-reports.md): this is for YOUR
- * OWN in-store find. It is not a place to paste someone's leaked penny list.
+ * Sourcing rule (company/routines/*-reports.md): report YOUR OWN in-store find.
+ * This is not a place to paste someone's leaked or copied list.
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, useAuth } from '../../lib/auth.js';
 import '../../resell.css';
 
 type Kind = 'penny' | 'clearance';
 
+interface RetailerCfg {
+  slug: string;         // dashless, sent to the API
+  name: string;
+  allowPenny: boolean;  // DG has a penny mechanic; TSC does not
+  lede: string;
+}
+
+const RETAILERS: Record<string, RetailerCfg> = {
+  'dollar-general': {
+    slug: 'dollargeneral',
+    name: 'Dollar General',
+    allowPenny: true,
+    lede: 'You scanned it in the aisle and it rang up a penny. Tell the rest of us where.',
+  },
+  'tractor-supply': {
+    slug: 'tractorsupply',
+    name: 'Tractor Supply',
+    allowPenny: false,
+    lede: 'You found a red-tag clearance deal on the shelf. Tell the rest of us where — the price is national, but the stock never is.',
+  },
+};
+
 export default function ReportFind() {
   const nav = useNavigate();
   const { me } = useAuth();
+  const [params] = useSearchParams();
 
-  const [kind, setKind] = useState<Kind>('penny');
+  const cfg = RETAILERS[params.get('retailer') ?? 'dollar-general'] ?? RETAILERS['dollar-general']!;
+
+  const [kind, setKind] = useState<Kind>(cfg.allowPenny ? 'penny' : 'clearance');
   const [title, setTitle] = useState('');
   const [sku, setSku] = useState('');
   const [storeNumber, setStoreNumber] = useState('');
@@ -30,7 +56,6 @@ export default function ReportFind() {
   const [price, setPrice] = useState('');
   const [listPrice, setListPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [productUrl, setProductUrl] = useState('');
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +74,7 @@ export default function ReportFind() {
       await api<{ report_id: string }>('/api/community-deals/report', {
         method: 'POST',
         body: JSON.stringify({
+          retailer: cfg.slug,
           kind,
           title: title.trim(),
           sku: sku.trim() || null,
@@ -58,11 +84,11 @@ export default function ReportFind() {
           price: kind === 'clearance' ? price : null,
           list_price: listPrice || null,
           image_url: imageUrl.trim() || null,
-          product_url: productUrl.trim() || null,
         }),
       });
-      // Straight to the DG penny track, where the new report now lives.
-      nav('/app?store=dollar-general&tab=penny');
+      // Straight to the retailer's track, where the new report now lives.
+      const tab = kind === 'penny' ? 'penny' : 'all';
+      nav(`/app?store=${params.get('retailer') ?? 'dollar-general'}&tab=${tab}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -72,30 +98,31 @@ export default function ReportFind() {
 
   return (
     <div className="rs">
-      <div className="dash-eyebrow">Dollar General</div>
-      <h1 className="rs-title">Report a penny find</h1>
+      <div className="dash-eyebrow">{cfg.name}</div>
+      <h1 className="rs-title">Report a find</h1>
       <p className="rs-lede">
-        You scanned it in the aisle and it rang up a penny. Tell the rest of us where.
-        This is a member report — one person&rsquo;s find, not verified stock — and it
-        posts under your name. Report your own find, never a copied list.
+        {cfg.lede} This is a member report — one person&rsquo;s find, not verified stock —
+        and it posts under your name. Report your own find, never a copied list.
       </p>
 
       <form className="rs-add" onSubmit={submit} style={{ flexWrap: 'wrap', gap: 'var(--s4)' }}>
-        <div className="rs-seg" role="tablist" aria-label="Kind" style={{ display: 'flex', gap: 'var(--s2)', width: '100%' }}>
-          <button type="button" role="tab" aria-selected={kind === 'penny'}
-            className={`btn${kind === 'penny' ? '' : ' btn-quiet'}`} onClick={() => setKind('penny')}>
-            Penny ($0.01)
-          </button>
-          <button type="button" role="tab" aria-selected={kind === 'clearance'}
-            className={`btn${kind === 'clearance' ? '' : ' btn-quiet'}`} onClick={() => setKind('clearance')}>
-            Deep clearance
-          </button>
-        </div>
+        {cfg.allowPenny && (
+          <div className="rs-seg" role="tablist" aria-label="Kind" style={{ display: 'flex', gap: 'var(--s2)', width: '100%' }}>
+            <button type="button" role="tab" aria-selected={kind === 'penny'}
+              className={`btn${kind === 'penny' ? '' : ' btn-quiet'}`} onClick={() => setKind('penny')}>
+              Penny ($0.01)
+            </button>
+            <button type="button" role="tab" aria-selected={kind === 'clearance'}
+              className={`btn${kind === 'clearance' ? '' : ' btn-quiet'}`} onClick={() => setKind('clearance')}>
+              Deep clearance
+            </button>
+          </div>
+        )}
 
         <label className="rs-field rs-grow" style={{ minWidth: 240 }}>
           <span>What is it?</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Holiday 20oz Tumbler" maxLength={200} />
+            placeholder={cfg.allowPenny ? 'e.g. Holiday 20oz Tumbler' : 'e.g. DeWalt 20V Drill Kit'} maxLength={200} />
         </label>
 
         <label className="rs-field">
@@ -148,8 +175,8 @@ export default function ReportFind() {
         </label>
 
         <p className="rs-note" style={{ width: '100%' }}>
-          A store number or at least the state is required — a penny at one DG is full
-          price at the next, so a find has to say where.
+          A store number or at least the state is required — clearance stock is store by
+          store, so a find has to say where.
         </p>
 
         {error && <p className="rs-note" style={{ color: 'var(--alert)', width: '100%' }}>{error}</p>}

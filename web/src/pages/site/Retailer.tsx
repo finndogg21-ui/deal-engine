@@ -12,8 +12,10 @@ export default function RetailerPage() {
   // reported finds and add their own — so they get a real app CTA, just phrased
   // for a crowd feed rather than a scanned one. Only 'planned' gets the
   // not-yet-shoppable contact CTA.
+  // DG opens on the Penny track (it's penny-only); TSC on All (clearance).
+  const communityTab = r.slug === 'dollar-general' ? 'penny' : 'all';
   const appHref = community
-    ? `/app?store=${r.slug}&tab=penny`
+    ? `/app?store=${r.slug}&tab=${communityTab}`
     : '/app';
 
   return (
@@ -29,7 +31,7 @@ export default function RetailerPage() {
           {planned
             ? <Link className="btn btn-quiet" to="/contact">Tell us you want this store</Link>
             : community
-              ? <Link className="btn" to={appHref}>See {r.name} penny finds</Link>
+              ? <Link className="btn" to={appHref}>See {r.name} {r.slug === 'dollar-general' ? 'penny' : 'clearance'} finds</Link>
               : <Link className="btn" to={appHref}>See {r.name} deals near you</Link>}
           <Link className="btn btn-quiet" to="/how-it-works">How the scoring works</Link>
         </div>

@@ -63,6 +63,15 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
       'members who confirmed a penny on a shelf and reported it, and that reporting flow is the ' +
       'next thing being built. See the Dollar General store page for how it works.',
   },
+  tractorsupply: {
+    name: 'Tractor Supply',
+    live: false,
+    why:
+      'Tractor Supply’s site is walled by Akamai, and its deepest markdowns are in-store red-tag ' +
+      'remnants that never reach the website. So there is no feed to scrape here either — TSC finds ' +
+      'come from members who spotted a clearance tag on a shelf and reported it. See the Tractor ' +
+      'Supply store page for how it works.',
+  },
 };
 
 export default function RetailerDeals() {

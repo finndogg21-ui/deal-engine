@@ -35,6 +35,9 @@ const RETAILERS: Record<string, { label: string; perStoreStock: boolean }> = {
   // DG has no price/stock endpoint at all — penny/clearance is register-only.
   // A "stock check" is structurally impossible; it can only ever say so.
   dollargeneral: { label: 'Dollar General', perStoreStock: false },
+  // TSC is Akamai-walled and its clearance stock is store-YMMV; no endpoint we
+  // can reach answers a stock check.
+  tractorsupply: { label: 'Tractor Supply', perStoreStock: false },
 };
 
 const TTL_MS = 60 * 60_000;

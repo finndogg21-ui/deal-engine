@@ -46,6 +46,23 @@ communityDeals.post(
   rateLimit({ key: 'community-report', max: 30, windowMs: 60_000 }),
   route(async (req, res) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
+
+    // Which register-only retailers accept member reports, and the source tag
+    // each writes. Both are retailers whose deep markdowns exist only in the
+    // aisle — DG's penny, TSC's red-tag clearance behind Akamai — so the crowd
+    // is the only sensor. Defaults to DG for the original DG-only form.
+    const REPORT_SOURCES: Record<string, string> = {
+      dollargeneral: 'dg-members',
+      tractorsupply: 'tsc-members',
+    };
+    const retailer = REPORT_SOURCES[String(b.retailer ?? 'dollargeneral')]
+      ? String(b.retailer ?? 'dollargeneral')
+      : null;
+    if (!retailer) {
+      return res.status(400).json({ error: 'That retailer does not take member reports.' });
+    }
+    const source = REPORT_SOURCES[retailer]!;
+
     const kind = b.kind === 'clearance' ? 'clearance' : 'penny';
 
     const title = String(b.title ?? '').trim();
@@ -85,7 +102,7 @@ communityDeals.post(
     const userId = req.user!.user_id;
     // One member's find of one SKU at one store is one report; re-reporting it
     // refreshes the row instead of stacking duplicates.
-    const dedupeKey = `u${userId}:${sku ?? title.toLowerCase().slice(0, 40)}:${storeNumber ?? state}`;
+    const dedupeKey = `u${userId}:${retailer}:${sku ?? title.toLowerCase().slice(0, 40)}:${storeNumber ?? state}`;
 
     const conn = await getDb();
     const inserted = await conn.query<{ report_id: string }>(
@@ -93,7 +110,7 @@ communityDeals.post(
          (source, kind, retailer, dedupe_key, sku, item_id, title, price, list_price,
           discount_pct, state, city, store_number, product_url, source_url, image_url,
           reported_at, fetched_at, raw)
-       VALUES ('dg-members',$1,'dollargeneral',$2,$3,$3,$4,$5,$6,$7,$8,$9,$10,$11,NULL,$12,now(),now(),$13)
+       VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8,$9,$10,$11,$12,$13,NULL,$14,now(),now(),$15)
        ON CONFLICT (source, dedupe_key) DO UPDATE SET
          kind = EXCLUDED.kind, title = EXCLUDED.title, price = EXCLUDED.price,
          list_price = EXCLUDED.list_price, discount_pct = EXCLUDED.discount_pct,
@@ -102,7 +119,7 @@ communityDeals.post(
          reported_at = now(), fetched_at = now()
        RETURNING report_id`,
       [
-        kind, dedupeKey, sku, title, price, listPrice, discountPct,
+        source, kind, retailer, dedupeKey, sku, title, price, listPrice, discountPct,
         state, city, storeNumber, productUrl, imageUrl,
         JSON.stringify({ reported_by: userId }),
       ],

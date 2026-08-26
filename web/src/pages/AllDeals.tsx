@@ -181,6 +181,28 @@ const stageLabel = (c: string) => STAGES.find((s) => s.code === c)?.label ?? c;
 const retailerName = (slug: string) =>
   RETAILERS.find((r) => r.slug === slug || r.slug.replace(/-/g, '') === slug)?.name ?? slug;
 
+/**
+ * Community-fed retailers: no scannable feed, every lead is a member report.
+ * Keyed by the ?store= slug. Drives the "reported by hunters" action bar, the
+ * report link, and the empty state, so DG and TSC share one code path.
+ */
+const COMMUNITY_STORES: Record<string, { name: string; find: string; blurb: string; report: string; empty: string }> = {
+  'dollar-general': {
+    name: 'Dollar General',
+    find: 'penny find',
+    blurb: 'DG’s penny price lives only in the register — nothing to scrape. Found one in the aisle? Add it so the next person knows.',
+    report: '/app/report?retailer=dollar-general',
+    empty: 'DG penny prices live only in the register, so this fills up as members report what they scan in store. Be the first.',
+  },
+  'tractor-supply': {
+    name: 'Tractor Supply',
+    find: 'clearance find',
+    blurb: 'TSC’s deepest markdowns are in-store red-tag remnants, walled off the website. Spotted one? Add it so the next person knows.',
+    report: '/app/report?retailer=tractor-supply',
+    empty: 'TSC’s deep markdowns are in-store red-tag only, so this fills up as members report what they find on the shelf. Be the first.',
+  },
+};
+
 const TABS = [
   { id: 'all', label: 'All deals' },
   { id: 'penny', label: 'Penny track' },
@@ -966,19 +988,18 @@ export default function AllDeals() {
         {/* Keyed by tab: switching spools tears the old tape off and prints
             the new one (CSS: .deck animation). */}
         <div className="deck" key={tab}>
-          {/* Dollar General is the one retailer with no feed to scan: its penny
-              price is register-only, so every lead here is a member's own find.
-              The action bar makes that explicit and hands them the report form. */}
-          {store === 'dollar-general' && (
+          {/* Community-fed retailers (Dollar General, Tractor Supply) have no
+              feed to scan — every lead is a member's own find. The action bar
+              makes that explicit and hands them the report form. */}
+          {store && COMMUNITY_STORES[store] && (
             <div className="community-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--s4)', flexWrap: 'wrap' }}>
               <div>
-                <h3>Dollar General is reported by hunters</h3>
-                <p>
-                  DG&rsquo;s penny price lives only in the register — nothing to scrape.
-                  Found one in the aisle? Add it so the next person knows.
-                </p>
+                <h3>{COMMUNITY_STORES[store]!.name} is reported by hunters</h3>
+                <p>{COMMUNITY_STORES[store]!.blurb}</p>
               </div>
-              <Link className="btn" to="/app/report">Report a penny find</Link>
+              <Link className="btn" to={COMMUNITY_STORES[store]!.report}>
+                Report a {COMMUNITY_STORES[store]!.find}
+              </Link>
             </div>
           )}
 
@@ -1082,13 +1103,15 @@ export default function AllDeals() {
 
           {!loading && !loadError && shown.length === 0 && communityScope.penny.length === 0 && communityScope.clearance.length === 0 && (
             <div className="empty">
-              {store === 'dollar-general' ? (
-                /* DG has no scan — an empty feed here means no member has
-                   reported yet, not that anything is broken. Point at the form. */
+              {store && COMMUNITY_STORES[store] ? (
+                /* A community retailer with no rows yet means no member has
+                   reported, not that anything is broken. Point at the form. */
                 <>
-                  <h2>No Dollar General finds reported yet</h2>
-                  <p>DG penny prices live only in the register, so this fills up as members report what they scan in store. Be the first.</p>
-                  <Link className="btn" to="/app/report">Report a penny find</Link>
+                  <h2>No {COMMUNITY_STORES[store]!.name} finds reported yet</h2>
+                  <p>{COMMUNITY_STORES[store]!.empty}</p>
+                  <Link className="btn" to={COMMUNITY_STORES[store]!.report}>
+                    Report a {COMMUNITY_STORES[store]!.find}
+                  </Link>
                 </>
               ) : rows.length > 0 ? (
                 'Nothing matches those filters. Try a different store or clear the search.'
@@ -1129,8 +1152,8 @@ export default function AllDeals() {
               <div className="community-head">
                 <h3>Community clearance reports</h3>
                 <p>
-                  Store-specific deep clearance reported around the country. Not our scan —
-                  confirm in store; the link opens Home Depot in the reported store's view.
+                  Deep clearance reported around the country. Not our scan — confirm in
+                  store, since clearance stock is store by store and never guaranteed.
                 </p>
               </div>
               {communityScope.clearance.map((r, i) => (
