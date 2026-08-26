@@ -119,20 +119,18 @@
 .card-img {
   position: relative; aspect-ratio: 16 / 11; background: var(--paper-sunk);
   display: grid; place-items: center; border-bottom: 1px solid var(--rule);
-  overflow: hidden;
 }
-/* Absolutely positioned so the image can NEVER size its own box. Home Depot's
-   uniform 400px thumbnails hid this; Best Buy serves full-resolution product
-   shots that, left in flow, stretched the aspect-ratio box to the image's
-   intrinsic height and blew a card out to page height. */
-.card-img img {
-  position: absolute; inset: 0; box-sizing: border-box;
-  width: 100%; height: 100%; object-fit: contain; padding: var(--s3);
-  /* Behind the corner badges. Absolute elements stack by DOM order, and the
-     img comes last — without this it paints over "In store" / CLEARANCE. */
-  z-index: 0;
+.card-img img { width: 100%; height: 100%; object-fit: contain; padding: var(--s3); }
+/* BEST BUY ONLY. Its feed serves full-resolution product shots that, left in
+   flow, stretch the aspect-ratio box to the image's intrinsic height and blow
+   a card out to page height — so the image is absolutely positioned and can
+   never size its own box. Every other retailer keeps the in-flow image it has
+   always had (their uniform thumbnails never misbehaved, and absolute images
+   change how the corner badges stack). */
+.card-deal.is-bb .card-img { overflow: hidden; }
+.card-deal.is-bb .card-img img {
+  position: absolute; inset: 0; box-sizing: border-box; z-index: 0;
 }
-.card-img .badge-off, .card-img .badge-score, .card-img .badge-instore { z-index: 1; }
 .card-img .ph { color: var(--ink-faint); width: 36px; height: 36px; }
 
 .badge-off {

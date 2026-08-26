@@ -251,18 +251,17 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
          card gone — and greying it out — told a customer the deal was dead
          when it may be sitting on a shelf two towns over. Stock belongs in the
          per-store ledger, where it is attributed to the store it came from. */
-      className={`card-deal${selected ? ' sel' : ''}${tier ? ` is-${tier}` : ''}`}
+      className={`card-deal${selected ? ' sel' : ''}${tier ? ` is-${tier}` : ''}${c.retailer === 'bestbuy' ? ' is-bb' : ''}`}
       style={{ '--i': Math.min(idx, 16) } as CSSProperties} onClick={onOpen}>
       <div className="card-img">
         {/* The percentage moved out of this corner and into the body, where it
             is the hero. Repeating it here would be the same fact twice. */}
         {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
-        {/* A score of 0 is "no penny signal", not information — every pool row
-            (all of Best Buy, Walmart, Lowe's) carries 0, and a corner full of
-            zeros reads as broken. The chip earns its corner or stays home. */}
+        {/* Best Buy has no penny mechanic at all, so its permanent 0 stays
+            home. Other retailers keep the chip exactly as it always was. */}
         {c.in_store_only
           ? <span className="badge-instore">In store</span>
-          : c.penny_score > 0 && <span className="badge-score">{c.penny_score}</span>}
+          : c.retailer !== 'bestbuy' && <span className="badge-score">{c.penny_score}</span>}
         {showImg
           ? <img src={c.image_url!} alt="" loading="lazy" decoding="async" onError={() => setImgFailed(true)} />
           : <Ph />}
