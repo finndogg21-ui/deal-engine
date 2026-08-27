@@ -7,7 +7,7 @@
  * console on any bestbuy.com page, wait for `window.__bb.done`, then write
  * `__bbResult()` to a file and hand it to:
  *
- *     DB_DRIVER=postgres npx tsx src/ingest/bestbuy-ingest.ts sweep.json
+ *     DB_DRIVER=postgres npx tsx src/ingest/bestbuy-gateway-ingest.ts sweep.json
  *
  * Self-contained on purpose — a console has no module loader. Query, guards
  * and parse mirror src/vendors/bestbuy-direct.ts; change one, change both.
