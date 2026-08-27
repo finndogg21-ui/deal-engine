@@ -34,6 +34,9 @@ const RETAILER_LABEL: Record<string, string> = {
   dollargeneral: 'Dollar General',
   tractorsupply: 'Tractor Supply',
   costco: 'Costco',
+  newegg: 'Newegg',
+  woot: 'Woot',
+  ollies: "Ollie's Bargain Outlet",
 };
 
 /** One item the checker should ask Home Depot about. */

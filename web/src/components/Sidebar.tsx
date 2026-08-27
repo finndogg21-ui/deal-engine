@@ -37,6 +37,10 @@ const RETAILERS = [
   // Costco: community-fed warehouse markdowns (.97 / asterisk), clearance kind,
   // All track.
   { slug: 'costco', name: 'Costco', badge: 'CO' },
+  // Newegg & Woot: national online regular deals (Best Buy pattern), All track.
+  { slug: 'newegg', name: 'Newegg', badge: 'NE' },
+  { slug: 'woot', name: 'Woot', badge: 'WO' },
+  { slug: 'ollies', name: "Ollie's", badge: 'OL' },
 ];
 
 export default function Sidebar() {
