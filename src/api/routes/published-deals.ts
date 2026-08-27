@@ -22,8 +22,11 @@ publishedDealsRoute.get(
   route(async (req, res) => {
     const limitRaw = Number(req.query.limit ?? 200);
     const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 200, 1), 200);
+    // Optional retailer scope (dashless slug), so a small retailer's deals are
+    // reachable instead of being crowded out of the global top-N by discount.
+    const retailer = req.query.retailer ? String(req.query.retailer).replace(/-/g, '') : null;
     const db = await getDb();
-    const rows = await publishedDeals(db, limit);
+    const rows = await publishedDeals(db, limit, retailer);
 
     // THE LEDGER: exact units per store, attached per deal.
     //

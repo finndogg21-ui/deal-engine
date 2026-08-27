@@ -536,7 +536,12 @@ export default function AllDeals() {
        * flagged but would not price online. The old /api/candidates feed
        * published whatever the scraper claimed - it was 97% wrong.
        */
-      const r = await fetch('/api/deals/published?limit=200');
+      // Scope to the selected store so a small retailer's deals are fetched
+      // directly instead of being crowded out of the global top-200 by the
+      // huge high-discount retailers. Community stores have no published rows
+      // and simply come back empty here (they render from community_reports).
+      const scope = store ? `&retailer=${encodeURIComponent(store)}` : '';
+      const r = await fetch(`/api/deals/published?limit=200${scope}`);
       const body = await r.json().catch(() => null);
 
       if (r.status === 402) {
@@ -616,7 +621,10 @@ export default function AllDeals() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Re-fetch when the selected store changes: the feed is now server-scoped
+    // to the retailer, so switching stores must reload rather than filter a
+    // stale global slice.
+  }, [store]);
 
   const loadStats = useCallback(async () => {
     // Best effort. These decorate the header, and a failure here must never

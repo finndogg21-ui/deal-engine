@@ -312,20 +312,27 @@ export async function recordVerdicts(
   return out;
 }
 
-/** What the app should show: only HD-verified, in-stock, floor-clearing deals. */
-export async function publishedDeals(db: Db, limit = 200) {
+/** What the app should show: only verified, floor-clearing deals.
+ *
+ * Optional retailer scope. Without it the flat top-N is ordered by discount,
+ * which lets the huge high-discount retailers (Best Buy, Woot, Ollie's) crowd
+ * the smaller ones (Newegg, Grove, Staples) out of the slice entirely — so the
+ * app passes the selected store's slug and gets that retailer's own top-N. */
+export async function publishedDeals(db: Db, limit = 200, retailer?: string | null) {
+  const scope = retailer ? 'AND retailer = $2' : '';
+  const params: unknown[] = retailer ? [limit, retailer] : [limit];
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT discovery_id, retailer, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
             checked_at, source, deal_kind, clearance_price, clearance_pct,
             clearance_store, clearance_stores_checked
        FROM discovery
-      WHERE status = 'published'
+      WHERE status = 'published' ${scope}
       -- Hidden clearance first (the category this product is named after),
       -- then the biggest verified markdowns.
       ORDER BY (deal_kind = 'hidden_clearance') DESC, hd_discount DESC NULLS LAST
       LIMIT $1`,
-    [limit],
+    params,
   );
   return rows;
 }
