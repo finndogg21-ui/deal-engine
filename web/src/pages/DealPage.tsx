@@ -57,7 +57,11 @@ export default function DealPage() {
     let alive = true;
     (async () => {
       try {
-        const r = await fetch('/api/deals/published?limit=200');
+        // Scope to the retailer, or a small retailer's item is crowded out of
+        // the global top-200 by the huge high-discount retailers and the detail
+        // page 404s a deal that IS published. (Same fix as the list feed.)
+        const scope = retailer ? `&retailer=${encodeURIComponent(retailer)}` : '';
+        const r = await fetch(`/api/deals/published?limit=200${scope}`);
         if (!r.ok) { if (alive) setState('missing'); return; }
         const body = await r.json();
         const found = (body.deals as Row[] | undefined)?.find(
