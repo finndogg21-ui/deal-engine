@@ -101,6 +101,22 @@
   min-height: 100%;
 }
 
+/* Grouped rail: "Main" (the five core retailers) then "Other Retailers". */
+.rail-group { display: flex; flex-direction: column; gap: var(--s2); }
+.rail-group + .rail-group { margin-top: var(--s5); }
+
+.rail-sec {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0 2px var(--s1);
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--rule);
+}
+
 .rail-item {
   display: flex;
   align-items: center;
@@ -143,16 +159,23 @@
   .rail {
     position: static;
     flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;      /* the chips are the affordance; hide the bar */
     min-height: 0;
     border-right: 0;
     border-bottom: 1px solid var(--rule);
     padding: var(--s3) var(--s4);
   }
-  /* min-width:0 or flex-shrink is inert (flex items default to min-width:auto),
-     the ellipsis on .rail-name can never fire, and three chips push the
-     document 20px past a 375px viewport — clipping whichever retailer was
-     added last. */
-  .rail-item { flex: 1 1 0; min-width: 0; justify-content: center; }
+  .rail::-webkit-scrollbar { display: none; }
+  /* Thirteen retailers no longer fit as equal-width chips on a phone, so the
+     rail becomes a horizontal scroll: both groups flatten into one row of
+     badge chips (labels are desktop-only), each at its natural width. */
+  .rail-group { display: contents; }
+  .rail-group + .rail-group { margin-top: 0; }
+  .rail-sec { display: none; }
+  .rail-item { flex: 0 0 auto; min-width: 0; justify-content: center; }
   .rail-badge { display: none; }
 }
 

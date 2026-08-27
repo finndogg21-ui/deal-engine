@@ -1,19 +1,14 @@
 /**
- * THE RAIL — the app's entire sidebar. Two retailers, nothing else.
+ * THE RAIL — the app's navigation, grouped.
  *
- * Only retailers we actually publish verified deals for appear here. Lowe's and
- * Walmart were dropped rather than greyed out: a "soon" row is a promise, and
- * an empty nav slot is not worth one.
+ * The five core retailers we run our own verified sweeps for lead the rail as
+ * "Main". Everything added since — the free regular-deal sources (Newegg, Woot,
+ * Ollie's, Grove, Staples) and the community penny/markdown lists (Dollar
+ * General, Tractor Supply, Costco) — sits under "Other Retailers" so the five
+ * that carry the product are not diluted by the long tail.
  *
- * These are QUERY links, not routes. THE TAPE redesign culled
- * /app/deals/:retailer and /app/stock/:retailer — both now redirect to /app —
- * so the previous sidebar's retailer links silently bounced to the unfiltered
- * feed. `?store=` scopes the feed for real. `tab=all` rides along because the
- * bare app opens on the Penny track, which reads as empty for a retailer with
- * no penny rows.
- *
- * "All" is deliberately NOT a third entry: it is the same list unfiltered, and
- * the wordmark in the header already goes there.
+ * QUERY links, not routes: `?store=` scopes the feed, `tab=` picks the track
+ * (community penny retailers open on Penny; everyone else on All).
  */
 
 import { Link, useLocation } from 'react-router-dom';
@@ -21,28 +16,34 @@ import { Link, useLocation } from 'react-router-dom';
 const STORE_ICON =
   'M3 7l1.5-4h11L17 7M3 7v10h14V7M3 7h14M7.5 17v-5h5v5';
 
-const RETAILERS = [
-  { slug: 'home-depot', name: 'Home Depot', badge: 'HD' },
-  { slug: 'target', name: 'Target', badge: 'TG' },
-  { slug: 'lowes', name: "Lowe's", badge: 'LW' },
-  { slug: 'walmart', name: 'Walmart', badge: 'WM' },
-  { slug: 'best-buy', name: 'Best Buy', badge: 'BB' },
-  // Dollar General is penny-only and community-fed: its rows come from members,
-  // and it opens on the Penny track (tab=penny) where those live — an 'all'
-  // track would read as empty for a retailer that has no scanned feed.
-  { slug: 'dollar-general', name: 'Dollar General', badge: 'DG', tab: 'penny' as const },
-  // Tractor Supply is community-fed too, but clearance not penny — it opens on
-  // the All track, where the community clearance block renders.
-  { slug: 'tractor-supply', name: 'Tractor Supply', badge: 'TS' },
-  // Costco: community-fed warehouse markdowns (.97 / asterisk), clearance kind,
-  // All track.
-  { slug: 'costco', name: 'Costco', badge: 'CO' },
-  // Newegg & Woot: national online regular deals (Best Buy pattern), All track.
-  { slug: 'newegg', name: 'Newegg', badge: 'NE' },
-  { slug: 'woot', name: 'Woot', badge: 'WO' },
-  { slug: 'ollies', name: "Ollie's", badge: 'OL' },
-  { slug: 'grove', name: 'Grove', badge: 'GR' },
-  { slug: 'staples', name: 'Staples', badge: 'ST' },
+interface Retailer { slug: string; name: string; badge: string; tab?: 'penny' }
+
+const GROUPS: { label: string; items: Retailer[] }[] = [
+  {
+    label: 'Main',
+    items: [
+      { slug: 'home-depot', name: 'Home Depot', badge: 'HD' },
+      { slug: 'target', name: 'Target', badge: 'TG' },
+      { slug: 'lowes', name: "Lowe's", badge: 'LW' },
+      { slug: 'walmart', name: 'Walmart', badge: 'WM' },
+      { slug: 'best-buy', name: 'Best Buy', badge: 'BB' },
+    ],
+  },
+  {
+    label: 'Other Retailers',
+    items: [
+      // Free regular-deal sources (national online pricing).
+      { slug: 'newegg', name: 'Newegg', badge: 'NE' },
+      { slug: 'woot', name: 'Woot', badge: 'WO' },
+      { slug: 'ollies', name: "Ollie's", badge: 'OL' },
+      { slug: 'grove', name: 'Grove', badge: 'GR' },
+      { slug: 'staples', name: 'Staples', badge: 'ST' },
+      // Community penny / markdown lists (member-reported).
+      { slug: 'dollar-general', name: 'Dollar General', badge: 'DG', tab: 'penny' },
+      { slug: 'tractor-supply', name: 'Tractor Supply', badge: 'TS' },
+      { slug: 'costco', name: 'Costco', badge: 'CO' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -53,28 +54,33 @@ export default function Sidebar() {
 
   return (
     <nav className="rail" aria-label="Retailers">
-      {RETAILERS.map((r) => (
-        <Link
-          key={r.slug}
-          to={`/app?store=${r.slug}&tab=${r.tab ?? 'all'}`}
-          className={`rail-item${active === r.slug ? ' on' : ''}`}
-          aria-current={active === r.slug ? 'page' : undefined}
-        >
-          <svg
-            className="rail-icon"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d={STORE_ICON} />
-          </svg>
-          <span className="rail-name">{r.name}</span>
-          <span className="rail-badge">{r.badge}</span>
-        </Link>
+      {GROUPS.map((group) => (
+        <div className="rail-group" key={group.label}>
+          <div className="rail-sec">{group.label}</div>
+          {group.items.map((r) => (
+            <Link
+              key={r.slug}
+              to={`/app?store=${r.slug}&tab=${r.tab ?? 'all'}`}
+              className={`rail-item${active === r.slug ? ' on' : ''}`}
+              aria-current={active === r.slug ? 'page' : undefined}
+            >
+              <svg
+                className="rail-icon"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d={STORE_ICON} />
+              </svg>
+              <span className="rail-name">{r.name}</span>
+              <span className="rail-badge">{r.badge}</span>
+            </Link>
+          ))}
+        </div>
       ))}
     </nav>
   );
