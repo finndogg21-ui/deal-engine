@@ -30,24 +30,35 @@ export const NEWEGG_FEEDS = [
   'https://www.newegg.com/todays-deals',
 ];
 
-/** Titles that are not resellable goods — gift cards, warranties, services. */
-const JUNK = /\bgift card\b|\be-?gift\b|\bwarranty\b|\bprotection plan\b|\bsubscription\b|\bdigital download\b|\bsoftware download\b/i;
+/** Titles that are not resellable physical goods — gift cards, warranties,
+ *  services, and DIGITAL DOWNLOADS / game codes (a Steam code is not a flip). */
+const JUNK = /\bgift card\b|\be-?gift\b|\bwarranty\b|\bprotection plan\b|\bsubscription\b|\bdigital download\b|\bsoftware download\b|\bsteam\b|\bgame code\b|\bemail delivery\b|\bdigital code\b|\bproduct key\b|\bdownload\b/i;
 
 const clean = (s: string) =>
   s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
 
-/** Parse one Newegg listing page's HTML into deals. Exported for offline tests. */
+/**
+ * Parse one Newegg listing page's HTML into deals. Exported for offline tests.
+ *
+ * Split on the PRODUCT CONTAINER (`goods-container`), not on `goods-info`: the
+ * product image lives in a `goods-img` block that PRECEDES `goods-info`, so
+ * splitting on goods-info paired each card with the NEXT product's image
+ * (verified 2026-08-27: a PC case showed a microSD card's photo). The container
+ * wraps the image and the info together, so everything read from one block
+ * belongs to the same product.
+ */
 export function parseNewegg(html: string): RegularDeal[] {
-  const blocks = html.split('class="goods-info"').slice(1);
+  const blocks = html.split('class="goods-container"').slice(1);
   const deals: RegularDeal[] = [];
 
   for (const b of blocks) {
     const titleM = b.match(/class="goods-title"[^>]*>(.*?)<\/a>/s);
-    const hrefM = b.match(/href="(https:\/\/www\.newegg\.com\/[^"]+)"[^>]*class="goods-title"/s)
-      ?? b.match(/<a[^>]+href="(https:\/\/www\.newegg\.com\/[^"]+)"[^>]*class="goods-title"/s);
+    const hrefM = b.match(/<a[^>]+href="(https:\/\/www\.newegg\.com\/[^"]+)"[^>]*class="goods-title"/s);
     const idM = b.match(/[?&]Item=([0-9A-Za-z]+)/) ?? b.match(/\/p\/(N82E[0-9A-Z]+)/);
     const curM = b.match(/goods-price-current[\s\S]{0,160}?goods-price-value"><strong>([\d,]+)<\/strong><sup>(\.\d{2})/);
-    const wasM = b.match(/goods-price-was">\s*\$?([\d,]+\.\d{2})/);
+    // The was-price node carries extra classes: `goods-price-was text-gray
+    // font-s"` — allow anything up to the closing quote before the value.
+    const wasM = b.match(/goods-price-was[^"]*">\s*\$?([\d,]+\.\d{2})/);
 
     if (!titleM || !curM || !idM) continue;
     const title = clean(titleM[1]!);
@@ -57,7 +68,11 @@ export function parseNewegg(html: string): RegularDeal[] {
     const listPrice = wasM ? Number(wasM[1]!.replace(/,/g, '')) : NaN;
     if (!(price > 0) || !(listPrice > price)) continue; // real markdown only
 
-    const imgM = b.match(/<img[^>]+src="(https:[^"]+)"/);
+    // Image from THIS container's goods-img block only (before goods-info), so
+    // it can never borrow a neighbour's photo.
+    const imgBlock = b.split('class="goods-info"')[0]!;
+    const imgM = imgBlock.match(/class="goods-img"[\s\S]*?<img[^>]+src="(https:[^"]+)"/)
+      ?? imgBlock.match(/<img[^>]+src="(https:\/\/c1\.neweggimages\.com[^"]+)"/);
     deals.push({
       itemId: idM[1]!,
       sku: idM[1]!,

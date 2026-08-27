@@ -28,7 +28,15 @@ const CATEGORY_KEYS = ['sellout', 'tech', 'pc', 'home', 'sport', 'tools'];
 /** Cap events fetched per run so the sweep stays polite. */
 const MAX_EVENTS = 40;
 
-const JUNK = /\bwine\b|\bchocolate\b|\bcoffee\b|\bsnack\b|\bcandy\b|\bjerky\b|\bsauce\b|\bcookie\b|\bgift card\b/i;
+const JUNK =
+  // food-ish
+  /\bwine\b|\bchocolate\b|\bcoffee\b|\bsnack\b|\bcandy\b|\bjerky\b|\bsauce\b|\bcookie\b|\bgift card\b/i;
+/** Event/category "offers" that are not a single product — their titles are
+ *  merchandising labels ("Over $50", "…Week", "…Stuff", "Hobbies"), and they
+ *  carry placeholder $1/$10 prices. Never a real deal. */
+const EVENT_TITLE = /\bover \$\d|\bweek\b|\bhobbies\b|\bstuff\b|\bround-?up\b|\bblowout\b|\bclearance event\b/i;
+/** Woot doesn't sell real goods below this; a lower "sale" is a placeholder. */
+const MIN_SALE = 3;
 
 interface WootItem { Title: string; ListPrice: number | null; SalePrice: number | null; SoldOut: boolean }
 interface WootOffer { Id: string; FullTitle: string; Slug: string; Items: WootItem[]; Photos: { Url: string }[] }
@@ -50,19 +58,24 @@ const EVENT_Q =
   'query($id:ID!){ getEvent(Id:$id){ Id Offers { Id FullTitle Slug Items { Title ListPrice SalePrice SoldOut } Photos { Url } } } }';
 
 function offerToDeal(o: WootOffer): RegularDeal | null {
-  if (!o.FullTitle || JUNK.test(o.FullTitle)) return null;
-  const live = (o.Items ?? []).filter((i) => !i.SoldOut);
-  const sale = Math.min(...live.filter((i) => i.SalePrice).map((i) => i.SalePrice!));
-  const list = Math.max(...live.filter((i) => i.ListPrice).map((i) => i.ListPrice!));
-  if (!Number.isFinite(sale) || !Number.isFinite(list) || list <= sale) return null;
+  if (!o.FullTitle || JUNK.test(o.FullTitle) || EVENT_TITLE.test(o.FullTitle)) return null;
+  // Pair each item's OWN sale+list — never min-sale-of-one-item against
+  // max-list-of-another, which invented 90%-off "$1.00 was $10.00" deals.
+  let best: { price: number; list: number } | null = null;
+  for (const i of o.Items ?? []) {
+    if (i.SoldOut || !i.SalePrice || !i.ListPrice) continue;
+    if (i.SalePrice < MIN_SALE || i.ListPrice <= i.SalePrice) continue;
+    if (!best || i.SalePrice < best.price) best = { price: i.SalePrice, list: i.ListPrice };
+  }
+  if (!best) return null;
   return {
     itemId: o.Id,
     sku: o.Id,
     title: o.FullTitle.trim(),
     imageUrl: o.Photos?.[0]?.Url ?? null,
     productUrl: `https://www.woot.com/offers/${o.Slug}`,
-    price: Math.round(sale * 100) / 100,
-    listPrice: Math.round(list * 100) / 100,
+    price: Math.round(best.price * 100) / 100,
+    listPrice: Math.round(best.list * 100) / 100,
   };
 }
 

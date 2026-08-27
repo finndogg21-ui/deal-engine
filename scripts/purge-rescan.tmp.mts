@@ -1,0 +1,10 @@
+import 'dotenv/config';
+import { getDb } from '../src/db/client.js';
+import { scanNewegg } from '../src/ingest/newegg-scan.js';
+import { scanWoot } from '../src/ingest/woot-scan.js';
+const db = await getDb();
+const del = await db.query("DELETE FROM discovery WHERE retailer IN ('newegg','woot')");
+console.log('deleted stale rows:', del.rowCount);
+console.log('newegg:', JSON.stringify(await scanNewegg()));
+console.log('woot:', JSON.stringify(await scanWoot()));
+await db.close();
