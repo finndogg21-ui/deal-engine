@@ -38,8 +38,15 @@ const GROUPS: { label: string; items: Retailer[] }[] = [
       { slug: 'ollies', name: "Ollie's", badge: 'OL' },
       { slug: 'grove', name: 'Grove', badge: 'GR' },
       { slug: 'staples', name: 'Staples', badge: 'ST' },
-      // Community penny / markdown lists (member-reported).
-      { slug: 'dollar-general', name: 'Dollar General', badge: 'DG', tab: 'penny' },
+    ],
+  },
+  {
+    // Member-reported penny/markdown lists — no scanned feed, so kept apart
+    // from the retailers we actually sweep. These open on the All track (they
+    // have no Penny tab; their finds ARE the feed).
+    label: 'Community Reported',
+    items: [
+      { slug: 'dollar-general', name: 'Dollar General', badge: 'DG' },
       { slug: 'tractor-supply', name: 'Tractor Supply', badge: 'TS' },
       { slug: 'costco', name: 'Costco', badge: 'CO' },
     ],

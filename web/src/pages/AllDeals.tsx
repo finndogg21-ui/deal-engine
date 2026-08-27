@@ -470,11 +470,13 @@ export default function AllDeals() {
   const [loadError, setLoadError] = useState<{ kind: 'upgrade' | 'error'; message: string } | null>(null);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
 
-  // Home Depot is pennies-first (founder decision 2026-08-22): the app opens
-  // on the Penny track; ?tab=all / ?tab=near deep-link the other views.
+  // Default to All deals. Penny is now a Home-Depot-only track (its button
+  // only shows there), so the bare app must not open on a Penny tab it can't
+  // offer a button for. HD's own rail link still carries ?tab=all, and the
+  // Penny button is one click away when viewing Home Depot.
   const [tab, setTab] = useState<TabId>(() => {
     const q = new URLSearchParams(window.location.search).get('tab');
-    return q === 'all' || q === 'near' || q === 'penny' ? q : 'penny';
+    return q === 'all' || q === 'near' || q === 'penny' ? q : 'all';
   });
   /**
    * ?store=<slug> scopes the feed to one retailer — this is what the sidebar's
@@ -502,9 +504,14 @@ export default function AllDeals() {
   const { search } = useLocation();
   useEffect(() => {
     const p = new URLSearchParams(search);
-    setStore(p.get('store'));
+    const s = p.get('store');
+    setStore(s);
     const t = p.get('tab');
-    if (t === 'all' || t === 'near' || t === 'penny') setTab(t);
+    // Penny is Home-Depot-only. A stale ?tab=penny on any other store (old
+    // bookmark, back button) falls back to All so the view is never stuck on a
+    // Penny track with no button and no rows.
+    if (t === 'penny' && s !== 'home-depot') setTab('all');
+    else if (t === 'all' || t === 'near' || t === 'penny') setTab(t);
   }, [search]);
 
   const [compact, setCompact] = useState(() => {
@@ -827,11 +834,14 @@ export default function AllDeals() {
     const storeKey = store ? store.replace(/-/g, '') : null;
     const inStore = (r: CommunityReport) =>
       !storeKey || storeKey === (r.retailer ?? 'homedepot');
-    // Tab-scoped as well, so these arrays are exactly what is on screen. The
-    // empty state reads them, and a non-empty clearance list must not silence
-    // it on a tab that never renders clearance.
+    // A community-reported retailer (Dollar General, Tractor Supply, Costco)
+    // has no Penny tab — its finds ARE the feed — so BOTH its penny and its
+    // clearance reports render on the All track. Home Depot keeps the split:
+    // penny reports on the Penny tab, clearance on All.
+    const isCommunityStore = !!(store && COMMUNITY_STORES[store]);
+    const pennyOnThisTab = isCommunityStore ? tab === 'all' : tab === 'penny';
     return {
-      penny: tab === 'penny' ? sortedPennyReports.filter((r) => inStore(r) && match(r.title)) : [],
+      penny: pennyOnThisTab ? sortedPennyReports.filter((r) => inStore(r) && match(r.title)) : [],
       clearance: tab === 'all' ? clearanceReports.filter((r) => inStore(r) && match(r.title)) : [],
     };
   }, [q, store, tab, sortedPennyReports, clearanceReports]);
@@ -968,11 +978,17 @@ export default function AllDeals() {
           onClick={() => setTab('all')}>
           All deals <span className="count">{counts.all}</span>
         </button>
-        <button role="tab" aria-selected={tab === 'penny'}
-          className={`spool${tab === 'penny' ? ' on' : ''}`}
-          onClick={() => setTab('penny')}>
-          Penny deals <span className="count">{counts.penny}</span>
-        </button>
+        {/* Penny is a Home-Depot-only mechanic (register-only $0.01, its own
+            ladder + community penny reports). Every other retailer — the
+            scraped ones, the community markdown lists — has no penny track, so
+            the button only appears on Home Depot. */}
+        {store === 'home-depot' && (
+          <button role="tab" aria-selected={tab === 'penny'}
+            className={`spool${tab === 'penny' ? ' on' : ''}`}
+            onClick={() => setTab('penny')}>
+            Penny deals <span className="count">{counts.penny}</span>
+          </button>
+        )}
 
         <label className="searchbox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
