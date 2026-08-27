@@ -181,6 +181,9 @@ const stageLabel = (c: string) => STAGES.find((s) => s.code === c)?.label ?? c;
 const retailerName = (slug: string) =>
   RETAILERS.find((r) => r.slug === slug || r.slug.replace(/-/g, '') === slug)?.name ?? slug;
 
+/** Retailers whose price is one national number online (no per-store variation). */
+const ONLINE_NATIONAL = new Set(['bestbuy', 'newegg', 'woot', 'grove', 'staples']);
+
 /**
  * Community-fed retailers: no scannable feed, every lead is a member report.
  * Keyed by the ?store= slug. Drives the "reported by hunters" action bar, the
@@ -288,11 +291,13 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
         {/* The percentage moved out of this corner and into the body, where it
             is the hero. Repeating it here would be the same fact twice. */}
         {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
-        {/* Best Buy has no penny mechanic at all, so its permanent 0 stays
-            home. Other retailers keep the chip exactly as it always was. */}
+        {/* The score chip only means something above zero. Every regular-deal
+            retailer (Best Buy, Newegg, Woot, Ollie's, Grove, Staples) carries a
+            permanent 0, and a grid of "0" chips reads as broken — so the chip
+            earns its corner or stays home. */}
         {c.in_store_only
           ? <span className="badge-instore">In store</span>
-          : c.retailer !== 'bestbuy' && <span className="badge-score">{c.penny_score}</span>}
+          : c.penny_score > 0 && <span className="badge-score">{c.penny_score}</span>}
         {showImg
           ? <img src={c.image_url!} alt="" loading="lazy" decoding="async" onError={() => setImgFailed(true)} />
           : <Ph />}
@@ -370,12 +375,15 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           <span className="card-possible">
             {c.hidden_clearance && clearedPrice !== null
               ? `Cheapest at ${c.clearance_store ?? 'a nearby store'} · scan yours to confirm`
-              /* Best Buy is the one retailer whose price is genuinely national
-                 (one price online, same everywhere) — "check your store" there
-                 sends someone hunting for a variation that cannot exist. */
-              : c.retailer === 'bestbuy'
+              /* Online-national retailers have one price everywhere, so
+                 "check your store" sends someone hunting a variation that
+                 cannot exist. Ollie's is in-store-only (national sample, no
+                 online cart) so it keeps the store-check framing. */
+              : ONLINE_NATIONAL.has(c.retailer)
                 ? 'National price · same everywhere online'
-                : 'Possible deal · check your store'}
+                : c.retailer === 'ollies'
+                  ? 'In-store find · stock varies by store'
+                  : 'Possible deal · check your store'}
           </span>
           {c.near_stock
             ? <span className="card-stock">{stockText(c.near_stock)}</span>

@@ -41,6 +41,8 @@ const RETAILERS = [
   { slug: 'newegg', name: 'Newegg', badge: 'NE' },
   { slug: 'woot', name: 'Woot', badge: 'WO' },
   { slug: 'ollies', name: "Ollie's", badge: 'OL' },
+  { slug: 'grove', name: 'Grove', badge: 'GR' },
+  { slug: 'staples', name: 'Staples', badge: 'ST' },
 ];
 
 export default function Sidebar() {
