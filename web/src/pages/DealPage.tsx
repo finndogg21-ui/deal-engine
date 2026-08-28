@@ -238,7 +238,11 @@ export default function DealPage() {
                 at every store and "we will not print it as one". Home Depot
                 and Target rows really are store-level, so they keep it. */}
             Verified against {possessive(retailerName(row.retailer))} own{' '}
-            {row.retailer === 'lowes' ? 'published markdown data' : 'store-level data'}, not a
+            {row.retailer === 'lowes'
+              ? 'published markdown data'
+              : isHidden
+                ? 'store-level clearance data'
+                : 'current online price'}, not a
             third-party list.
           </li>
         </ul>
