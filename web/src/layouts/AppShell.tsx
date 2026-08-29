@@ -1,7 +1,7 @@
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import ZipBar from '../components/ZipBar.js';
 import Sidebar from '../components/Sidebar.js';
-import { useAuth } from '../lib/auth.js';
+import { useAuth, isPreviewUser } from '../lib/auth.js';
 import { BRAND } from '../App.js';
 import '../sidebar.css';
 
@@ -34,12 +34,19 @@ export default function AppShell() {
       <header className="tape-head">
         <Link to="/app" className="tape-mark">{BRAND.toUpperCase()}</Link>
         <div className="tape-zip"><ZipBar /></div>
-        {/* The one standing pitch — quiet, bordered, inverts on hover. It says
-            "account", not "trial": there is no trial, /faq says so plainly, and
-            /signup asks for an email and a password and nothing else. Promising
-            a trial here made four surfaces contradict each other. */}
-        <Link to="/signup" className="tape-trial">Create free account</Link>
-        <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
+        {/* Auth actions match the actual session. A PUBLIC_PREVIEW visitor is the
+            shared anonymous row, NOT a signed-in account — offering them "Sign
+            out" was a contradiction a cold ad visitor sees immediately. They get
+            "Create account" + "Sign in"; a real signed-in member gets "Sign out".
+            (There is no trial — /faq says so, /signup asks only email+password.) */}
+        {isPreviewUser(me) ? (
+          <>
+            <Link to="/signup" className="tape-trial">Create free account</Link>
+            <Link to="/signin" className="tape-out">Sign in</Link>
+          </>
+        ) : (
+          <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
+        )}
       </header>
       {/* The rail is the only nav: Home Depot and Target. On a phone it lies
           flat under the header instead of eating a third of the width. */}

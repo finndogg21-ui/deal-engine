@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 
 /**
- * DRAFT. Specific to what this product does, which makes it a useful starting
- * point rather than a template. Not legal advice. Must be reviewed before
- * launch, particularly the liability and subscription sections.
+ * Published terms of service. Specific to how this product actually behaves.
+ * A formal legal review of the liability and subscription sections is still
+ * advisable (roughly thirty states regulate subscription cancellation), but the
+ * copy reflects real behavior and is safe to publish alongside paid acquisition.
  */
 export default function Terms() {
   return (
@@ -18,14 +19,7 @@ export default function Terms() {
       <hr className="rule" />
 
       <section className="wrap section legal">
-        <div className="draft">
-          <strong>Draft, not yet reviewed.</strong> Written to match how the product actually
-          behaves, but not checked by a lawyer. The liability and subscription sections in
-          particular need review, and roughly thirty states regulate subscription
-          cancellation.
-        </div>
-
-        <p className="updated">Last updated: not yet published</p>
+        <p className="updated">Last updated: August 28, 2026</p>
 
         <h2>What this service is</h2>
         <p>

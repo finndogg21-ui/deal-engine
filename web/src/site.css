@@ -47,6 +47,27 @@
 .nav-links a.btn-quiet { color: var(--ink); }
 .nav-links a.btn-quiet:hover { color: var(--ink); background: var(--paper-sunk); }
 
+/* Mobile: collapse the 7-item nav behind a toggle so it stops eating the top
+   third of a phone screen — cold Facebook-ad traffic is mostly mobile, and the
+   old flex-wrap stacked all seven links + two buttons above the fold. Desktop is
+   unchanged: the toggle is display:none and the links sit inline as before. */
+.nav-toggle {
+  display: none;
+  background: none; border: 1px solid var(--rule); border-radius: var(--r-sm);
+  color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer;
+  min-width: 44px; min-height: 44px; align-items: center; justify-content: center;
+}
+@media (max-width: 640px) {
+  .nav-toggle { display: inline-flex; }
+  .nav-links {
+    display: none; flex-basis: 100%; flex-direction: column; align-items: stretch;
+    gap: 0; padding-top: var(--s2);
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a { width: 100%; }
+  .nav-links a.btn, .nav-links a.btn-quiet { justify-content: center; margin-top: var(--s2); }
+}
+
 /* ---- Buttons ---- */
 
 .btn {

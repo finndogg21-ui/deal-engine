@@ -34,6 +34,16 @@ interface AuthValue {
 
 const Ctx = createContext<AuthValue | null>(null);
 
+/**
+ * The anonymous public-preview identity. When PUBLIC_PREVIEW is on, the server
+ * serves every un-signed-in visitor as this one shared operator row, so `me` is
+ * never null. A cold visitor is NOT a signed-in account — the UI must offer
+ * "Create account" / "Sign in", never "Sign out". Keyed on the server-defined
+ * preview email so the check has one source of truth.
+ */
+export const PREVIEW_EMAIL = 'preview@deal-engine.local';
+export const isPreviewUser = (me: Me | null): boolean => me?.email === PREVIEW_EMAIL;
+
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: 'same-origin',

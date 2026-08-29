@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { BRAND } from '../App.js';
 import { RETAILERS } from '../lib/retailers.js';
@@ -7,13 +8,29 @@ import '../site.css';
  *  drift apart between pages. */
 export default function SiteLayout() {
   const year = new Date().getFullYear();
+  // On a phone the seven links + two CTAs used to stack and swallow the top of
+  // the screen. Collapse them behind a toggle; tapping any link closes it.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="site">
       <header className="nav">
         <div className="wrap nav-in">
-          <Link to="/" className="wordmark">{BRAND}</Link>
-          <nav className="nav-links" aria-label="Main">
+          <Link to="/" className="wordmark" onClick={() => setMenuOpen(false)}>{BRAND}</Link>
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+          <nav
+            className={`nav-links${menuOpen ? ' open' : ''}`}
+            aria-label="Main"
+            onClick={() => setMenuOpen(false)}
+          >
             <NavLink to="/how-it-works">How it works</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
             <NavLink to="/stores/home-depot">Stores</NavLink>

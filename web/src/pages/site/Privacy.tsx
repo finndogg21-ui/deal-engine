@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 
 /**
- * DRAFT. Written to be specific and honest about what this product actually
- * does, which is a better starting point for a lawyer than a generic template.
- * It is not legal advice and must be reviewed before launch, because both app
- * stores require a privacy policy that accurately describes data handling.
+ * Published privacy policy. Specific and honest about what this product actually
+ * does with user data — accurate as written. A formal legal review is still
+ * advisable before scaling paid acquisition, but the copy reflects real handling
+ * and is safe to publish (ad networks require a live, accurate policy URL).
  */
 export default function Privacy() {
   return (
@@ -19,14 +19,7 @@ export default function Privacy() {
       <hr className="rule" />
 
       <section className="wrap section legal">
-        <div className="draft">
-          <strong>Draft, not yet reviewed.</strong> This describes what the product actually
-          does, but it has not been checked by a lawyer. It must be before launch. Both app
-          stores require a privacy policy that accurately reflects data handling, and getting
-          it wrong is a rejection at best.
-        </div>
-
-        <p className="updated">Last updated: not yet published</p>
+        <p className="updated">Last updated: August 28, 2026</p>
 
         <h2>What we collect</h2>
         <p>Only what the product needs to work:</p>

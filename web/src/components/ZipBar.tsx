@@ -64,6 +64,9 @@ export default function ZipBar() {
     <div className="zb">
       {/* Only when there is nothing saved yet — a one-time nudge, not chrome. */}
       {!saved && !dirty && <span className="zb-hint">Set once; every stock check uses it</span>}
+      {dirty && zip.length > 0 && zip.length < 5 && (
+        <span className="zb-hint" role="status">Enter all 5 digits</span>
+      )}
       {error && <span className="zb-err" role="alert">{error}</span>}
       {confirmed && !dirty && <span className="zb-ok" role="status">Saved</span>}
 
