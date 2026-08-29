@@ -89,6 +89,53 @@ const num = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/** One nearby store's shelf stock, as HD returns it in the fulfillment payload. */
+export interface HdLocationStock {
+  /** Store NUMBER (locationId), leading zeros stripped so it joins cleanly. */
+  storeId: string;
+  storeName: string | null;
+  /** Units on that store's floor. null = HD did not say (never "zero"). */
+  quantity: number | null;
+  inStock: boolean | null;
+  isAnchor: boolean;
+}
+
+const stripZeros = (s: unknown): string => String(s ?? '').replace(/^0+/, '');
+
+/**
+ * Extract EVERY nearby store from an HD product's fulfillment payload.
+ *
+ * THE POINT OF THIS FUNCTION: `productClientOnlyProduct` called with a zipCode
+ * returns the shelf quantity for ALL nearby stores in ONE response. The
+ * single-store `hdStoreFact` below keeps only the anchor and discards the rest —
+ * so a whole ZIP-area's stock arrives free and is thrown away. This keeps it.
+ * Pure (no network), so it is unit-testable against a captured payload.
+ */
+export function parseHdStoreLocations(
+  product: Record<string, unknown> | null | undefined,
+): HdLocationStock[] {
+  const out: HdLocationStock[] = [];
+  const options = ((product?.fulfillment ?? {}) as Record<string, unknown>).fulfillmentOptions;
+  if (!Array.isArray(options)) return out;
+  for (const opt of options as Array<Record<string, unknown>>) {
+    if (opt.type !== 'pickup') continue; // BOPIS shelf, never the delivery network
+    for (const svc of (opt.services ?? []) as Array<Record<string, unknown>>) {
+      for (const loc of (svc.locations ?? []) as Array<Record<string, unknown>>) {
+        if (loc.type !== 'store') continue;
+        const inv = (loc.inventory ?? {}) as Record<string, unknown>;
+        out.push({
+          storeId: stripZeros(loc.locationId),
+          storeName: typeof loc.storeName === 'string' ? loc.storeName : null,
+          quantity: num(inv.quantity),
+          inStock: typeof inv.isInStock === 'boolean' ? inv.isInStock : null,
+          isAnchor: loc.isAnchor === true,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Ask HD for one item at one store.
  *
@@ -134,25 +181,13 @@ export async function hdStoreFact(
 
     // Shelf quantity: the BOPIS/store location, never the delivery network
     // number. Prior burn: the network figure read 74 while the shelf held 8.
-    let quantity: number | null = null;
-    let inStock: boolean | null = null;
-    let storeName: string | null = null;
-    const options = ((p.fulfillment ?? {}) as Record<string, unknown>).fulfillmentOptions;
-    if (Array.isArray(options)) {
-      for (const opt of options as Array<Record<string, unknown>>) {
-        if (opt.type !== 'pickup') continue;
-        for (const svc of (opt.services ?? []) as Array<Record<string, unknown>>) {
-          for (const loc of (svc.locations ?? []) as Array<Record<string, unknown>>) {
-            if (loc.type !== 'store') continue;
-            if (String(loc.locationId).replace(/^0+/, '') !== String(storeId).replace(/^0+/, '')) continue;
-            const inv = (loc.inventory ?? {}) as Record<string, unknown>;
-            quantity = num(inv.quantity);
-            inStock = typeof inv.isInStock === 'boolean' ? inv.isInStock : null;
-            storeName = typeof loc.storeName === 'string' ? loc.storeName : null;
-          }
-        }
-      }
-    }
+    // The payload carries EVERY nearby store; this single-store entry point keeps
+    // only the one asked for. parseHdStoreLocations exposes the rest so the
+    // per-ZIP ledger can persist them (they arrive in the same one call, free).
+    const mine = parseHdStoreLocations(p).find((l) => l.storeId === stripZeros(storeId));
+    const quantity = mine?.quantity ?? null;
+    const inStock = mine?.inStock ?? null;
+    const storeName = mine?.storeName ?? null;
 
     // The hidden-clearance pair. `clearance.value` is the register price; the
     // flag on its own proves nothing, so both are carried and the judge decides.
