@@ -36,6 +36,13 @@ interface CommunityReport {
   reported_at: string | null;
   /** Reported shelf count at the reported store (clearance rows). */
   stock_reported: number | null;
+  /** v1 resale-margin, from GET /api/community-deals?sort=margin. The resale is
+   *  the spotter's own estimate; est_margin/est_roi are derived after fees. */
+  resale_estimate?: string | number | null;
+  aisle_bay?: string | null;
+  est_margin?: number | null;
+  est_roi?: number | null;
+  est_net_proceeds?: number | null;
 }
 
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
@@ -212,6 +219,15 @@ const COMMUNITY_STORES: Record<string, { name: string; find: string; blurb: stri
     empty: 'Costco’s manager markdowns are warehouse-only, so this fills up as members report what they find on the shelf. Be the first.',
   },
 };
+
+/**
+ * Big-box retailers that DO have a scanned feed but whose DEEPEST in-store
+ * clearances live only on the shelf (store-by-store, walled off scraping at
+ * scale). They get a "report a clearance find" CTA ALONGSIDE their scanned feed
+ * — deliberately NOT routed through COMMUNITY_STORES, which would move their
+ * penny track and swap their empty state. Slugs match the ?store= form.
+ */
+const BIGBOX_REPORT = new Set(['home-depot', 'lowes', 'target', 'walmart', 'best-buy']);
 
 const TABS = [
   { id: 'all', label: 'All deals' },
@@ -716,7 +732,7 @@ export default function AllDeals() {
         if (r.ok && body && Array.isArray(body.reports)) setPennyReports(body.reports as CommunityReport[]);
       } catch { /* section simply doesn't render */ }
       try {
-        const r = await fetch('/api/community-deals?kind=clearance&limit=60');
+        const r = await fetch('/api/community-deals?kind=clearance&sort=margin&limit=60');
         const body = await r.json().catch(() => null);
         if (r.ok && body && Array.isArray(body.reports)) setClearanceReports(body.reports as CommunityReport[]);
       } catch { /* section simply doesn't render */ }
@@ -1042,6 +1058,21 @@ export default function AllDeals() {
             </div>
           )}
 
+          {/* Big-box retailers keep their scanned feed above; this hands the
+              spotter the report form for the deep in-store clearances scraping
+              can't reach, and the finds come back ranked by resale margin. */}
+          {store && BIGBOX_REPORT.has(store) && (
+            <div className="community-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--s4)', flexWrap: 'wrap' }}>
+              <div>
+                <h3>Found an in-store clearance at {retailerName(store)}?</h3>
+                <p>The scanned feed is above — but the deepest yellow-tag markdowns live only on the shelf, store by store. Add yours so the next reseller finds it, ranked by resale margin.</p>
+              </div>
+              <Link className="btn" to={`/app/report?retailer=${store}`}>
+                Report a clearance find
+              </Link>
+            </div>
+          )}
+
           {loading && <div className="empty">Loading deals</div>}
 
           {/* The paywall is the product boundary, so it gets a real screen
@@ -1219,6 +1250,15 @@ export default function AllDeals() {
                         {r.city && r.state ? ` · ${r.city}, ${r.state}` : r.state ? ` · ${r.state}` : ''}
                       </span>
                       <span>via {r.source}{r.reported_at ? ` · ${ago(r.reported_at)}` : ''}</span>
+                      {/* v1: estimated flip margin (after fees), the rank key. An
+                          estimate off the spotter's resale figure — labelled one. */}
+                      {typeof r.est_margin === 'number' && (
+                        <span className="card-possible" style={{ color: r.est_margin >= 0 ? 'var(--go)' : 'var(--alert)' }}>
+                          Est. flip {r.est_margin >= 0 ? '+' : ''}${r.est_margin.toFixed(2)}
+                          {typeof r.est_roi === 'number' ? ` · ${Math.round(r.est_roi * 100)}% ROI` : ''}
+                          {r.aisle_bay ? ` · ${r.aisle_bay}` : ''}
+                        </span>
+                      )}
                     </div>
                     <span className="card-cta">Check on {retailerName(r.retailer ?? 'homedepot')}</span>
                   </div>

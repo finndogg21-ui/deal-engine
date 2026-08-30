@@ -13,6 +13,7 @@ import { getDb } from '../../db/client.js';
 import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
 import { tieredFloorSql, meetsTieredFloor } from '../../engine/deal-floor.js';
 import { recordReport } from '../../engine/reputation.js';
+import { estimateMargin, toMarketplace } from '../../resell/margin.js';
 
 export const communityDeals = Router();
 
@@ -47,14 +48,21 @@ communityDeals.post(
   route(async (req, res) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
 
-    // Which register-only retailers accept member reports, and the source tag
-    // each writes. Both are retailers whose deep markdowns exist only in the
-    // aisle — DG's penny, TSC's red-tag clearance behind Akamai — so the crowd
-    // is the only sensor. Defaults to DG for the original DG-only form.
+    // Which retailers accept member reports, and the source tag each writes.
+    // These are all retailers whose deep markdowns live only in the aisle — DG's
+    // penny, TSC's red-tag clearance, and (v1) the big-box in-store clearances
+    // Akamai walls us out of scraping at scale, so the spotter IS the sensor.
+    // Every tag ends '-members' to mark it member-submitted, apart from ingested
+    // crowd feeds. Defaults to DG for the original DG-only form.
     const REPORT_SOURCES: Record<string, string> = {
       dollargeneral: 'dg-members',
       tractorsupply: 'tsc-members',
       costco: 'costco-members',
+      homedepot: 'hd-members',
+      lowes: 'lowes-members',
+      target: 'target-members',
+      walmart: 'walmart-members',
+      bestbuy: 'bestbuy-members',
     };
     const retailer = REPORT_SOURCES[String(b.retailer ?? 'dollargeneral')]
       ? String(b.retailer ?? 'dollargeneral')
@@ -100,6 +108,14 @@ communityDeals.post(
       }
     }
 
+    // v1 resale-margin inputs. resale_estimate is the SPOTTER'S OWN estimate of
+    // what it flips for (no live comp — Keepa is stubbed); stored so the feed can
+    // rank by profit, but always labelled an estimate, never a looked-up value.
+    // aisle_bay is the shelf hint so the next person can walk straight to it.
+    const resaleEstimate = num(b.resale_estimate ?? b.resale);
+    const marketplace = toMarketplace(b.marketplace);
+    const aisleBay = b.aisle_bay ? String(b.aisle_bay).trim().slice(0, 40) : null;
+
     const userId = req.user!.user_id;
     // One member's find of one SKU at one store is one report; re-reporting it
     // refreshes the row instead of stacking duplicates.
@@ -122,7 +138,7 @@ communityDeals.post(
       [
         source, kind, retailer, dedupeKey, sku, title, price, listPrice, discountPct,
         state, city, storeNumber, productUrl, imageUrl,
-        JSON.stringify({ reported_by: userId }),
+        JSON.stringify({ reported_by: userId, resale_estimate: resaleEstimate, marketplace, aisle_bay: aisleBay }),
       ],
     );
 
@@ -212,6 +228,16 @@ communityDeals.get(
     const retailerParam = req.query.retailer ? String(req.query.retailer).replace(/-/g, '') : null;
     const retailerFilter = retailerParam ? 'AND retailer = $3' : '';
 
+    // v1: rank clearance finds by estimated resale margin, not just recency.
+    // Gross margin (resale estimate − price) orders the same way net margin does
+    // and is expressible in SQL, so LIMIT stays correct; the exact net margin
+    // (after marketplace fees) is computed per row below for display.
+    const sort = req.query.sort === 'margin' && kind === 'clearance' ? 'margin' : 'recent';
+    const orderBy = sort === 'margin'
+      ? `ORDER BY (NULLIF(raw->>'resale_estimate','')::numeric - price) DESC NULLS LAST,
+                  COALESCE(reported_at, fetched_at) DESC`
+      : `ORDER BY COALESCE(reported_at, fetched_at) DESC`;
+
     const params: unknown[] = [kind, limit];
     if (retailerParam) params.push(retailerParam);
 
@@ -220,14 +246,30 @@ communityDeals.get(
               discount_pct, state, city, store_number, product_url, source_url,
               image_url, reported_at, fetched_at,
               -- Reported shelf count at the reported store (rebelsavings rows).
-              NULLIF(raw->>'stock', '')::int AS stock_reported
+              NULLIF(raw->>'stock', '')::int AS stock_reported,
+              -- v1 resale-margin inputs (spotter-submitted, stored in raw).
+              NULLIF(raw->>'resale_estimate','')::numeric AS resale_estimate,
+              raw->>'aisle_bay' AS aisle_bay,
+              raw->>'marketplace' AS marketplace
          FROM community_reports
         WHERE kind = $1 ${floor} ${retailerFilter}
-        ORDER BY COALESCE(reported_at, fetched_at) DESC
+        ${orderBy}
         LIMIT $2`,
       params,
     );
 
-    res.json({ kind, count: rows.length, reports: rows });
+    // Attach the exact estimated margin (after marketplace fees) at read time —
+    // derived, never stored, and always an ESTIMATE the client must label as one.
+    const reports = rows.map((r) => {
+      const cost = r.price != null ? Number(r.price) : NaN;
+      const resale = r.resale_estimate != null ? Number(r.resale_estimate) : NaN;
+      if (!Number.isFinite(cost) || !Number.isFinite(resale)) {
+        return { ...r, est_margin: null, est_roi: null, est_net_proceeds: null };
+      }
+      const m = estimateMargin({ cost, resale, marketplace: toMarketplace(r.marketplace) });
+      return { ...r, est_margin: m.margin, est_roi: m.roi, est_net_proceeds: m.netProceeds };
+    });
+
+    res.json({ kind, sort, count: reports.length, reports });
   }),
 );
