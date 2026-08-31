@@ -32,17 +32,32 @@ const HOOK_ENV = 'STRIPE_WEBHOOK_SECRET';
  * all, nothing here can read it and it must be renamed — but this catches every
  * case where the value IS present under some name.
  */
-/** Every env value that starts with one of the prefixes, in process env order. */
+/** Trim + strip accidental surrounding quotes/backticks from an env value. */
+function clean(v: string | undefined): string | undefined {
+  const t = v?.trim().replace(/^["'`]+|["'`]+$/g, '').trim();
+  return t || undefined;
+}
+/**
+ * Every env value (cleaned) that starts with one of the prefixes. Scans ALL env
+ * vars, and also reads the operator's known non-standard names directly — so the
+ * key survives whatever it is called, AS LONG AS the runtime received it. A var
+ * whose NAME contains a space is never delivered to the process by the platform,
+ * so no read here can conjure what the OS did not pass in.
+ */
 function valuesByPrefix(...prefixes: string[]): string[] {
   const out: string[] = [];
-  for (const v of Object.values(process.env)) {
-    const t = v?.trim();
+  const consider = (raw: string | undefined) => {
+    const t = clean(raw);
     if (t && prefixes.some((p) => t.startsWith(p))) out.push(t);
+  };
+  for (const v of Object.values(process.env)) consider(v);
+  for (const name of ['secret key', 'stripe key', 'stripe secret', 'webhook key', 'webhook key 2', 'stripe webhook']) {
+    consider(process.env[name]);
   }
   return out;
 }
 const secretKey = (): string | undefined =>
-  process.env[ENV]?.trim() || valuesByPrefix('sk_', 'rk_')[0];
+  clean(process.env[ENV]) || valuesByPrefix('sk_', 'rk_')[0];
 
 /**
  * ALL candidate webhook signing secrets. The operator may have more than one
@@ -51,7 +66,7 @@ const secretKey = (): string | undefined =>
  */
 const webhookSecrets = (): string[] => {
   const set = new Set<string>();
-  const canon = process.env[HOOK_ENV]?.trim();
+  const canon = clean(process.env[HOOK_ENV]);
   if (canon) set.add(canon);
   for (const s of valuesByPrefix('whsec_')) set.add(s);
   return [...set];
