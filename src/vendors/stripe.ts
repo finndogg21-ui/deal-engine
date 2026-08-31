@@ -32,17 +32,32 @@ const HOOK_ENV = 'STRIPE_WEBHOOK_SECRET';
  * all, nothing here can read it and it must be renamed — but this catches every
  * case where the value IS present under some name.
  */
-function byPrefix(...prefixes: string[]): string | undefined {
+/** Every env value that starts with one of the prefixes, in process env order. */
+function valuesByPrefix(...prefixes: string[]): string[] {
+  const out: string[] = [];
   for (const v of Object.values(process.env)) {
     const t = v?.trim();
-    if (t && prefixes.some((p) => t.startsWith(p))) return t;
+    if (t && prefixes.some((p) => t.startsWith(p))) out.push(t);
   }
-  return undefined;
+  return out;
 }
-const secretKey = (): string | undefined => process.env[ENV]?.trim() || byPrefix('sk_', 'rk_');
-const webhookSecret = (): string | undefined => process.env[HOOK_ENV]?.trim() || byPrefix('whsec_');
+const secretKey = (): string | undefined =>
+  process.env[ENV]?.trim() || valuesByPrefix('sk_', 'rk_')[0];
 
-export const stripeReady = (): boolean => Boolean(secretKey() && webhookSecret());
+/**
+ * ALL candidate webhook signing secrets. The operator may have more than one
+ * `whsec_` var in Railway (a second, stale endpoint), and only the one matching
+ * this endpoint verifies — so verifyWebhook tries each rather than guessing.
+ */
+const webhookSecrets = (): string[] => {
+  const set = new Set<string>();
+  const canon = process.env[HOOK_ENV]?.trim();
+  if (canon) set.add(canon);
+  for (const s of valuesByPrefix('whsec_')) set.add(s);
+  return [...set];
+};
+
+export const stripeReady = (): boolean => Boolean(secretKey() && webhookSecrets().length);
 
 /** One membership. $20/mo, unlocks everything. */
 export const PLANS = {
@@ -110,7 +125,18 @@ export async function createPortalSession(customerId: string): Promise<{ url: st
 
 /** Verify + parse a webhook. Throws if the signature does not check out. */
 export async function verifyWebhook(rawBody: Buffer, signature: string): Promise<Stripe.Event> {
-  const secret = webhookSecret();
-  if (!secret) notWired('stripe', `${HOOK_ENV} (or any var holding a whsec_… value)`);
-  return client().webhooks.constructEvent(rawBody, signature, secret);
+  const secrets = webhookSecrets();
+  if (!secrets.length) notWired('stripe', `${HOOK_ENV} (or any var holding a whsec_… value)`);
+  let lastErr: unknown;
+  // Try every whsec_ we can see — only the one for THIS endpoint verifies.
+  for (const secret of secrets) {
+    try {
+      return client().webhooks.constructEvent(rawBody, signature, secret);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error('stripe: no configured webhook secret verified the signature');
 }
