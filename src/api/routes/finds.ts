@@ -14,7 +14,7 @@ import {
 
 export const finds = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 const OUTCOMES = ['found', 'not_found', 'wrong_price'];
 
 /* ---------------------------------------------------------------------------

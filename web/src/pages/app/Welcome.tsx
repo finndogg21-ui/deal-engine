@@ -27,8 +27,8 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
       <div className="pick" role="dialog" aria-modal="true" aria-labelledby="pick-title">
         <h1 id="pick-title">Which one sounds like you?</h1>
         <p className="lede">
-          Same deals underneath, but we'll set the app up differently depending on what
-          you're here for. You can switch later.
+          Same $20 membership either way — this just sets the app up for how you'll use it.
+          You can switch later.
         </p>
 
         <div className="pick-grid">
@@ -37,13 +37,13 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
             <p className="who">For everyday shopping.</p>
             <ul>
               <li>Watch any product, type "blender", we cover every brand</li>
-              <li>Amazon Warehouse and clearance deals</li>
+              <li>Outlet and clearance deals across ten retailers</li>
               <li>Alerts only when the price actually drops</li>
               <li>A running total of what you've saved</li>
             </ul>
             <div className="pick-price">
-              $9.99 a month
-              <small>Cancel any time, in one tap</small>
+              $20 a month
+              <small>One membership · cancel any time, in one tap</small>
             </div>
             <span className="pick-go">Set this up</span>
           </button>
@@ -58,8 +58,8 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
               <li>Everything in the saving plan too</li>
             </ul>
             <div className="pick-price">
-              $19 a month
-              <small>Founding rate, 30 seats, locked for as long as you stay</small>
+              $20 a month
+              <small>One membership · cancel any time, in one tap</small>
             </div>
             <span className="pick-go">Set this up</span>
           </button>
@@ -189,7 +189,7 @@ export default function Welcome() {
           <p className="lede">
             {reseller
               ? 'Penny items live at one store, not everywhere. We only alert you on stores you would actually drive to.'
-              : 'Some deals are in-store only. We only tell you about things you could go pick up.'}
+              : 'Some deals are in-store near you. Your ZIP tells us which store and how far — the rest ship to your door.'}
           </p>
 
           <div className="field">

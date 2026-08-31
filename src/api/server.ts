@@ -85,7 +85,7 @@ app.use('/api', billing);
 app.use('/api', admin);
 
 /** Deal data is the product, so reading it is the paywall. Operators bypass. */
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 const HOME_LAT = Number(process.env.HOME_LAT ?? 29.6047);
 const HOME_LNG = Number(process.env.HOME_LNG ?? -98.4947);

@@ -17,7 +17,7 @@ import type { StoreStock } from '../../vendors/contracts.js';
 
 export const stock = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 /**
  * Which retailers we can actually answer for. Marked `false` until a real

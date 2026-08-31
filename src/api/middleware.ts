@@ -48,7 +48,7 @@ export function cookies(req: Request, _res: Response, next: NextFunction) {
 const PREVIEW_USER: SessionUser = {
   user_id: 1,
   email: 'preview@deal-engine.local',
-  plan: 'reseller',
+  plan: 'member',
   role: 'member',
   path: 'reseller',
   zip: null,

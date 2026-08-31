@@ -140,7 +140,7 @@ export async function runMatcher(db: Db, now = new Date()): Promise<MatcherResul
             u.quiet_hours, u.home_lat, u.home_lng, u.radius_mi
        FROM users u
       WHERE u.email IS NOT NULL
-        AND (u.plan IN ('consumer','reseller') OR u.role = 'operator')
+        AND (u.plan = 'member' OR u.role = 'operator')
         AND EXISTS (SELECT 1 FROM watchlists w
                      WHERE w.user_id = u.user_id AND w.active)`,
   );
@@ -176,8 +176,8 @@ export async function runMatcher(db: Db, now = new Date()): Promise<MatcherResul
     const geo: GeoScope = {
       lat: user.home_lat,
       lng: user.home_lng,
-      // Consumers are not driving 90 minutes for a drill. Resellers will.
-      radiusMi: user.plan === 'reseller' ? user.radius_mi : Math.min(user.radius_mi ?? 25, 25),
+      // Members get the radius they set.
+      radiusMi: user.radius_mi ?? 25,
     };
 
     const byWatch = new Map<string, MatchRow[]>();

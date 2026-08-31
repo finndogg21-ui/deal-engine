@@ -21,7 +21,7 @@ import { lookupStock, stockLookupReady, withinRadius, type StoreStockRow } from 
 
 export const stockFind = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 /** How long a stock answer stays believable. Stock moves; a day-old count is
  *  a guess. Six hours keeps cost down without pretending to be live. */

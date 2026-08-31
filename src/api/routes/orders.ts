@@ -16,7 +16,7 @@ import { FEE_TABLE, FEES_VERIFIED_ON, estimateFee, isMarketplace } from '../../r
 
 export const orders = Router();
 
-const reseller = [requireAuth, requirePlan('reseller')];
+const reseller = [requireAuth, requirePlan('member')];
 const STATUSES = ['listed', 'sold', 'shipped', 'delivered', 'refunded'];
 
 const money = (v: unknown): number | null => {

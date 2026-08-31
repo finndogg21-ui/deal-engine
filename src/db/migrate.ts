@@ -31,8 +31,8 @@ async function main() {
   const operatorEmail = (process.env.OPERATOR_EMAIL ?? '').trim().toLowerCase();
   if (operatorEmail) {
     const { rowCount } = await db.query(
-      `UPDATE users SET role = 'operator', plan = 'reseller'
-        WHERE lower(email) = $1 AND (role <> 'operator' OR plan <> 'reseller')`,
+      `UPDATE users SET role = 'operator', plan = 'member'
+        WHERE lower(email) = $1 AND (role <> 'operator' OR plan <> 'member')`,
       [operatorEmail],
     );
     if (rowCount > 0) console.log(`promoted ${operatorEmail} to operator/reseller`);

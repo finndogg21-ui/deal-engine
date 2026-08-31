@@ -70,7 +70,7 @@ export default function Terms() {
           <li>Plans bill monthly until cancelled.</li>
           <li>You can cancel at any time, in one tap, inside the app or on the web. No phone call and no retention process.</li>
           <li>Cancelling stops future charges. Access continues to the end of the period you paid for.</li>
-          <li>Founding rates stay at the founding price for as long as the subscription remains active. Let it lapse and the rate is gone.</li>
+          <li>The membership is $20 a month; the price you join at holds for as long as your subscription stays active.</li>
         </ul>
 
         <h2>Refunds</h2>

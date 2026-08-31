@@ -13,7 +13,7 @@ import { publishedDeals } from '../../engine/discovery.js';
 
 export const publishedDealsRoute = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 publishedDealsRoute.get(
   '/deals/published',

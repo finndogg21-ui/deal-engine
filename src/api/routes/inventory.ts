@@ -14,7 +14,7 @@ export const inventory = Router();
 
 // Inventory is the reseller half of the product; a consumer plan has no use
 // for it and it is not what they are paying for.
-const reseller = [requireAuth, requirePlan('reseller')];
+const reseller = [requireAuth, requirePlan('member')];
 
 const STATUSES = ['held', 'listed', 'sold', 'returned'];
 const CONDITIONS = ['new', 'open-box', 'damaged', 'used'];

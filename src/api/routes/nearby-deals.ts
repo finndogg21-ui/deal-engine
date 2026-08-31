@@ -36,7 +36,7 @@ export const nearbyDeals = Router();
 // Deal data is the product, so reading it is the paywall — same gate as
 // /api/candidates. (A limited public teaser could mirror the competitor's
 // funnel later; see the plan. It would be a separate, capped handler.)
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 /** The 25% floor from DESIGN/product rules. A request can raise it, never lower it. */
 const MIN_DISCOUNT_FLOOR = 25;

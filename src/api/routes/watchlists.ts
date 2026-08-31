@@ -14,7 +14,7 @@ import { countRecentMatches, type GeoScope, type WatchCriteria } from '../../eng
 
 export const watchlists = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 /** Home point and radius for this user, for the distance filter. */
 export async function geoFor(db: Db, userId: number): Promise<GeoScope> {

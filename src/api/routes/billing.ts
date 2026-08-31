@@ -26,7 +26,9 @@ import {
 
 export const billing = Router();
 
-const FOUNDING_SEATS = PLANS.reseller.seatCap;
+// Dormant with a single non-founding membership; retained so the seat-cap
+// machinery below still compiles and can be switched back on for a founding tier.
+const FOUNDING_SEATS = 30;
 const ACTIVE = ['active', 'trialing'];
 
 /* GET /api/billing/plans — public, so pricing can render without a session. */
@@ -176,7 +178,7 @@ billing.post('/webhooks/stripe', route(async (req, res) => {
 
   let event: { id: string; type: string; data: { object: Record<string, unknown> } };
   try {
-    event = (await verifyWebhook(req.body, signature)) as typeof event;
+    event = (await verifyWebhook(req.body, signature)) as unknown as typeof event;
   } catch (err) {
     // 400 and nothing else. Never log the body of an unverified request.
     console.error('stripe webhook signature rejected', (err as Error).message);
@@ -197,7 +199,7 @@ billing.post('/webhooks/stripe', route(async (req, res) => {
     const obj = event.data.object;
     const userId = Number(obj.client_reference_id ?? (obj.metadata as Record<string, unknown>)?.user_id ?? 0);
     const subId = String(obj.id ?? '');
-    const plan = String((obj.metadata as Record<string, unknown>)?.plan ?? 'consumer');
+    const plan = String((obj.metadata as Record<string, unknown>)?.plan ?? 'member');
     const status = String(obj.status ?? 'active');
 
     switch (event.type) {
@@ -207,7 +209,7 @@ billing.post('/webhooks/stripe', route(async (req, res) => {
         if (!userId || !subId) return 'ignored';
 
         let founding = false;
-        if (plan === 'reseller') {
+        if (PLANS[plan as PlanId]?.founding) {
           // The authoritative cap. Counted and claimed in one transaction, so
           // two simultaneous checkouts cannot both read 29 and both insert.
           const { rows } = await tx.query<{ n: number }>(
@@ -238,8 +240,15 @@ billing.post('/webhooks/stripe', route(async (req, res) => {
         }
 
         // Access follows the subscription, and only an active one grants it.
+        // checkout.session.completed carries the SESSION status ('complete'),
+        // not a subscription status — treat its arrival as active so it cannot
+        // race ahead of subscription.created and knock the user back to 'none'.
+        const active =
+          event.type === 'checkout.session.completed'
+            ? String(obj.status ?? 'complete') === 'complete'
+            : ACTIVE.includes(status);
         await tx.query(`UPDATE users SET plan = $2 WHERE user_id = $1`,
-          [userId, ACTIVE.includes(status) ? plan : 'none']);
+          [userId, active ? plan : 'none']);
         return 'applied';
       }
 

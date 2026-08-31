@@ -43,10 +43,9 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: 'What does it cost right now?',
-    a: <>Nothing. <Link to="/signup">Making an account</Link> asks for an email and a
-      password, never a card, and paid plans are not open for purchase yet. So there is no
-      trial clock to run out, because there is nothing to run out of. The honest version is
-      that the product is early and the founding rate exists to reflect that.</>,
+    a: <>The membership is <b>$20 a month</b> — one plan, cancel in one tap. <Link to="/signup">Making
+      an account</Link> is free and never asks for a card, so you can browse in preview first and
+      only join when it is worth it to you. No trials, no lock-in.</>,
   },
   {
     q: 'How do I cancel?',

@@ -15,7 +15,7 @@ import { withinRadius, type StoreStockRow } from '../../vendors/store-lookup.js'
 
 export const stockQueue = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 const CACHE_HOURS = Number(process.env.STOCK_CACHE_HOURS ?? 6);
 const DAILY_CAP: Record<string, number> = { none: 0, consumer: 10, reseller: 50 };
 const capFor = (u: { plan: string; role: string }) =>

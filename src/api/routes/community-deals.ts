@@ -17,7 +17,7 @@ import { estimateMargin, toMarketplace } from '../../resell/margin.js';
 
 export const communityDeals = Router();
 
-const paid = [requireAuth, requirePlan('consumer', 'reseller')];
+const paid = [requireAuth, requirePlan('member')];
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === '') return null;

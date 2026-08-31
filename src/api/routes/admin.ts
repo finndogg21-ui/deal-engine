@@ -119,7 +119,7 @@ admin.get('/admin/overview', requireOperator, route(async (_req, res) => {
       users: n(c.users),
       paying: n(c.paying),
       founding_taken: n(c.founding_taken),
-      founding_left: Math.max(PLANS.reseller.seatCap - n(c.founding_taken), 0),
+      founding_left: Math.max(30 - n(c.founding_taken), 0),
       products: n(c.products),
       observations: n(c.observations),
       sku_state: n(c.sku_state),
