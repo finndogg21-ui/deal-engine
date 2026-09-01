@@ -27,7 +27,7 @@ interface AuthValue {
   me: Me | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<Me | null>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -91,11 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [migrateSetup, refresh]);
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string): Promise<Me | null> => {
     await api('/api/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) });
+    // The server returns 201 with NO session for an already-registered email
+    // (non-enumeration). Confirm a REAL session actually resulted before doing
+    // anything account-scoped — otherwise the injected preview identity would
+    // migrate onboarding onto the shared operator row.
+    let user: Me | null = null;
+    try { user = (await api<{ user: Me }>('/api/auth/me')).user; } catch { user = null; }
+    const real = !!user && !isPreviewUser(user) && user.email?.toLowerCase() === email.trim().toLowerCase();
+    if (!real) { setMe(null); return null; }
     await migrateSetup();
-    await refresh();
-  }, [migrateSetup, refresh]);
+    setMe(user);
+    return user;
+  }, [migrateSetup]);
 
   const signOut = useCallback(async () => {
     await api('/api/auth/logout', { method: 'POST' });

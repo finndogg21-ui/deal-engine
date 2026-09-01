@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, useAuth } from '../../lib/auth.js';
+import { api, useAuth, isPreviewUser } from '../../lib/auth.js';
 
 interface PlanInfo {
   id: string;
@@ -48,7 +48,9 @@ export default function Pricing() {
   /** Actually starts checkout — a plan-less account is sent to sign up first. */
   async function choose() {
     setNotice(null);
-    if (!me) {
+    // A preview visitor is NOT a real account — starting checkout as them would
+    // bill the shared operator row. Send them to sign up first.
+    if (!me || isPreviewUser(me)) {
       nav(`/signup?next=${encodeURIComponent('/pricing')}`);
       return;
     }
@@ -120,7 +122,7 @@ export default function Pricing() {
               ))}
             </ul>
             <button className="btn" onClick={() => void choose()} disabled={busy}>
-              {busy ? 'One moment…' : me ? 'Join' : 'Create an account'}
+              {busy ? 'One moment…' : (me && !isPreviewUser(me)) ? 'Join' : 'Create an account'}
             </button>
           </div>
         </div>

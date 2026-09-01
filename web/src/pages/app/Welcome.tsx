@@ -5,7 +5,7 @@ import {
   saveSetup, clearSetup, SUGGESTED_CONSUMER, SUGGESTED_RESELLER,
   type Setup, type Path,
 } from '../../lib/setup.js';
-import { api, useAuth } from '../../lib/auth.js';
+import { api, useAuth, isPreviewUser } from '../../lib/auth.js';
 import '../../welcome.css';
 
 /**
@@ -115,7 +115,7 @@ export default function Welcome() {
     setTyped('');
   }
 
-  function next() {
+  async function next() {
     setErr('');
     if (current === 'where' && !/^\d{5}$/.test(zip)) {
       setErr('Enter a 5-digit ZIP code so we know which stores are near you.');
@@ -148,20 +148,23 @@ export default function Welcome() {
        * The localStorage write stays for people who onboard before signing up
        * — `migrateSetup` pushes theirs up at sign-in.
        */
-      if (me) {
-        void (async () => {
-          try {
-            await api('/api/auth/me/setup', { method: 'PATCH', body: JSON.stringify(s) });
-            clearSetup();
-            await refresh();
-          } catch (e) {
-            // Do not strand them on a finished survey they cannot leave.
-            setErr(
-              'Your answers are saved on this device, but we could not sync them. ' +
-              ((e as Error).message ?? ''),
-            );
-          }
-        })();
+      // Real signed-in user: the answers MUST reach the server before we show
+      // "done" — AppShell gates on users.setup_done_at, so a failed sync bounces
+      // them /app -> /welcome forever. Await it; on failure stay on this step
+      // with a visible retry instead of a done screen that loops. The preview
+      // identity can't (and shouldn't) write the shared operator row.
+      if (me && !isPreviewUser(me)) {
+        try {
+          await api('/api/auth/me/setup', { method: 'PATCH', body: JSON.stringify(s) });
+          clearSetup();
+          await refresh();
+        } catch (e) {
+          setErr(
+            'Could not save your setup — check your connection and press Finish again. ' +
+            ((e as Error).message ?? ''),
+          );
+          return;
+        }
       }
 
       setStep(total);
@@ -386,7 +389,7 @@ export default function Welcome() {
               Back
             </button>
             <span className="grow" />
-            <button className="btn" onClick={next}>
+            <button className="btn" onClick={() => void next()}>
               {step === total - 1 ? 'Finish' : 'Continue'}
             </button>
           </div>

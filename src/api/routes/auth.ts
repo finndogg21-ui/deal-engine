@@ -15,7 +15,7 @@ import {
   COOKIE, createSession, destroySession, destroyAllSessions,
   issueActionToken, consumeActionToken, cookieOptions,
 } from '../../auth/sessions.js';
-import { requireAuth, rateLimit, route } from '../middleware.js';
+import { requireRealUser, rateLimit, route } from '../middleware.js';
 import { send } from '../../vendors/mailer.js';
 
 export const auth = Router();
@@ -145,7 +145,7 @@ auth.get('/me', route(async (req, res) => {
  * Setup, written by onboarding. Also the landing point for answers that were
  * collected in localStorage before the account existed.
  */
-auth.patch('/me/setup', requireAuth, route(async (req, res) => {
+auth.patch('/me/setup', requireRealUser, route(async (req, res) => {
   const b = req.body ?? {};
   const path = b.path === 'reseller' ? 'reseller' : b.path === 'consumer' ? 'consumer' : null;
   const zip = typeof b.zip === 'string' && /^\d{5}$/.test(b.zip) ? b.zip : null;
@@ -168,7 +168,7 @@ auth.patch('/me/setup', requireAuth, route(async (req, res) => {
  * not routed through /me/setup: that endpoint rewrites radius and alert
  * settings with defaults, which a ZIP-only edit must not touch.
  */
-auth.patch('/me/zip', requireAuth, route(async (req, res) => {
+auth.patch('/me/zip', requireRealUser, route(async (req, res) => {
   const zip = String((req.body ?? {}).zip ?? '').trim();
   if (!/^\d{5}$/.test(zip)) return res.status(400).json({ error: 'Enter a 5-digit ZIP code.' });
 

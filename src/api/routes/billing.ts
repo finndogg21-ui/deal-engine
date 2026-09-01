@@ -18,7 +18,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, rateLimit, route } from '../middleware.js';
+import { requireAuth, requireRealUser, rateLimit, route } from '../middleware.js';
 import {
   PLANS, createCheckoutSession, createPortalSession, stripeReady, verifyWebhook,
   type PlanId,
@@ -60,7 +60,7 @@ billing.get('/billing/plans', route(async (_req, res) => {
 }));
 
 /* POST /api/billing/checkout */
-billing.post('/billing/checkout', requireAuth, rateLimit({ key: 'checkout', max: 10, windowMs: 60_000 }), route(async (req, res) => {
+billing.post('/billing/checkout', requireRealUser, rateLimit({ key: 'checkout', max: 10, windowMs: 60_000 }), route(async (req, res) => {
   const plan = String((req.body ?? {}).plan ?? '') as PlanId;
   if (!(plan in PLANS)) return res.status(400).json({ error: 'Pick a plan.' });
 
@@ -89,7 +89,7 @@ billing.post('/billing/checkout', requireAuth, rateLimit({ key: 'checkout', max:
 }));
 
 /* POST /api/billing/portal — cancel lives here. One tap, no retention flow. */
-billing.post('/billing/portal', requireAuth, route(async (req, res) => {
+billing.post('/billing/portal', requireRealUser, route(async (req, res) => {
   if (!stripeReady()) {
     return res.status(503).json({ error: 'Billing is not wired up yet.' });
   }
@@ -145,7 +145,7 @@ billing.post('/billing/dev-activate', requireAuth, route(async (req, res) => {
 }));
 
 /* GET /api/billing/me */
-billing.get('/billing/me', requireAuth, route(async (req, res) => {
+billing.get('/billing/me', requireRealUser, route(async (req, res) => {
   const db = await getDb();
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT sub_id, plan, status, current_period_end, founding, created_at

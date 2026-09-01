@@ -4,6 +4,11 @@ import { useAuth, api } from '../../lib/auth.js';
 
 /** Sign in, sign up, forgot, and reset. One file, four small forms. */
 
+/** Only follow an internal, single-slash path from ?next= (never an open redirect). */
+function safeNext(n: string | null): string | null {
+  return n && n.startsWith('/') && !n.startsWith('//') ? n : null;
+}
+
 function Shell({ title, lede, children, foot }: {
   title: string; lede: string; children: React.ReactNode; foot?: React.ReactNode;
 }) {
@@ -39,6 +44,7 @@ function Field({ id, label, type, value, onChange, hint, autoComplete }: {
 export function SignIn() {
   const { signIn } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,7 +53,7 @@ export function SignIn() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(''); setBusy(true);
-    try { await signIn(email, password); nav('/app'); }
+    try { await signIn(email, password); nav(safeNext(params.get('next')) ?? '/app'); }
     catch (x) { setErr((x as Error).message); }
     finally { setBusy(false); }
   }
@@ -73,6 +79,7 @@ export function SignIn() {
 export function SignUp() {
   const { signUp } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -81,8 +88,16 @@ export function SignUp() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(''); setBusy(true);
-    try { await signUp(email, password); nav('/welcome'); }
-    catch (x) { setErr((x as Error).message); }
+    try {
+      const me = await signUp(email, password);
+      if (!me) {
+        // No real session => the email is already registered (server hides which).
+        setErr('That email may already have an account — try signing in instead.');
+        setBusy(false);
+        return;
+      }
+      nav(safeNext(params.get('next')) ?? '/welcome');
+    } catch (x) { setErr((x as Error).message); }
     finally { setBusy(false); }
   }
 
@@ -153,7 +168,7 @@ export function Reset() {
     try {
       await api('/api/auth/reset', { method: 'POST', body: JSON.stringify({ token, password }) });
       await refresh();
-      nav('/app');
+      nav(safeNext(params.get('next')) ?? '/app');
     } catch (x) { setErr((x as Error).message); }
     finally { setBusy(false); }
   }

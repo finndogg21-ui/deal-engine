@@ -12,11 +12,11 @@ export default function Landing() {
         <h1 className="hero-h1">
           <span className="hero-lede">The best clearance,</span>
           <span className="hero-detail">
-            on a shelf <b>near you</b> — and shipped to your door.
+            on a shelf <b>near you</b>, and shipped to your door.
           </span>
         </h1>
         <p className="hero-meta">
-          Home Depot, Target, Woot, Best Buy Outlet and more — plus the in-store clearance price
+          Home Depot, Target, Woot, Best Buy Outlet and more, plus the in-store clearance price
           your store never puts online.
         </p>
 
@@ -63,7 +63,7 @@ export default function Landing() {
               <h3>Enough to decide in ten seconds</h3>
               <p>
                 Price, discount, where it is, and what it is worth reselling after fees. When we
-                have a store’s stock we show it — and we never dress a guess up as a shelf count.
+                have a store’s stock we show it, and we never dress a guess up as a shelf count.
               </p>
             </div>
           </div>

@@ -18,6 +18,8 @@ import { estimateMargin, toMarketplace } from '../../resell/margin.js';
 export const communityDeals = Router();
 
 const paid = [requireAuth, requirePlan('member')];
+// Browsing community/penny reports is free (the hook); SUBMITTING one stays member-gated.
+const browse = [requireAuth];
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === '') return null;
@@ -158,7 +160,7 @@ communityDeals.post(
  */
 communityDeals.get(
   '/community-deals/:id',
-  ...paid,
+  ...browse,
   rateLimit({ key: 'community', max: 60, windowMs: 60_000 }),
   route(async (req, res) => {
     const id = Number(req.params.id);
@@ -211,7 +213,7 @@ communityDeals.get(
 
 communityDeals.get(
   '/community-deals',
-  ...paid,
+  ...browse,
   rateLimit({ key: 'community', max: 60, windowMs: 60_000 }),
   route(async (req, res) => {
     const db = await getDb();

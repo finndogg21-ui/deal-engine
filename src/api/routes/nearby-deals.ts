@@ -26,17 +26,17 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, rateLimit, route } from '../middleware.js';
 import { nearbyStores, type NearbyStore } from '../../geo/nearby.js';
 import { EXCLUDE_BUNDLES_SQL, EXCLUDE_HD_REJECTED_SQL } from '../../engine/bundle.js';
 import { tieredFloorSql } from '../../engine/deal-floor.js';
 
 export const nearbyDeals = Router();
 
-// Deal data is the product, so reading it is the paywall — same gate as
-// /api/candidates. (A limited public teaser could mirror the competitor's
-// funnel later; see the plan. It would be a separate, capped handler.)
-const paid = [requireAuth, requirePlan('member')];
+// Browsing "deals near you" is the hook — free to any visitor (anonymous
+// preview or signed-up, paid or not). Membership gates alerts/tracking, not
+// looking. Signing up must not remove access a stranger already had.
+const browse = [requireAuth];
 
 /** The 25% floor from DESIGN/product rules. A request can raise it, never lower it. */
 const MIN_DISCOUNT_FLOOR = 25;
@@ -50,7 +50,7 @@ const num = (v: unknown): number | null =>
 
 nearbyDeals.get(
   '/deals/nearby',
-  ...paid,
+  ...browse,
   rateLimit({ key: 'nearby', max: 60, windowMs: 60_000 }),
   route(async (req, res) => {
     const db = await getDb();

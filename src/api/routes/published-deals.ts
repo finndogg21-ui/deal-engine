@@ -8,16 +8,20 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, rateLimit, route } from '../middleware.js';
 import { publishedDeals } from '../../engine/discovery.js';
 
 export const publishedDealsRoute = Router();
 
-const paid = [requireAuth, requirePlan('member')];
+// Browsing the deal feed is the hook — free to any visitor (anonymous preview
+// or a signed-up account, paid or not). The $20 membership gates the value-add
+// (alerts, watchlists, stock checks, tracking), not looking at deals. Signing up
+// must never REMOVE access a stranger already had. (Product call, overnight run 1.)
+const browse = [requireAuth];
 
 publishedDealsRoute.get(
   '/deals/published',
-  ...paid,
+  ...browse,
   rateLimit({ key: 'published', max: 60, windowMs: 60_000 }),
   route(async (req, res) => {
     const limitRaw = Number(req.query.limit ?? 200);

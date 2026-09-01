@@ -45,9 +45,13 @@ export function cookies(req: Request, _res: Response, next: NextFunction) {
  * FK-safe and every preview visitor shares one daily stock-lookup cap, which
  * bounds vendor spend no matter how much anonymous traffic arrives.
  */
+/** The shared public-preview identity's email — the one source of truth for
+ *  "is this the anonymous preview, not a real account". Mirrors web isPreviewUser. */
+export const PREVIEW_EMAIL = 'preview@deal-engine.local';
+
 const PREVIEW_USER: SessionUser = {
   user_id: 1,
-  email: 'preview@deal-engine.local',
+  email: PREVIEW_EMAIL,
   plan: 'member',
   role: 'member',
   path: 'reseller',
@@ -76,6 +80,18 @@ export async function loadUser(req: Request, _res: Response, next: NextFunction)
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.user) return res.status(401).json({ error: 'Sign in to continue.' });
+  next();
+}
+
+/**
+ * Rejects anonymous AND the shared public-preview identity. Use on every
+ * per-user WRITE (setup, zip, checkout, portal) so a preview visitor can never
+ * mutate the shared operator row (user_id 1) or start checkout/billing as it.
+ */
+export function requireRealUser(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || req.user.email === PREVIEW_EMAIL) {
+    return res.status(401).json({ error: 'Sign in to continue.' });
+  }
   next();
 }
 
@@ -108,7 +124,11 @@ const buckets = new Map<string, { n: number; resetAt: number }>();
 
 export function rateLimit(opts: { key: string; max: number; windowMs: number }) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const id = `${opts.key}:${req.user?.user_id ?? req.ip ?? 'anon'}`;
+    // Never key on the shared preview identity — that collapses every anonymous
+    // visitor's signup/login limit into one global bucket (5 attempts locks out
+    // the whole internet). Preview and anon are limited by client IP instead.
+    const real = req.user && req.user.email !== PREVIEW_EMAIL;
+    const id = `${opts.key}:${real ? req.user!.user_id : (req.ip ?? 'anon')}`;
     const now = Date.now();
     const b = buckets.get(id);
     if (!b || b.resetAt < now) {
