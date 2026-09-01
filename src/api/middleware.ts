@@ -122,8 +122,11 @@ export function requirePlan(...allowed: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) return res.status(401).json({ error: 'Sign in to continue.' });
     if (req.user.role === 'operator') return next();
-    if (!allowed.includes(req.user.plan)) {
-      return res.status(402).json({ error: 'This needs a plan.', upgrade: true });
+    // The public-preview identity carries plan 'member' but is anonymous — it must
+    // NOT pass a paid gate (browsing has its own teaser path). Reject it like a
+    // free account so paid features actually require a real membership.
+    if (req.user.email === PREVIEW_EMAIL || !allowed.includes(req.user.plan)) {
+      return res.status(402).json({ error: 'This needs a membership.', upgrade: true });
     }
     next();
   };
