@@ -26,7 +26,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, rateLimit, route } from '../middleware.js';
+import { requireAuth, isPaidMember, TEASER_LIMIT, rateLimit, route } from '../middleware.js';
 import { nearbyStores, type NearbyStore } from '../../geo/nearby.js';
 import { EXCLUDE_BUNDLES_SQL, EXCLUDE_HD_REJECTED_SQL } from '../../engine/bundle.js';
 import { tieredFloorSql } from '../../engine/deal-floor.js';
@@ -210,13 +210,19 @@ nearbyDeals.get(
       };
     });
 
+    // Teaser paywall (same as published): members get the full nearby feed,
+    // everyone else the first TEASER_LIMIT with the real total + a locked flag.
+    const paidMember = isPaidMember(req);
+    const shown = paidMember ? deals : deals.slice(0, TEASER_LIMIT);
     res.json({
       zip,
       radius_mi: radiusMi,
       located: true,
       anchor_precision: anchor.source,
       min_discount: minDiscount,
-      count: deals.length,
+      count: shown.length,
+      total: deals.length,
+      locked: !paidMember && deals.length > shown.length,
       nearby_stores: stores.length,
       // The nearest store's NUMBER — never printed on a card (product rule),
       // but used inside Home Depot links (?store=NNN) so HD opens already in
@@ -224,7 +230,7 @@ nearbyDeals.get(
       // Verified 2026-08-22: the ?store= param switches homedepot.com's store
       // context (header, pickup section, stock state).
       nearest_store_number: stores[0]?.store_number ?? null,
-      deals,
+      deals: shown,
     });
   }),
 );

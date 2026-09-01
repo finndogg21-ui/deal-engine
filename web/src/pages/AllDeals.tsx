@@ -510,6 +510,9 @@ export default function AllDeals() {
   /* Default to the deepest cut. 'score' ranked by penny_score, which is 0 for
      every verified deal, so the feed opened in arbitrary order. */
   const [sort, setSort] = useState('discount');
+  // Teaser paywall: what the server let this (non-member) account see of the full
+  // feed, so we can offer "see all N".
+  const [feedLock, setFeedLock] = useState<{ locked: boolean; total: number } | null>(null);
 
   /**
    * Keep the retailer scope in step with the URL.
@@ -639,6 +642,10 @@ export default function AllDeals() {
         } as Candidate;
       });
       setRows(mapped);
+      setFeedLock({
+        locked: !!(body as { locked?: boolean }).locked,
+        total: Number((body as { total?: number }).total ?? mapped.length),
+      });
     } catch {
       setRows([]);
       setLoadError({ kind: 'error', message: 'Could not load deals.' });
@@ -1225,6 +1232,18 @@ export default function AllDeals() {
               selected={!!sel && sel.product_id === c.product_id && sel.store_id === c.store_id}
               onOpen={() => void open(c)} />
           ))}
+
+          {feedLock?.locked && tab !== 'penny' && shown.length > 0 && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 'var(--s6) var(--s4)', border: '1px solid var(--ink-faint)', marginTop: 'var(--s4)' }}>
+              <p style={{ margin: '0 0 var(--s2)', fontWeight: 600, fontSize: 18 }}>
+                Showing {shown.length} of {feedLock.total} deals
+              </p>
+              <p style={{ margin: '0 0 var(--s4)', color: 'var(--ink-faint)' }}>
+                Members see the full feed, get price alerts, and can check live stock near them.
+              </p>
+              <Link className="btn" to="/pricing">See all {feedLock.total} deals — $20/mo</Link>
+            </div>
+          )}
 
           {/* Community deep-clearance reports — other crowds' store-specific
               finds (via rebelsavings). Labeled hearsay: the store, shelf count

@@ -95,6 +95,19 @@ export function requireRealUser(req: Request, res: Response, next: NextFunction)
   next();
 }
 
+/**
+ * A genuine PAYING member — excludes both the shared public-preview identity
+ * (which carries plan 'member' but is anonymous) and free (plan 'none')
+ * accounts. Used to serve the full feed to members and a capped teaser to
+ * everyone else.
+ */
+export function isPaidMember(req: Request): boolean {
+  return !!req.user && req.user.plan === 'member' && req.user.email !== PREVIEW_EMAIL;
+}
+
+/** How many deals a non-member sees before the "subscribe for all" wall. */
+export const TEASER_LIMIT = 12;
+
 export function requireOperator(req: Request, res: Response, next: NextFunction) {
   if (!req.user) return res.status(401).json({ error: 'Sign in to continue.' });
   if (req.user.role !== 'operator') return res.status(403).json({ error: 'Not available.' });

@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, rateLimit, route } from '../middleware.js';
+import { requireAuth, isPaidMember, TEASER_LIMIT, rateLimit, route } from '../middleware.js';
 import { publishedDeals } from '../../engine/discovery.js';
 
 export const publishedDealsRoute = Router();
@@ -75,12 +75,17 @@ publishedDealsRoute.get(
       }
     }
 
-    const deals = rows.map((r) => ({
+    const all = rows.map((r) => ({
       ...r,
       stores:
         ledger.get(`${String(r.retailer ?? 'homedepot')}:${String(r.sku ?? r.item_id ?? '')}`) ?? [],
     }));
 
-    res.json({ count: deals.length, deals });
+    // Teaser paywall: members get the full feed; everyone else (free accounts +
+    // the anonymous preview) sees the first TEASER_LIMIT with a `locked` flag and
+    // the real total, so the client can offer "subscribe to see all N".
+    const paid = isPaidMember(req);
+    const deals = paid ? all : all.slice(0, TEASER_LIMIT);
+    res.json({ count: deals.length, total: all.length, locked: !paid && all.length > deals.length, deals });
   }),
 );
