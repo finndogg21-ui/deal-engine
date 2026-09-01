@@ -8,14 +8,20 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, route } from '../middleware.js';
+import { requireAuth, requirePlan, route } from '../middleware.js';
 
 export const alerts = Router();
+
+// Alerts are a paid feature (owner decision, 2026-09-01): sending and reviewing
+// deal alerts is part of the membership, not the free teaser. requirePlan also
+// rejects the shared public-preview identity, so an anonymous visitor gets a
+// 402 upgrade prompt here rather than the operator row's alert history.
+const paid = [requireAuth, requirePlan('member')];
 
 const OUTCOMES = ['won', 'lost', 'ignored'];
 
 /* GET /api/alerts — last 50, newest first. */
-alerts.get('/alerts', requireAuth, route(async (req, res) => {
+alerts.get('/alerts', ...paid, route(async (req, res) => {
   const db = await getDb();
   const limit = Math.min(Number(req.query.limit ?? 50) || 50, 100);
 
@@ -70,7 +76,7 @@ alerts.get('/alerts', requireAuth, route(async (req, res) => {
 }));
 
 /* POST /api/alerts/read-all */
-alerts.post('/alerts/read-all', requireAuth, route(async (req, res) => {
+alerts.post('/alerts/read-all', ...paid, route(async (req, res) => {
   const db = await getDb();
   await db.query(
     `UPDATE alerts SET opened_at = now() WHERE user_id = $1 AND opened_at IS NULL`,
@@ -80,7 +86,7 @@ alerts.post('/alerts/read-all', requireAuth, route(async (req, res) => {
 }));
 
 /* POST /api/alerts/:id/open */
-alerts.post('/alerts/:id/open', requireAuth, route(async (req, res) => {
+alerts.post('/alerts/:id/open', ...paid, route(async (req, res) => {
   const db = await getDb();
   const { rowCount } = await db.query(
     `UPDATE alerts SET opened_at = COALESCE(opened_at, now())
@@ -92,7 +98,7 @@ alerts.post('/alerts/:id/open', requireAuth, route(async (req, res) => {
 }));
 
 /* PATCH /api/alerts/:id — record what happened. */
-alerts.patch('/alerts/:id', requireAuth, route(async (req, res) => {
+alerts.patch('/alerts/:id', ...paid, route(async (req, res) => {
   const outcome = String((req.body ?? {}).outcome ?? '');
   if (!OUTCOMES.includes(outcome)) {
     return res.status(400).json({ error: `outcome must be one of ${OUTCOMES.join(', ')}` });
