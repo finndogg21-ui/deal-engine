@@ -458,7 +458,7 @@ export default function AllDeals() {
   // deal" all route to /app/deal/:productId/:storeId, which renders this page.
   const { productId, storeId } = useParams();
 
-  const { me } = useAuth();
+  const { me, refresh } = useAuth();
   // Effective ZIP for the "Closest to me" feed: the signed-in account ZIP if we
   // have one, otherwise the locally-entered ZIP (PUBLIC_PREVIEW has no
   // persistable account). Reactive to same-tab ZIP saves, so the feed loads the
@@ -945,10 +945,24 @@ export default function AllDeals() {
     setSel(detailFromRow(c));
   }
 
-  // Open the detail panel straight away when the page is reached by a deep link.
+  // Open the detail straight away when reached by a deep link. Verified-pool
+  // deals aren't in /api/candidates (openById 404s silently), and their id is
+  // `retailer:itemId` — route those to the real detail page instead of a dead
+  // click. Legacy candidate ids (no colon) still open the side panel.
   useEffect(() => {
-    if (productId && storeId) void openById(productId, storeId);
-  }, [productId, storeId, openById]);
+    if (!productId || !storeId) return;
+    if (productId.includes(':')) {
+      const [slug, itemId] = productId.split(':');
+      if (slug && itemId) { nav(`/app/d/${encodeURIComponent(slug)}/${encodeURIComponent(itemId)}`); return; }
+    }
+    void openById(productId, storeId);
+  }, [productId, storeId, openById, nav]);
+
+  // Returning from a completed Stripe checkout: refresh the session so the new
+  // membership reflects immediately instead of a stale plan.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('checkout') === 'success') void refresh();
+  }, [refresh]);
 
   const [saving, setSaving] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState('');

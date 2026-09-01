@@ -21,6 +21,7 @@ import AllDeals from './pages/AllDeals.js';
 import PennyDealPage from './pages/PennyDealPage.js';
 import Admin from './pages/app/Admin.js';
 import ReportFind from './pages/app/ReportFind.js';
+import Watchlist from './pages/app/Watchlist.js';
 
 /** Placeholder. One constant, one edit when the real name is picked. */
 export const BRAND = "Finnley's Deals";
@@ -81,6 +82,9 @@ export default function App() {
         {/* Dollar General is community-fed: members report their own in-store
             penny scans here, because DG's penny price is register-only. */}
         <Route path="report" element={<ReportFind />} />
+        {/* Where "Find stock near me" results land (StockQueuePanel). Was
+            unrouted, so FindStock's "My watchlist" link dead-ended. */}
+        <Route path="watchlist" element={<Watchlist />} />
         {/* Alert and penny-watch deep links land here. On a phone this is a
             pushed route rather than a squeezed side panel (F10). */}
         <Route path="deal/:productId/:storeId" element={<AllDeals />} />
@@ -89,6 +93,8 @@ export default function App() {
 
       <Route path="/dashboard" element={<AppShell />}>
         <Route index element={<AllDeals />} />
+        {/* Old /dashboard/* deep links degrade to the app instead of a site 404. */}
+        <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>
     </Routes>
   );
