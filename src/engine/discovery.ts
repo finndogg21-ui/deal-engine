@@ -318,21 +318,82 @@ export async function recordVerdicts(
  * which lets the huge high-discount retailers (Best Buy, Woot, Ollie's) crowd
  * the smaller ones (Newegg, Grove, Staples) out of the slice entirely — so the
  * app passes the selected store's slug and gets that retailer's own top-N. */
+/** An outlet "list" more than this multiple of the buy price is treated as
+ *  inflated for RANKING only (display is untouched). Woot lists a $3.99 case at
+ *  $59.99 (15x) to manufacture a "93% off" — capping the comparison price at 6x
+ *  stops that fake margin from ranking the case above a real $272-off tool. */
+const MAX_LIST_RATIO = 6;
+
+const rnum = (v: unknown): number | null =>
+  v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null;
+
+/** The reseller signal a card actually turns on: what you PAY, what it's WORTH,
+ *  and the dollars you keep. Hidden-clearance carries the real deal in its
+ *  clearance_* fields (hd_* is the normal shelf price); a regular markdown
+ *  carries it in hd_*. `saved` uses a plausibility-capped worth so an inflated
+ *  outlet list can't buy its way to the top of the feed. */
+function dealSignal(r: Record<string, unknown>): { saved: number; pct: number; tier: number } {
+  const hidden = r.deal_kind === 'hidden_clearance';
+  const clr = rnum(r.clearance_price);
+  const hdPrice = rnum(r.hd_price);
+  const hdList = rnum(r.hd_list);
+  if (hidden && clr !== null && hdPrice !== null && clr < hdPrice) {
+    // Buy at the in-store clearance price; worth = the normal shelf price.
+    const pct = rnum(r.clearance_pct) ?? Math.round((1 - clr / hdPrice) * 100);
+    return { saved: Math.round((hdPrice - clr) * 100) / 100, pct, tier: 2 };
+  }
+  // Regular markdown: buy = hd_price, worth = hd_list capped against inflation.
+  if (hdPrice !== null && hdList !== null && hdList > hdPrice) {
+    const worth = Math.min(hdList, hdPrice * MAX_LIST_RATIO);
+    return { saved: Math.round((worth - hdPrice) * 100) / 100, pct: rnum(r.hd_discount) ?? 0, tier: 1 };
+  }
+  return { saved: 0, pct: rnum(r.hd_discount) ?? 0, tier: 1 };
+}
+
+/** Collapse a title to a dedupe key: lowercase, drop punctuation and the
+ *  colour/finish words that are the only thing separating near-identical SKUs,
+ *  so one representative of a repeated product shows instead of a wall. */
+function titleKey(title: unknown): string {
+  return String(title ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\b(black|white|blue|red|green|clear|pink|grey|gray|silver|gold|rose|navy|brown|beige|tan|teal|purple|orange|yellow)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Re-rank the published pool the way a reseller reads it: the flagship
+ *  hidden-clearance finds first, then everything by real dollars kept (with the
+ *  inflated-list cap), and only one card per repeated product. Pure ordering —
+ *  no row is dropped for content, only true title-duplicates are collapsed. */
+export function rankPublished(rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const scored = rows.map((r) => ({ r, s: dealSignal(r) }));
+  // Dedupe by (retailer, collapsed title), keeping the best-saving instance.
+  const best = new Map<string, { r: Record<string, unknown>; s: { saved: number; pct: number; tier: number } }>();
+  for (const item of scored) {
+    const key = `${String(item.r.retailer ?? '')}:${titleKey(item.r.title)}`;
+    if (!titleKey(item.r.title)) { best.set(`${key}:${String(item.r.discovery_id)}`, item); continue; }
+    const prev = best.get(key);
+    if (!prev || item.s.saved > prev.s.saved) best.set(key, item);
+  }
+  return [...best.values()]
+    .sort((a, b) => (b.s.tier - a.s.tier) || (b.s.saved - a.s.saved) || (b.s.pct - a.s.pct))
+    .map((x) => x.r);
+}
+
 export async function publishedDeals(db: Db, limit = 200, retailer?: string | null) {
-  const scope = retailer ? 'AND retailer = $2' : '';
-  const params: unknown[] = retailer ? [limit, retailer] : [limit];
+  const scope = retailer ? 'AND retailer = $1' : '';
+  const params: unknown[] = retailer ? [retailer] : [];
   const { rows } = await db.query<Record<string, unknown>>(
     `SELECT discovery_id, retailer, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
             checked_at, source, deal_kind, clearance_price, clearance_pct,
             clearance_store, clearance_stores_checked
        FROM discovery
-      WHERE status = 'published' ${scope}
-      -- Hidden clearance first (the category this product is named after),
-      -- then the biggest verified markdowns.
-      ORDER BY (deal_kind = 'hidden_clearance') DESC, hd_discount DESC NULLS LAST
-      LIMIT $1`,
+      WHERE status = 'published' ${scope}`,
     params,
   );
-  return rows;
+  // Rank in JS on the real per-row signal (SQL's hd_discount is 0 for most
+  // hidden-clearance rows, whose markdown lives in clearance_pct), then slice.
+  return rankPublished(rows).slice(0, limit);
 }
