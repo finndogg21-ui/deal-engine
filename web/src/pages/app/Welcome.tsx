@@ -27,7 +27,7 @@ function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
       <div className="pick" role="dialog" aria-modal="true" aria-labelledby="pick-title">
         <h1 id="pick-title">Which one sounds like you?</h1>
         <p className="lede">
-          Same $20 membership either way — this just sets the app up for how you'll use it.
+          Same $20 membership either way. This just sets the app up for how you'll use it.
           You can switch later.
         </p>
 
@@ -160,7 +160,7 @@ export default function Welcome() {
           await refresh();
         } catch (e) {
           setErr(
-            'Could not save your setup — check your connection and press Finish again. ' +
+            'Could not save your setup. Check your connection and press Finish again. ' +
             ((e as Error).message ?? ''),
           );
           return;
@@ -192,7 +192,7 @@ export default function Welcome() {
           <p className="lede">
             {reseller
               ? 'Penny items live at one store, not everywhere. We only alert you on stores you would actually drive to.'
-              : 'Some deals are in-store near you. Your ZIP tells us which store and how far — the rest ship to your door.'}
+              : 'Some deals are in-store near you. Your ZIP tells us which store and how far. The rest ship to your door.'}
           </p>
 
           <div className="field">

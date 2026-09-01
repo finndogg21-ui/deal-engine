@@ -175,7 +175,7 @@ export default function Orders() {
           <label className="rs-checkline">
             <input type="checkbox" checked={localPickup}
               onChange={(e) => { setLocalPickup(e.target.checked); setFeeTouched(false); }} />
-            Local pickup — no selling fee
+            Local pickup: no selling fee
           </label>
         )}
 
@@ -189,7 +189,7 @@ export default function Orders() {
         {preview !== null && (
           <p className="rs-preview">
             Proceeds after fees and shipping: <strong>{money(preview)}</strong>
-            {itemId && ' — net profit shows once this is saved.'}
+            {itemId && '. Net profit shows once this is saved.'}
           </p>
         )}
       </form>

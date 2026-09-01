@@ -123,7 +123,7 @@ export default function StockQueuePanel() {
               {/* A failure is stated as a failure. "None nearby" would be a
                   different and much more damaging claim. */}
               {j.status === 'vendor_error' && (
-                <span className="qd-err">could not check{j.error ? ` — ${j.error}` : ''}</span>
+                <span className="qd-err">could not check{j.error ? `: ${j.error}` : ''}</span>
               )}
             </div>
           </li>

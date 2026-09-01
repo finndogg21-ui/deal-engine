@@ -24,7 +24,7 @@ const QA: { q: string; a: React.ReactNode }[] = [
   {
     q: 'Which stores are covered?',
     a: <>Home Depot and Target are live with per-store stock. Lowe&rsquo;s, Walmart, and
-      Best Buy are live with chain-wide prices only — those retailers do not publish
+      Best Buy are live with chain-wide prices only: those retailers do not publish
       reliable per-store quantities, so we do not print any.
       See <Link to="/stores/home-depot">the store pages</Link> for what we can and cannot see
       at each one.</>,
@@ -43,7 +43,7 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: 'What does it cost right now?',
-    a: <>The membership is <b>$20 a month</b> — one plan, cancel in one tap. <Link to="/signup">Making
+    a: <>The membership is <b>$20 a month</b>, one plan, cancel in one tap. <Link to="/signup">Making
       an account</Link> is free and never asks for a card, so you can browse in preview first and
       only join when it is worth it to you. No trials, no lock-in.</>,
   },

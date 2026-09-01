@@ -96,7 +96,7 @@ export function SignUp() {
       const me = await signUp(email, password);
       if (!me) {
         // No real session => the email is already registered (server hides which).
-        setErr('That email may already have an account — try signing in instead.');
+        setErr('That email may already have an account. Try signing in instead.');
         setBusy(false);
         return;
       }

@@ -54,7 +54,7 @@ function verdict(p: Preview | null, loading: boolean): { tone: string; text: str
   if (p.matched_last_week > 40) {
     return {
       tone: 'warn',
-      text: `${p.matched_last_week} deals matched last week. That is a lot of alerts — raise the minimum discount to cut it down.`,
+      text: `${p.matched_last_week} deals matched last week. That is a lot of alerts. Raise the minimum discount to cut it down.`,
     };
   }
   const n = p.matched_last_week;

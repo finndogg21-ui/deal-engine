@@ -25,9 +25,9 @@ const MEMBERSHIP = {
   who: 'One plan. Everything included.',
   features: [
     'Every deal ranked by real profit, after fees',
-    'In-store clearance prices, store by store — starting with Home Depot',
+    'In-store clearance prices, store by store, starting with Home Depot',
     'Outlet and clearance across ten retailers',
-    'Watch any product by name — alerts only when it actually drops',
+    'Watch any product by name. Alerts only when it actually drops',
     'Inventory and order tracking',
     'Penny predictions, scored and labeled as predictions',
     'Cancel in one tap, from inside the app',
@@ -48,7 +48,7 @@ export default function Pricing() {
 
   // Returning from a cancelled Stripe checkout — say so plainly instead of nothing.
   useEffect(() => {
-    if (params.get('checkout') === 'cancel') setNotice('Checkout cancelled — no charge was made.');
+    if (params.get('checkout') === 'cancel') setNotice('Checkout cancelled. No charge was made.');
   }, [params]);
 
   /** Actually starts checkout — a plan-less account is sent to sign up first. */

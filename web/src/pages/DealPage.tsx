@@ -139,7 +139,7 @@ export default function DealPage() {
               <p className="deal-note">
                 Home Depot flags this as an in-store clearance but does not publish a
                 price for the store we checked. Clearance is set per store, so it can
-                still be marked down at yours — scan the SKU to see it.
+                still be marked down at yours. Scan the SKU to see it.
               </p>
             </>
           ) : (
@@ -175,7 +175,7 @@ export default function DealPage() {
                     <>
                       <div className="deal-save">Margin up to {money(saves)}</div>
                       <p className="deal-margin-note">
-                        Retail minus your cost — the ceiling on a flip, not a forecast.
+                        Retail minus your cost: the ceiling on a flip, not a forecast.
                         Real resale usually lands below retail, and fees come out of
                         whatever you sell for.
                       </p>
@@ -187,7 +187,7 @@ export default function DealPage() {
                       {row.clearance_stores_checked
                         ? ` · ${row.clearance_stores_checked} stores checked`
                         : ''}
-                      . Clearance is set per store, so yours may differ — scan the SKU.
+                      . Clearance is set per store, so yours may differ. Scan the SKU.
                     </p>
                   )}
                 </>
@@ -222,7 +222,7 @@ export default function DealPage() {
         <h2>What we can and cannot promise</h2>
         <ul className="deal-honest">
           <li>
-            This price is the one we last read{row.checked_at ? ` (${ago(row.checked_at)})` : ''} —
+            This price is the one we last read{row.checked_at ? ` (${ago(row.checked_at)})` : ''},
             not a live feed. It can change or sell out before you arrive.
           </li>
           {isHidden && (

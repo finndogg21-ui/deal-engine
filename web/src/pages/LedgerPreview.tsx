@@ -48,21 +48,21 @@ export default function LedgerPreview() {
 
       <section style={{ marginTop: 40 }}>
         <h2 style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-          Measured — Target, 5 San Antonio stores
+          Measured: Target, 5 San Antonio stores
         </h2>
         <StoreLedger rows={MEASURED} readAt={readAt} />
       </section>
 
       <section style={{ marginTop: 48 }}>
         <h2 style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-          Mixed — a real 0, and a store with no reading
+          Mixed: a real 0, and a store with no reading
         </h2>
         <StoreLedger rows={MIXED} readAt={readAt} />
       </section>
 
       <section style={{ marginTop: 48 }}>
         <h2 style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-          Nothing nearby — the deal is real, the shelf is not
+          Nothing nearby: the deal is real, the shelf is not
         </h2>
         <StoreLedger rows={EMPTY} readAt={readAt} />
       </section>

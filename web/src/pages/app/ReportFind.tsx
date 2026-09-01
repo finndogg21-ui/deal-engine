@@ -35,27 +35,27 @@ const RETAILERS: Record<string, RetailerCfg> = {
   //     Akamai. The spotter standing in the aisle is the verification. ---
   'home-depot': {
     slug: 'homedepot', name: 'Home Depot', allowPenny: false,
-    lede: 'You found a yellow-tag in-store clearance on the shelf. Tell the rest of us where — the markdown is store by store, so the store number matters.',
+    lede: 'You found a yellow-tag in-store clearance on the shelf. Tell the rest of us where. The markdown is store by store, so the store number matters.',
     placeholder: 'e.g. Husky 52 in. Tool Chest',
   },
   lowes: {
     slug: 'lowes', name: "Lowe's", allowPenny: false,
-    lede: 'You found a manager markdown on the shelf. Tell the rest of us where — clearance stock is one store at a time.',
+    lede: 'You found a manager markdown on the shelf. Tell the rest of us where. Clearance stock is one store at a time.',
     placeholder: 'e.g. Kobalt 24V Blower',
   },
   target: {
     slug: 'target', name: 'Target', allowPenny: false,
-    lede: 'You found a salvage/clearance endcap deal. Tell the rest of us where — the red sticker is per store, never online.',
+    lede: 'You found a salvage/clearance endcap deal. Tell the rest of us where. The red sticker is per store, never online.',
     placeholder: 'e.g. Dyson V8 Vacuum',
   },
   walmart: {
     slug: 'walmart', name: 'Walmart', allowPenny: false,
-    lede: 'You found a rollback/clearance the site never shows. Tell the rest of us where — the shelf price beats walmart.com.',
+    lede: 'You found a rollback/clearance the site never shows. Tell the rest of us where. The shelf price beats walmart.com.',
     placeholder: 'e.g. Ninja Air Fryer',
   },
   'best-buy': {
     slug: 'bestbuy', name: 'Best Buy', allowPenny: false,
-    lede: 'You found an open-box or clearance tag in the store. Tell the rest of us where — these live on the shelf, not the site.',
+    lede: 'You found an open-box or clearance tag in the store. Tell the rest of us where. These live on the shelf, not the site.',
     placeholder: 'e.g. Sony WH-1000XM5',
   },
   // --- Community penny / warehouse markdown retailers (pre-v1) ---
@@ -66,12 +66,12 @@ const RETAILERS: Record<string, RetailerCfg> = {
   },
   'tractor-supply': {
     slug: 'tractorsupply', name: 'Tractor Supply', allowPenny: false,
-    lede: 'You found a red-tag clearance deal on the shelf. Tell the rest of us where — the price is national, but the stock never is.',
+    lede: 'You found a red-tag clearance deal on the shelf. Tell the rest of us where. The price is national, but the stock never is.',
     placeholder: 'e.g. DeWalt 20V Drill Kit',
   },
   costco: {
     slug: 'costco', name: 'Costco', allowPenny: false,
-    lede: 'You spotted a .97 or asterisk markdown in the warehouse. Tell the rest of us where — these never show up on costco.com.',
+    lede: 'You spotted a .97 or asterisk markdown in the warehouse. Tell the rest of us where. These never show up on costco.com.',
     placeholder: 'e.g. Anker Power Station',
   },
 };
@@ -162,7 +162,7 @@ export default function ReportFind() {
       <div className="dash-eyebrow">{cfg.name}</div>
       <h1 className="rs-title">Report a find</h1>
       <p className="rs-lede">
-        {cfg.lede} This is a member report — one person&rsquo;s find, not verified stock —
+        {cfg.lede} This is a member report, one person&rsquo;s find, not verified stock,
         and it posts under your name. Report your own find, never a copied list.
       </p>
 
@@ -255,7 +255,7 @@ export default function ReportFind() {
           <p className="rs-note" style={{ width: '100%', color: grossFlip > 0 ? 'var(--ok, #128a4b)' : 'var(--alert)' }}>
             {grossFlip > 0
               ? <>Est. flip: <strong>+${grossFlip.toFixed(2)}</strong> over cost, before {MARKETPLACES.find((m) => m.id === marketplace)?.label} fees. The feed ranks by profit after fees.</>
-              : <>That resells for less than it costs — not a flip.</>}
+              : <>That resells for less than it costs, not a flip.</>}
           </p>
         )}
 
@@ -265,7 +265,7 @@ export default function ReportFind() {
         </label>
 
         <p className="rs-note" style={{ width: '100%' }}>
-          A store number or at least the state is required — clearance stock is store by
+          A store number or at least the state is required. Clearance stock is store by
           store, so a find has to say where.
         </p>
 

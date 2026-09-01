@@ -84,7 +84,7 @@ export default function PennyWatch() {
       <p className="pw-lede">
         Pennies only. An item is on this page for one of two reasons: it rings up at
         <strong> $0.01</strong>, or it walked the whole markdown ladder, vanished from
-        the site, and still has stock on the floor. Nothing else gets in — not a $7.03,
+        the site, and still has stock on the floor. Nothing else gets in, not a $7.03,
         not a 90% off. Every score shows its working.
       </p>
 
@@ -130,7 +130,7 @@ export default function PennyWatch() {
           <p>No pennies right now.</p>
           <p className="pw-lede">
             Nothing rings up at a cent and nothing has finished the ladder yet. That is
-            the normal state — real pennies are rare, and this page stays empty rather
+            the normal state: real pennies are rare, and this page stays empty rather
             than padding itself with deep clearance and calling it something it is not.
             Deep markdowns, including final-markdown <strong>.03</strong> items one step
             away, are on <Link to="/app">All deals</Link>.

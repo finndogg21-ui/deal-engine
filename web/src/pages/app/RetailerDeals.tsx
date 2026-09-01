@@ -42,7 +42,7 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
     live: false,
     // Stated plainly. The sweep actor covers Home Depot only.
     why:
-      'The daily sweep does not cover Lowe’s yet — the scraper behind it is Home Depot only. ' +
+      'The daily sweep does not cover Lowe’s yet. The scraper behind it is Home Depot only. ' +
       'Nothing here is missing because prices were checked and came back full; it is missing because ' +
       'nothing has been checked. A Lowe’s source is a separate piece of work.',
   },
@@ -50,7 +50,7 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
     name: 'Best Buy',
     live: false,
     why:
-      'The Best Buy sweep is built — it reads the retailer’s own developer API, no scraping — ' +
+      'The Best Buy sweep is built (it reads the retailer’s own developer API, no scraping) ' +
       'but it is waiting on our API credentials. Nothing here is missing because prices were ' +
       'checked and came back full; nothing has been checked yet.',
   },
@@ -58,7 +58,7 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
     name: 'Dollar General',
     live: false,
     why:
-      'Dollar General has no price feed to check — its penny price exists only in the register, ' +
+      'Dollar General has no price feed to check: its penny price exists only in the register, ' +
       'on no website and no shelf tag. So DG can never be a scrape. Its finds come only from ' +
       'members who confirmed a penny on a shelf and reported it, and that reporting flow is the ' +
       'next thing being built. See the Dollar General store page for how it works.',
@@ -68,7 +68,7 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
     live: false,
     why:
       'Tractor Supply’s site is walled by Akamai, and its deepest markdowns are in-store red-tag ' +
-      'remnants that never reach the website. So there is no feed to scrape here either — TSC finds ' +
+      'remnants that never reach the website. So there is no feed to scrape here either. TSC finds ' +
       'come from members who spotted a clearance tag on a shelf and reported it. See the Tractor ' +
       'Supply store page for how it works.',
   },
@@ -76,7 +76,7 @@ const RETAILERS: Record<string, { name: string; live: boolean; why: string }> = 
     name: 'Costco',
     live: false,
     why:
-      'Costco’s manager markdowns — the .97 prices and asterisk tags — exist only in the warehouse ' +
+      'Costco’s manager markdowns, the .97 prices and asterisk tags, exist only in the warehouse ' +
       'and never appear on costco.com. So there is nothing to scrape: Costco finds come from members ' +
       'who spotted a markdown tag on the shelf and reported it. See the Costco store page for how it works.',
   },

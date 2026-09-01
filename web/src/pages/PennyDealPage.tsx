@@ -164,7 +164,7 @@ export default function PennyDealPage() {
             <div className="why-eyebrow">What a penny report means</div>
             <p>
               Shoppers reported this item ringing up <b>$0.01</b> at the places
-              listed. Penny items have been pulled from sale — stores are
+              listed. Penny items have been pulled from sale. Stores are
               supposed to take them off the floor and send them back.
             </p>
             <p>
@@ -174,7 +174,7 @@ export default function PennyDealPage() {
               find one in a store, it should ring up $0.01.
             </p>
             <p>
-              Never guaranteed — penny status is store-specific, and the
+              Never guaranteed: penny status is store-specific, and the
               register is the only truth. Scan the SKU or UPC at a price
               checker before you celebrate.
             </p>
@@ -193,7 +193,7 @@ export default function PennyDealPage() {
           <p className="pp-cta-line">
             Pennies vanish in hours. Get the next one near you the moment it's reported.
           </p>
-          <Link className="btn pp-cta-btn" to="/signup">Get penny alerts — start free</Link>
+          <Link className="btn pp-cta-btn" to="/signup">Get penny alerts, start free</Link>
         </div>
       </div>
     </div>

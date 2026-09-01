@@ -136,14 +136,14 @@ export default function FindStock({ productId }: { productId: string }) {
       {!appZip && (
         <p className="fs-note">
           No ZIP saved yet. This one is kept on your account and used for every
-          stock check — change it any time in the bar at the top.
+          stock check, change it any time in the bar at the top.
         </p>
       )}
 
       {queued && (
         <p className="fs-note">
           Finding stock near {zip}. The answer appears under{' '}
-          <Link to="/app/watchlist">My watchlist</Link> in a few seconds — you can keep browsing.
+          <Link to="/app/watchlist">My watchlist</Link> in a few seconds. You can keep browsing.
         </p>
       )}
 

@@ -39,7 +39,7 @@ export default function Landing() {
               <h3>Online deals, shipped to you</h3>
               <p>
                 We watch clearance and outlet markdowns across Woot, Best Buy Outlet, Target,
-                Ollie’s and more, every day, and keep only the ones deep enough to matter — so you
+                Ollie’s and more, every day, and keep only the ones deep enough to matter, so you
                 skip the Discords and the channels and just see what actually dropped.
               </p>
             </div>
@@ -51,7 +51,7 @@ export default function Landing() {
               <h3>In-store clearance, near you</h3>
               <p>
                 Big-box stores quietly cut prices on the shelf that never show up on the website.
-                We read that hidden clearance price directly — starting with Home Depot. It is the
+                We read that hidden clearance price directly, starting with Home Depot. It is the
                 one thing no aggregator can copy, and it is just getting started.
               </p>
             </div>

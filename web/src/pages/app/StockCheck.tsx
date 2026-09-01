@@ -117,7 +117,7 @@ export default function StockCheck() {
         <>
           <p className="rs-note">
             Checked {result.checked_at ? new Date(result.checked_at).toLocaleTimeString() : 'just now'}
-            {result.cached && ' — cached, refreshes hourly'}. Quantities are what the
+            {result.cached && ', cached, refreshes hourly'}. Quantities are what the
             retailer publishes and can be wrong on the floor.
           </p>
           <div className="rs-tablewrap">

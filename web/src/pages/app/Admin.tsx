@@ -103,7 +103,7 @@ export default function Admin() {
       {(d.counts.alerts_undelivered ?? 0) > 0 && (
         <p className="ad-warn">
           {d.counts.alerts_undelivered} alerts written but never delivered. That is a
-          mailer failure, not a quiet week — check the delivery log.
+          mailer failure, not a quiet week. Check the delivery log.
         </p>
       )}
 

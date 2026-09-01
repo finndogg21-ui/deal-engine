@@ -201,7 +201,7 @@ const COMMUNITY_STORES: Record<string, { name: string; find: string; blurb: stri
   'dollar-general': {
     name: 'Dollar General',
     find: 'penny find',
-    blurb: 'DG’s penny price lives only in the register — nothing to scrape. Found one in the aisle? Add it so the next person knows.',
+    blurb: 'DG’s penny price lives only in the register, nothing to scrape. Found one in the aisle? Add it so the next person knows.',
     report: '/app/report?retailer=dollar-general',
     empty: 'DG penny prices live only in the register, so this fills up as members report what they scan in store. Be the first.',
   },
@@ -1090,7 +1090,7 @@ export default function AllDeals() {
             <div className="community-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--s4)', flexWrap: 'wrap' }}>
               <div>
                 <h3>Found an in-store clearance at {retailerName(store)}?</h3>
-                <p>The scanned feed is above — but the deepest yellow-tag markdowns live only on the shelf, store by store. Add yours so the next reseller finds it, ranked by resale margin.</p>
+                <p>The scanned feed is above, but the deepest yellow-tag markdowns live only on the shelf, store by store. Add yours so the next reseller finds it, ranked by resale margin.</p>
               </div>
               <Link className="btn" to={`/app/report?retailer=${store}`}>
                 Report a clearance find
@@ -1107,7 +1107,7 @@ export default function AllDeals() {
               <h2>Pick a plan to see today&rsquo;s deals</h2>
               <p>
                 The deal data is the product, so it sits behind the plan. Your setup is
-                saved — choosing a plan turns the list on.
+                saved. Choosing a plan turns the list on.
               </p>
               <Link className="btn" to="/pricing">See the plans</Link>
             </div>
@@ -1127,7 +1127,7 @@ export default function AllDeals() {
                 <h3>Community penny reports</h3>
                 <p>
                   Crowd-reported $0.01 finds from public penny lists. Penny status is
-                  store-specific and never guaranteed — scan the SKU in store.
+                  store-specific and never guaranteed. Scan the SKU in store.
                 </p>
               </div>
               {communityScope.penny.map((r, i) => {
@@ -1241,7 +1241,7 @@ export default function AllDeals() {
               <p style={{ margin: '0 0 var(--s4)', color: 'var(--ink-faint)' }}>
                 Members see the full feed, get price alerts, and can check live stock near them.
               </p>
-              <Link className="btn" to="/pricing">See all {feedLock.total} deals — $20/mo</Link>
+              <Link className="btn" to="/pricing">See all {feedLock.total} deals: $20/mo</Link>
             </div>
           )}
 
@@ -1259,7 +1259,7 @@ export default function AllDeals() {
               <div className="community-head">
                 <h3>Community clearance reports</h3>
                 <p>
-                  Deep clearance reported around the country. Not our scan — confirm in
+                  Deep clearance reported around the country. Not our scan. Confirm in
                   store, since clearance stock is store by store and never guaranteed.
                 </p>
               </div>
