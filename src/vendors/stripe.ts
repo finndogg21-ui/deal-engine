@@ -105,6 +105,10 @@ export async function createCheckoutSession(
   const base = baseUrl();
   const session = await client().checkout.sessions.create({
     mode: 'subscription',
+    // Explicit so we don't depend on the account's automatic-payment-methods
+    // config; Stripe rejects the session with "no valid payment method types"
+    // otherwise. Card is always available once the account is activated.
+    payment_method_types: ['card'],
     customer_email: email,
     client_reference_id: String(userId),
     metadata: { user_id: String(userId), plan },
