@@ -139,7 +139,10 @@
 .card-deal.is-bb .card-img img {
   position: absolute; inset: 0; box-sizing: border-box; z-index: 0;
 }
-.card-img .ph { color: var(--ink-faint); width: 36px; height: 36px; }
+/* Fixed ink, not the flipping --ink-faint: the plate above is #fff in BOTH
+   themes, so a theme-flipping token lightened this icon to ~2.5:1 in dark mode.
+   #585858 is --ink-faint's light value — 7:1 on the white plate either way. */
+.card-img .ph { color: #585858; width: 36px; height: 36px; }
 
 .badge-off {
   position: absolute; top: var(--s3); right: var(--s3);
@@ -653,7 +656,7 @@
 /* Inverted cards (penny) flip the ledger's ink so it stays legible. */
 .card-deal.invert .ledger,
 .invert .ledger {
-  border-top-color: rgba(250, 250, 247, 0.28);
+  border-top-color: color-mix(in srgb, var(--on-accent) 28%, transparent);
 }
 .invert .ledger-row,
 .invert .ledger-total,
@@ -663,9 +666,9 @@
 .invert .ledger-mi,
 .invert .ledger-row.out,
 .invert .ledger-row.unknown,
-.invert .ledger-row.more { color: rgba(250, 250, 247, 0.62); }
-.invert .ledger-dots { border-bottom-color: rgba(250, 250, 247, 0.3); }
-.invert .ledger-total { border-top-color: rgba(250, 250, 247, 0.6); }
+.invert .ledger-row.more { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
+.invert .ledger-dots { border-bottom-color: color-mix(in srgb, var(--on-accent) 30%, transparent); }
+.invert .ledger-total { border-top-color: color-mix(in srgb, var(--on-accent) 60%, transparent); }
 
 @media (max-width: 480px) {
   .ledger { font-size: 11px; }
@@ -721,7 +724,7 @@
   border-color: var(--on-accent);
 }
 .invert .clr-reveal:hover { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
-.invert .now.clr-unknown { color: rgba(250, 250, 247, 0.68); }
+.invert .now.clr-unknown { color: color-mix(in srgb, var(--on-accent) 68%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
   .clr-reveal { transition: none; }
@@ -851,7 +854,7 @@
   margin-bottom: 1px;
 }
 .deal-facts .as-low { font-size: 11px; margin-bottom: var(--s2); }
-.invert .card-price .as-low { color: rgba(250, 250, 247, 0.62); }
+.invert .card-price .as-low { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
 
 /* Where that price was found, and how wide the sample was. */
 .deal-where {
@@ -952,7 +955,7 @@
 .invert .card-off.tier-deep { background: var(--on-accent); color: var(--sticker); }
 .invert .card-off.tier-mid { color: var(--on-accent); }
 .invert .card-off.tier-light .off-n { -webkit-text-stroke-color: var(--on-accent); }
-.invert .card-off .off-u { color: rgba(250, 250, 247, 0.66); }
+.invert .card-off .off-u { color: color-mix(in srgb, var(--on-accent) 66%, transparent); }
 
 /* The price steps back so the cut can lead — still the second thing read. */
 .deck .card-price .now { font-size: 19px; letter-spacing: -0.01em; }
@@ -969,7 +972,7 @@
   padding: 0;
   text-transform: none;
 }
-.invert .card-save { color: rgba(250, 250, 247, 0.78); }
+.invert .card-save { color: color-mix(in srgb, var(--on-accent) 78%, transparent); }
 
 @media (max-width: 1340px) { .card-off .off-n { font-size: 34px; } }
 

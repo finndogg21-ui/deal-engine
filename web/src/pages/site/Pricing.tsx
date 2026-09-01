@@ -22,7 +22,7 @@ const MEMBERSHIP = {
   name: 'Membership',
   price: '$20',
   per: 'a month',
-  who: 'One plan. Everything unlocked.',
+  who: 'One plan. Everything included.',
   features: [
     'Every deal ranked by real profit, after fees',
     'In-store clearance prices, store by store — starting with Home Depot',

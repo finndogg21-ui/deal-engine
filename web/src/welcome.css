@@ -1,7 +1,7 @@
 /* Onboarding. One question per screen, large targets, plain words.
  * The whole job of this flow is to end with a watch set up. */
 
-.wz { max-width: 620px; margin: 0 auto; padding: 44px 24px 90px; }
+.wz { max-width: 620px; margin: 0 auto; padding: var(--s7) var(--s5) var(--s9); }
 
 /* ---- Path picker: the first thing anyone sees ---- */
 
@@ -17,7 +17,7 @@
   border: 1px solid var(--rule-strong);
   border-radius: var(--r-md);
   max-width: 780px; width: 100%;
-  padding: 34px;
+  padding: var(--s6);
   box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
 }
 
@@ -43,7 +43,7 @@
 .pick-card h2 { font-size: 22px; letter-spacing: -0.015em; margin: 0 0 6px; }
 .pick-card .who { font-size: 17px; color: var(--ink-soft); margin: 0 0 16px; }
 
-.pick-card ul { margin: 0 0 20px; padding-left: 20px; }
+.pick-card ul { margin: 0 0 var(--s5); padding-left: var(--s5); }
 .pick-card li { font-size: 16px; margin-bottom: 9px; color: var(--ink-soft); }
 
 .pick-price {
@@ -81,7 +81,7 @@
 
 /* ---- Fields ---- */
 
-.field { margin-bottom: 26px; }
+.field { margin-bottom: var(--s5); }
 .field label { display: block; font-size: 17px; font-weight: 600; margin-bottom: 8px; }
 .field .hint { font-size: 16px; color: var(--ink-faint); margin: 0 0 10px; }
 
@@ -92,7 +92,7 @@
 }
 .wz input:focus-visible, .wz select:focus-visible { border-color: var(--ink); }
 
-.radio-group { display: grid; gap: 10px; }
+.radio-group { display: grid; gap: var(--s3); }
 .radio {
   display: flex; align-items: flex-start; gap: 12px; padding: 15px;
   border: 1px solid var(--rule-strong); border-radius: var(--r-sm); cursor: pointer;
@@ -106,7 +106,7 @@
 
 /* ---- Watch chips ---- */
 
-.chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4); }
 .chip {
   font-size: 16px; padding: 11px 15px; border-radius: var(--r-full);
   border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
@@ -116,8 +116,8 @@
 .chip.on { background: var(--sticker); border-color: var(--sticker-deep); color: var(--on-accent); font-weight: 600; }
 
 .picked {
-  display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px;
-  padding-top: 18px; border-top: 1px solid var(--rule);
+  display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4);
+  padding-top: var(--s4); border-top: 1px solid var(--rule);
 }
 .picked:empty { display: none; }
 .picked-item {
@@ -133,7 +133,7 @@
 
 /* ---- Nav ---- */
 
-.wz-nav { display: flex; gap: 12px; align-items: center; margin-top: 36px; flex-wrap: wrap; }
+.wz-nav { display: flex; gap: var(--s3); align-items: center; margin-top: var(--s6); flex-wrap: wrap; }
 .wz-nav .grow { margin-left: auto; }
 .wz-skip { background: none; border: 0; color: var(--ink-faint); font-size: 16px; text-decoration: underline; }
 .wz-skip:hover { color: var(--ink); }
@@ -150,7 +150,7 @@
 }
 .summary {
   border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
-  padding: 6px 18px; margin: 8px 0 28px; background: var(--paper-sunk);
+  padding: var(--s1) var(--s4); margin: var(--s2) 0 var(--s6); background: var(--paper-sunk);
 }
 .summary-row {
   display: flex; justify-content: space-between; gap: 16px;

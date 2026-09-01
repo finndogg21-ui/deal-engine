@@ -60,7 +60,7 @@
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   border-radius: var(--r-md);
-  padding: 10px 12px;
+  padding: var(--s2) var(--s3);
   /* 44px minimum target, which the audit checks for. */
   min-height: 44px;
 }

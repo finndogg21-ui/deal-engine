@@ -77,7 +77,7 @@ h2.sec-head {
 /* ---- Steps ---- */
 
 .steps { display: grid; gap: 32px; }
-.step { display: grid; grid-template-columns: 40px 1fr; gap: 18px; align-items: start; }
+.step { display: grid; grid-template-columns: 40px 1fr; gap: var(--s4); align-items: start; }
 .step-n {
   font-size: 19px; font-weight: 700; color: var(--on-accent);
   background: var(--sticker); width: 34px; height: 34px;
@@ -88,10 +88,10 @@ h2.sec-head {
 
 /* ---- Audience ---- */
 
-.who { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.who { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--s5); }
 .who-card {
   border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
-  padding: 26px; background: var(--paper-sunk);
+  padding: var(--s5); background: var(--paper-sunk);
 }
 .who-card h3 { margin: 0 0 10px; font-size: 21px; letter-spacing: -0.01em; }
 .who-card p { margin: 0 0 16px; color: var(--ink-soft); }
@@ -106,7 +106,7 @@ h2.sec-head {
 
 .tiers { display: grid; gap: 0; }
 .tier {
-  display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: baseline;
+  display: grid; grid-template-columns: 1fr auto; gap: var(--s2) var(--s4); align-items: baseline;
   padding: 22px 0; border-bottom: 1px solid var(--rule);
 }
 .tier:last-of-type { border-bottom: 0; }
@@ -123,7 +123,7 @@ h2.sec-head {
 
 /* ---- Close ---- */
 
-.close { padding: 60px 0 26px; }
+.close { padding: var(--s8) 0 var(--s5); }
 .close h2 {
   font-size: clamp(26px, 4vw, 38px); letter-spacing: -0.02em;
   margin: 0 0 16px; max-width: 20ch; text-wrap: balance;
@@ -134,5 +134,5 @@ h2.sec-head {
 @media (max-width: 620px) {
   .hero { padding: 36px 0 48px; }
   .sec { padding: 44px 0; }
-  .step { grid-template-columns: 34px 1fr; gap: 14px; }
+  .step { grid-template-columns: 34px 1fr; gap: var(--s4); }
 }
