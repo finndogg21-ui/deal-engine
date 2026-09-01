@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, useAuth, isPreviewUser } from '../../lib/auth.js';
 
 interface PlanInfo {
@@ -40,10 +40,16 @@ export default function Pricing() {
   const [info, setInfo] = useState<PlansResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [params] = useSearchParams();
 
   useEffect(() => {
     void api<PlansResponse>('/api/billing/plans').then(setInfo).catch(() => setInfo(null));
   }, []);
+
+  // Returning from a cancelled Stripe checkout — say so plainly instead of nothing.
+  useEffect(() => {
+    if (params.get('checkout') === 'cancel') setNotice('Checkout cancelled — no charge was made.');
+  }, [params]);
 
   /** Actually starts checkout — a plan-less account is sent to sign up first. */
   async function choose() {

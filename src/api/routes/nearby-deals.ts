@@ -118,7 +118,7 @@ nearbyDeals.get(
     // 1) National catalog: one row per product (best discount), over the floor.
     const cat = await db.query<Record<string, unknown>>(
       `SELECT DISTINCT ON (s.product_id)
-              s.product_id, p.retailer, p.title, p.image_url, p.product_url, p.category,
+              s.product_id, p.item_id, p.retailer, p.title, p.image_url, p.product_url, p.category,
               s.last_price, s.last_discount, s.stage
          FROM sku_state s
          JOIN products p ON p.product_id = s.product_id
@@ -175,6 +175,11 @@ nearbyDeals.get(
       const local = stockByProduct.get(pid);
       return {
         product_id: pid,
+        // Canonical URL id — lets the client key nearby cards the SAME way as the
+        // published feed (`retailer:item_id`), so the "stock near you" overlay
+        // joins and a Closest-to-me click resolves in DealPage. products carries
+        // two HD ids: product_id is the store SKU, item_id is the canonical URL id.
+        item_id: r.item_id != null ? String(r.item_id) : null,
         // The specific store this card's stock belongs to, so the detail screen
         // opens the SAME store and its numbers match the card. Null when no
         // nearby store has a record for this deal.

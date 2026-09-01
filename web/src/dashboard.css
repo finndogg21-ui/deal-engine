@@ -693,10 +693,12 @@
   text-transform: uppercase;
   cursor: pointer;
   user-select: none;
-  transition: opacity 120ms linear;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.clr-reveal:hover { opacity: 0.82; }
+/* A real state change on hover (darken + invert text), matching .btn / .card-cta —
+   not the lone opacity fade that reads as generated. */
+.clr-reveal:hover { background: var(--sticker-deep); border-color: var(--sticker-deep); color: var(--on-accent); }
 
 .clr-reveal:focus-visible {
   outline: 2px solid var(--ink);
@@ -718,6 +720,7 @@
   color: var(--sticker);
   border-color: var(--on-accent);
 }
+.invert .clr-reveal:hover { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
 .invert .now.clr-unknown { color: rgba(250, 250, 247, 0.68); }
 
 @media (prefers-reduced-motion: reduce) {

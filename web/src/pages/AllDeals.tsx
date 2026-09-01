@@ -48,6 +48,7 @@ interface CommunityReport {
 /** One deal from GET /api/deals/nearby — national catalog + local stock. */
 interface NearbyDeal {
   product_id: string;
+  item_id: string | null;
   store_id: string | null;
   retailer: string;
   title: string | null;
@@ -679,7 +680,10 @@ export default function AllDeals() {
       if (!r.ok || !body || !Array.isArray(body.deals)) { setNearRows([]); return; }
       setNearestStoreNum(typeof body.nearest_store_number === 'string' ? body.nearest_store_number : null);
       const mapped: Candidate[] = (body.deals as NearbyDeal[]).map((d) => ({
-        product_id: String(d.product_id),
+        // Key nearby cards the SAME as published (`retailer:item_id`) so the stock
+        // overlay joins and Closest-to-me clicks resolve in DealPage. Fall back to
+        // the store-SKU product_id only when item_id is missing.
+        product_id: d.item_id ? `${d.retailer}:${d.item_id}` : String(d.product_id),
         // The max-stock store this deal is showing — clicking opens ITS detail,
         // so the number on the card and the number on the detail are the same.
         store_id: d.store_id ?? '',
