@@ -1,7 +1,7 @@
-import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
+import { Outlet, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import ZipBar from '../components/ZipBar.js';
 import Sidebar from '../components/Sidebar.js';
-import { useAuth, isPreviewUser } from '../lib/auth.js';
+import { useAuth, isPreviewUser, api } from '../lib/auth.js';
 import { BRAND } from '../App.js';
 import '../sidebar.css';
 
@@ -14,6 +14,21 @@ import '../sidebar.css';
 export default function AppShell() {
   const { me, loading, signOut } = useAuth();
   const { pathname } = useLocation();
+  const nav = useNavigate();
+
+  // "Cancel in one tap, from inside the app" — the copy promises it, so provide
+  // it. A paying member goes to the Stripe billing portal (manage/cancel); a
+  // signed-up free user has no subscription to manage, so send them to pricing.
+  async function manageMembership() {
+    if (me?.plan === 'member') {
+      try {
+        const { url } = await api<{ url: string }>('/api/billing/portal', { method: 'POST' });
+        window.location.href = url;
+        return;
+      } catch { /* no billing account yet — fall through to pricing */ }
+    }
+    nav('/pricing');
+  }
 
   // Avoid flashing the sign-in page while the session is still being checked.
   if (loading) {
@@ -45,7 +60,12 @@ export default function AppShell() {
             <Link to="/signin" className="tape-out">Sign in</Link>
           </>
         ) : (
-          <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
+          <>
+            <button className="tape-out" onClick={() => void manageMembership()}>
+              {me.plan === 'member' ? 'Membership' : 'Upgrade'}
+            </button>
+            <button className="tape-out" onClick={() => void signOut()}>Sign out</button>
+          </>
         )}
       </header>
       {/* The rail is the only nav: Home Depot and Target. On a phone it lies
