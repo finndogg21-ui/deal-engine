@@ -82,12 +82,16 @@ export function SignUp() {
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setErr(''); setBusy(true);
+    setErr('');
+    if (password.length < 10) { setErr('Password must be at least 10 characters.'); return; }
+    if (password !== confirm) { setErr('Passwords do not match.'); return; }
+    setBusy(true);
     try {
       const me = await signUp(email, password);
       if (!me) {
@@ -109,6 +113,8 @@ export function SignUp() {
           hint="Used to sign in and to send your alerts. Nothing else." />
         <Field id="password" label="Password" type="password" value={password} onChange={setPassword}
           autoComplete="new-password" hint="At least 10 characters. Length beats symbols." />
+        <Field id="confirm" label="Confirm password" type="password" value={confirm} onChange={setConfirm}
+          autoComplete="new-password" />
         {err && <p role="alert" style={{ color: 'var(--drop)', margin: 0 }}>{err}</p>}
         <div>
           <button className="btn" type="submit" disabled={busy}>
