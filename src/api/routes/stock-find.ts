@@ -16,7 +16,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, requireRealUser, requirePlan, rateLimit, route } from '../middleware.js';
 import { lookupStock, stockLookupReady, withinRadius, type StoreStockRow } from '../../vendors/store-lookup.js';
 
 export const stockFind = Router();
@@ -179,8 +179,11 @@ stockFind.post(
   }),
 );
 
-/** GET /api/stock/quota — so the button can show what is left before spending. */
-stockFind.get('/stock/quota', requireAuth, route(async (req, res) => {
+/** GET /api/stock/quota — so the button can show what is left before spending.
+    requireRealUser (not requireAuth): the shared public-preview identity is the
+    operator row, so requireAuth here leaked the operator's stock-lookup usage to
+    anonymous visitors. The frontend already treats a non-200 as "no quota". */
+stockFind.get('/stock/quota', requireRealUser, route(async (req, res) => {
   const db = await getDb();
   const cap = capFor(req.user!);
   const { rows } = await db.query<{ n: number }>(

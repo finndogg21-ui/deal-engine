@@ -7,7 +7,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, requireRealUser, requirePlan, rateLimit, route } from '../middleware.js';
 import {
   applyCorroboration, canSeeVerified, currentReputation, recordReport,
 } from '../../engine/reputation.js';
@@ -170,8 +170,11 @@ finds.get('/finds/verified', ...paid, route(async (req, res) => {
   res.json(out);
 }));
 
-/* GET /api/me/spotter — your own standing, and what the gate wants. */
-finds.get('/me/spotter', requireAuth, route(async (req, res) => {
+/* GET /api/me/spotter — your own standing, and what the gate wants.
+   requireRealUser (not requireAuth): the shared public-preview identity is the
+   operator row, so requireAuth here leaked the operator's private spotter stats
+   to anonymous visitors. */
+finds.get('/me/spotter', requireRealUser, route(async (req, res) => {
   const db = await getDb();
   const userId = req.user!.user_id;
   const { rows } = await db.query<Record<string, unknown>>(
