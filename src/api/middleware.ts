@@ -161,6 +161,26 @@ export function rateLimit(opts: { key: string; max: number; windowMs: number }) 
   };
 }
 
+/**
+ * Per-target throttle to layer ON TOP of the per-IP rateLimit middleware. The IP
+ * limiter alone lets an attacker with many IPs brute-force ONE account (or spam
+ * one victim's reset inbox); this caps attempts against a specific target (an
+ * email) regardless of source IP. Shares the same in-memory bucket store.
+ * Returns retry-after seconds if `id` is over `max` in the window, else null.
+ */
+export function throttle(key: string, id: string, max: number, windowMs: number): number | null {
+  const bkey = `${key}:${id}`;
+  const now = Date.now();
+  const b = buckets.get(bkey);
+  if (!b || b.resetAt < now) {
+    buckets.set(bkey, { n: 1, resetAt: now + windowMs });
+    return null;
+  }
+  if (b.n >= max) return Math.ceil((b.resetAt - now) / 1000);
+  b.n++;
+  return null;
+}
+
 /** Wraps an async handler so a rejection becomes a 500 instead of a hang. */
 export function route(
   fn: (req: Request, res: Response) => Promise<unknown>,

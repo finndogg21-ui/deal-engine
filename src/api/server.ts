@@ -111,7 +111,7 @@ const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
  * BEFORE taking money. Selling a plan into a metro with no price history is
  * the fastest possible refund.
  * ------------------------------------------------------------------------- */
-app.get('/api/coverage', async (req, res) => {
+app.get('/api/coverage', rateLimit({ key: 'coverage', max: 60, windowMs: 60_000 }), async (req, res) => {
   try {
     const db = await getDb();
     const zip = typeof req.query.zip === 'string' ? req.query.zip : (req.user?.zip ?? null);

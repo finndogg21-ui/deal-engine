@@ -27,7 +27,7 @@ interface AuthValue {
   me: Me | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<Me | null>;
+  signUp: (email: string, password: string, hp?: string) => Promise<Me | null>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -91,8 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [migrateSetup, refresh]);
 
-  const signUp = useCallback(async (email: string, password: string): Promise<Me | null> => {
-    await api('/api/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) });
+  const signUp = useCallback(async (email: string, password: string, hp = ''): Promise<Me | null> => {
+    await api('/api/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, hp }) });
     // The server returns 201 with NO session for an already-registered email
     // (non-enumeration). Confirm a REAL session actually resulted before doing
     // anything account-scoped — otherwise the injected preview identity would

@@ -45,72 +45,82 @@ stockQueue.post('/stock/queue', ...paid,
     if (productIds.length === 0) return res.status(400).json({ error: 'Nothing to look up.' });
 
     const cap = capFor(req.user!);
-    const usedRow = await db.query<{ n: number }>(
-      `SELECT COUNT(*)::int AS n FROM stock_lookups
-        WHERE user_id = $1 AND billed AND fetched_at >= date_trunc('day', now())`,
-      [req.user!.user_id],
-    );
-    let budget = cap - Number(usedRow.rows[0]?.n ?? 0);
 
-    const queued: string[] = [];
-    const cached: { product_id: string; stores: StoreStockRow[] }[] = [];
-    const skipped: { product_id: string; reason: string }[] = [];
+    // The daily cap is the ONLY bound on real paid-vendor spend, so the count
+    // and the billed inserts must be atomic. Without this, N concurrent requests
+    // all read the same "used" count before any insert lands and each spends a
+    // full budget (a member could force ~10x the daily cap in one burst = real
+    // money). A transaction-scoped advisory lock keyed on the user serializes a
+    // single user's concurrent queue requests (different users never block each
+    // other); submit() is a fast noWait enqueue, so the lock is held only briefly.
+    const out = await db.tx(async (tx) => {
+      await tx.query('SELECT pg_advisory_xact_lock($1)', [req.user!.user_id]);
 
-    for (const productId of productIds) {
-      // Cache first — a queued job that the cache could answer is money burnt.
-      const hit = await db.query<{ stores: StoreStockRow[] }>(
-        `SELECT stores FROM stock_lookups
-          -- 'empty' included: "no store within 25 miles" repeats just as often
-            -- as a hit, and re-buying that answer would burn the daily budget.
-            WHERE product_id = $1 AND zip = $2 AND status IN ('ok','empty')
-            AND fetched_at >= now() - ($3 || ' hours')::interval
-          ORDER BY fetched_at DESC LIMIT 1`,
-        [productId, zip, String(CACHE_HOURS)],
+      const usedRow = await tx.query<{ n: number }>(
+        `SELECT COUNT(*)::int AS n FROM stock_lookups
+          WHERE user_id = $1 AND billed AND fetched_at >= date_trunc('day', now())`,
+        [req.user!.user_id],
       );
-      if (hit.rows[0]) {
-        // New rows are radius-clean at write time; re-filtering on read only
-        // covers rows cached before the 25-mile rule, until they age out.
-        cached.push({ product_id: productId, stores: withinRadius(hit.rows[0].stores) });
-        continue;
-      }
+      let budget = cap - Number(usedRow.rows[0]?.n ?? 0);
 
-      // Already queued for this product+zip? Don't pay twice for one answer.
-      const inFlight = await db.query(
-        `SELECT 1 FROM stock_lookups
-          WHERE product_id = $1 AND zip = $2 AND status = 'pending' LIMIT 1`,
-        [productId, zip],
-      );
-      if (inFlight.rows.length > 0) { queued.push(productId); continue; }
+      const queued: string[] = [];
+      const cached: { product_id: string; stores: StoreStockRow[] }[] = [];
+      const skipped: { product_id: string; reason: string }[] = [];
 
-      if (budget <= 0) { skipped.push({ product_id: productId, reason: 'daily limit reached' }); continue; }
-      if (!asyncLookupReady()) { skipped.push({ product_id: productId, reason: 'lookup not configured' }); continue; }
-
-      const idRow = await db.query<{ item_id: string | null; sku: string }>(
-        `SELECT item_id, sku FROM products WHERE product_id = $1`, [productId],
-      );
-      const itemId = idRow.rows[0]?.item_id
-        ?? idRow.rows[0]?.sku
-        ?? (productId.includes(':') ? productId.split(':').pop()! : productId);
-
-      try {
-        const asyncId = await submit(itemId, zip);
-        await db.query(
-          `INSERT INTO stock_lookups (user_id, product_id, zip, status, async_id, queued_at, billed)
-           VALUES ($1,$2,$3,'pending',$4, now(), true)`,
-          [req.user!.user_id, productId, zip, asyncId],
+      for (const productId of productIds) {
+        // Cache first — a queued job that the cache could answer is money burnt.
+        const hit = await tx.query<{ stores: StoreStockRow[] }>(
+          `SELECT stores FROM stock_lookups
+            -- 'empty' included: "no store within 25 miles" repeats just as often
+              -- as a hit, and re-buying that answer would burn the daily budget.
+              WHERE product_id = $1 AND zip = $2 AND status IN ('ok','empty')
+              AND fetched_at >= now() - ($3 || ' hours')::interval
+            ORDER BY fetched_at DESC LIMIT 1`,
+          [productId, zip, String(CACHE_HOURS)],
         );
-        queued.push(productId);
-        budget--;
-      } catch (err) {
-        skipped.push({ product_id: productId, reason: (err as Error).message.slice(0, 120) });
-      }
-    }
+        if (hit.rows[0]) {
+          // New rows are radius-clean at write time; re-filtering on read only
+          // covers rows cached before the 25-mile rule, until they age out.
+          cached.push({ product_id: productId, stores: withinRadius(hit.rows[0].stores) });
+          continue;
+        }
 
-    res.json({
-      queued, cached, skipped, zip,
-      remaining: Math.max(budget, 0),
-      cap,
+        // Already queued for this product+zip? Don't pay twice for one answer.
+        const inFlight = await tx.query(
+          `SELECT 1 FROM stock_lookups
+            WHERE product_id = $1 AND zip = $2 AND status = 'pending' LIMIT 1`,
+          [productId, zip],
+        );
+        if (inFlight.rows.length > 0) { queued.push(productId); continue; }
+
+        if (budget <= 0) { skipped.push({ product_id: productId, reason: 'daily limit reached' }); continue; }
+        if (!asyncLookupReady()) { skipped.push({ product_id: productId, reason: 'lookup not configured' }); continue; }
+
+        const idRow = await tx.query<{ item_id: string | null; sku: string }>(
+          `SELECT item_id, sku FROM products WHERE product_id = $1`, [productId],
+        );
+        const itemId = idRow.rows[0]?.item_id
+          ?? idRow.rows[0]?.sku
+          ?? (productId.includes(':') ? productId.split(':').pop()! : productId);
+
+        try {
+          const asyncId = await submit(itemId, zip);
+          await tx.query(
+            `INSERT INTO stock_lookups (user_id, product_id, zip, status, async_id, queued_at, billed)
+             VALUES ($1,$2,$3,'pending',$4, now(), true)`,
+            [req.user!.user_id, productId, zip, asyncId],
+          );
+          queued.push(productId);
+          budget--;
+        } catch (err) {
+          skipped.push({ product_id: productId, reason: (err as Error).message.slice(0, 120) });
+        }
+      }
+
+      return { queued, cached, skipped, remaining: Math.max(budget, 0) };
     });
+
+    res.json({ ...out, zip, cap });
   }),
 );
 

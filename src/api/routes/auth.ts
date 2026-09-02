@@ -15,7 +15,7 @@ import {
   COOKIE, createSession, destroySession, destroyAllSessions,
   issueActionToken, consumeActionToken, cookieOptions,
 } from '../../auth/sessions.js';
-import { requireRealUser, rateLimit, route } from '../middleware.js';
+import { requireRealUser, rateLimit, throttle, route } from '../middleware.js';
 import { send } from '../../vendors/mailer.js';
 
 export const auth = Router();
@@ -28,7 +28,13 @@ const norm = (e: string) => e.trim().toLowerCase();
 /* ------------------------------------------------------------------ signup */
 
 auth.post('/signup', rateLimit({ key: 'signup', max: 5, windowMs: 15 * 60_000 }), route(async (req, res) => {
-  const { email, password } = req.body ?? {};
+  const { email, password, hp } = req.body ?? {};
+
+  // Honeypot: a hidden field a real form leaves empty and a bot fills. Answer
+  // with the same 201 {ok:true} shape as success so the bot cannot tell it was
+  // caught, and create nothing.
+  if (typeof hp === 'string' && hp.trim() !== '') return res.status(201).json({ ok: true });
+
   if (!emailOk(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
 
   const pwProblem = passwordProblem(String(password ?? ''));
@@ -68,6 +74,19 @@ auth.post('/signup', rateLimit({ key: 'signup', max: 5, windowMs: 15 * 60_000 })
 
 auth.post('/login', rateLimit({ key: 'login', max: 5, windowMs: 15 * 60_000 }), route(async (req, res) => {
   const { email, password } = req.body ?? {};
+
+  // Per-EMAIL throttle on top of the per-IP limit above: an attacker with many
+  // IPs must not get unlimited guesses at one account. Keyed on the submitted
+  // email (not on whether it exists), so it stays enumeration-safe. Generous cap
+  // so a real fat-finger user is never locked out.
+  if (typeof email === 'string') {
+    const retry = throttle('login-email', norm(email), 20, 15 * 60_000);
+    if (retry) {
+      res.setHeader('Retry-After', String(retry));
+      return res.status(429).json({ error: `Too many attempts. Try again in ${retry}s.` });
+    }
+  }
+
   const db = await getDb();
 
   const { rows } = await db.query<{ user_id: number; password_hash: string | null }>(
@@ -96,7 +115,11 @@ auth.post('/logout', route(async (req, res) => {
 
 auth.post('/forgot', rateLimit({ key: 'forgot', max: 3, windowMs: 60 * 60_000 }), route(async (req, res) => {
   const { email } = req.body ?? {};
-  if (emailOk(email)) {
+  // Per-email throttle layered on the per-IP limit: stops a many-IP attacker
+  // from email-bombing one victim's inbox with reset links. On throttle we
+  // silently skip sending and still return {ok:true}, so the response is
+  // identical whether or not the address exists or was rate-limited.
+  if (emailOk(email) && throttle('forgot-email', norm(email), 3, 60 * 60_000) === null) {
     const db = await getDb();
     const { rows } = await db.query<{ user_id: number }>(
       `SELECT user_id FROM users WHERE email = $1`, [norm(email)],

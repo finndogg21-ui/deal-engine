@@ -83,6 +83,7 @@ export function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [hp, setHp] = useState(''); // honeypot: real users never fill this
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -93,7 +94,7 @@ export function SignUp() {
     if (password !== confirm) { setErr('Passwords do not match.'); return; }
     setBusy(true);
     try {
-      const me = await signUp(email, password);
+      const me = await signUp(email, password, hp);
       if (!me) {
         // No real session => the email is already registered (server hides which).
         setErr('That email may already have an account. Try signing in instead.');
@@ -115,6 +116,13 @@ export function SignUp() {
           autoComplete="new-password" hint="At least 10 characters. Length beats symbols." />
         <Field id="confirm" label="Confirm password" type="password" value={confirm} onChange={setConfirm}
           autoComplete="new-password" />
+        {/* Honeypot: off-screen, not tabbable, hidden from AT. A bot that fills
+            this is rejected server-side; a real user never sees or reaches it. */}
+        <input
+          type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true"
+          value={hp} onChange={(e) => setHp(e.target.value)}
+          style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+        />
         {err && <p role="alert" style={{ color: 'var(--drop)', margin: 0 }}>{err}</p>}
         <div>
           <button className="btn" type="submit" disabled={busy}>
