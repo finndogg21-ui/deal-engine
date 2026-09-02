@@ -54,19 +54,22 @@ auth.post('/signup', rateLimit({ key: 'signup', max: 5, windowMs: 15 * 60_000 })
     [norm(email), hash],
   );
 
-  // Address already registered. Say the same thing either way, and email the
-  // real owner rather than telling the visitor an account exists.
+  // ENUMERATION-SAFE SIGNUP. Signup NEVER logs the visitor in: a brand-new
+  // account and an already-registered address return the IDENTICAL 201
+  // {ok:true} with NO session cookie, so the response cannot be used to test
+  // whether an email is registered. The visitor signs in afterward (the client
+  // redirects them to /signin). An already-registered address still gets a
+  // heads-up email, but it is fire-and-forget so the extra work does not make
+  // the two branches distinguishable by response TIMING either. (The password
+  // hash — scrypt — runs in both branches above, so that cost is already equal.)
   if (!rows[0]) {
-    await send({
+    void send({
       to: norm(email),
       subject: 'Someone tried to sign up with your email',
       text: `Somebody tried to create an account with this address. You already have one.\n\nIf it was you, sign in instead: ${APP_URL}/signin`,
-    });
-    return res.status(201).json({ ok: true });
+    }).catch(() => { /* never block or reveal anything through the signup response */ });
   }
 
-  const { raw, expires } = await createSession(db, rows[0].user_id, req.headers['user-agent']);
-  res.cookie(COOKIE, raw, cookieOptions(expires));
   res.status(201).json({ ok: true });
 }));
 

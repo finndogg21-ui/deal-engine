@@ -27,7 +27,7 @@ interface AuthValue {
   me: Me | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, hp?: string) => Promise<Me | null>;
+  signUp: (email: string, password: string, hp?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -91,20 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [migrateSetup, refresh]);
 
-  const signUp = useCallback(async (email: string, password: string, hp = ''): Promise<Me | null> => {
+  const signUp = useCallback(async (email: string, password: string, hp = ''): Promise<void> => {
+    // Enumeration-safe: signup creates the account but returns NO session (a new
+    // and an already-registered email are indistinguishable). The caller sends
+    // the visitor to /signin; the preview-setup migration happens there, in
+    // signIn(). api() throws on a non-2xx (e.g. a validation 400), which the
+    // form surfaces; a 201 resolves and means "submitted".
     await api('/api/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, hp }) });
-    // The server returns 201 with NO session for an already-registered email
-    // (non-enumeration). Confirm a REAL session actually resulted before doing
-    // anything account-scoped — otherwise the injected preview identity would
-    // migrate onboarding onto the shared operator row.
-    let user: Me | null = null;
-    try { user = (await api<{ user: Me }>('/api/auth/me')).user; } catch { user = null; }
-    const real = !!user && !isPreviewUser(user) && user.email?.toLowerCase() === email.trim().toLowerCase();
-    if (!real) { setMe(null); return null; }
-    await migrateSetup();
-    setMe(user);
-    return user;
-  }, [migrateSetup]);
+  }, []);
 
   const signOut = useCallback(async () => {
     await api('/api/auth/logout', { method: 'POST' });

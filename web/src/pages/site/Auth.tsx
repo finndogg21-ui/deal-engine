@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth, api } from '../../lib/auth.js';
 
 /** Sign in, sign up, forgot, and reset. One file, four small forms. */
@@ -45,7 +45,10 @@ export function SignIn() {
   const { signIn } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const [email, setEmail] = useState('');
+  // Someone who just signed up is sent here with their email pre-filled and a
+  // note — signup is enumeration-safe, so it never logs them in directly.
+  const handoff = useLocation().state as { email?: string; notice?: string } | null;
+  const [email, setEmail] = useState(handoff?.email ?? '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -63,6 +66,9 @@ export function SignIn() {
       foot={<>No account? <Link to="/signup">Create one</Link>. Forgot your password?{' '}
         <Link to="/forgot">Reset it</Link>.</>}>
       <form className="form" onSubmit={submit}>
+        {handoff?.notice && (
+          <p role="status" style={{ margin: '0 0 var(--s2)', color: 'var(--ink-soft)' }}>{handoff.notice}</p>
+        )}
         <Field id="email" label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field id="password" label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
         {err && <p role="alert" style={{ color: 'var(--drop)', margin: 0 }}>{err}</p>}
@@ -94,14 +100,17 @@ export function SignUp() {
     if (password !== confirm) { setErr('Passwords do not match.'); return; }
     setBusy(true);
     try {
-      const me = await signUp(email, password, hp);
-      if (!me) {
-        // No real session => the email is already registered (server hides which).
-        setErr('That email may already have an account. Try signing in instead.');
-        setBusy(false);
-        return;
-      }
-      nav(safeNext(params.get('next')) ?? '/welcome');
+      // Signup is enumeration-safe: it returns no session and does NOT reveal
+      // whether the email already existed. Everyone lands on sign-in next; a new
+      // user signs in with what they just set, and someone who already had an
+      // account signs in as normal. onboarding (/welcome) follows sign-in.
+      await signUp(email, password, hp);
+      // Carry any incoming ?next= (e.g. from the pricing "create account" flow)
+      // through sign-in; default new signups to onboarding.
+      const next = safeNext(params.get('next')) ?? '/welcome';
+      nav(`/signin?next=${encodeURIComponent(next)}`, {
+        state: { email, notice: 'Your account is ready. Sign in to continue.' },
+      });
     } catch (x) { setErr((x as Error).message); }
     finally { setBusy(false); }
   }
