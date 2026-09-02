@@ -8,7 +8,13 @@
 import { randomBytes, createHash } from 'node:crypto';
 import type { Db } from '../db/client.js';
 
-export const COOKIE = 'de_session';
+// __Host- prefix in production: the browser then REFUSES the cookie unless it is
+// Secure, Path=/, and has no Domain attribute — which cookieOptions already
+// guarantees. This blocks a subdomain (or a MITM on a sibling host) from setting
+// or overwriting the session cookie. Dev stays plain because __Host- also
+// requires Secure, which local http cannot provide. (Enabled at the domain-swap
+// to summitclearance.com, 2026-09-02.)
+export const COOKIE = process.env.NODE_ENV === 'production' ? '__Host-de_session' : 'de_session';
 const DAYS = 30;
 
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');

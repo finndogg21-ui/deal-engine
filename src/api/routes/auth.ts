@@ -110,7 +110,7 @@ auth.post('/login', rateLimit({ key: 'login', max: 5, windowMs: 15 * 60_000 }), 
 auth.post('/logout', route(async (req, res) => {
   const db = await getDb();
   await destroySession(db, req.cookies?.[COOKIE]);
-  res.clearCookie(COOKIE, { path: '/' });
+  res.clearCookie(COOKIE, { path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
   res.json({ ok: true });
 }));
 
@@ -241,6 +241,6 @@ auth.post('/account/delete/confirm', route(async (req, res) => {
     await tx.query(`DELETE FROM users WHERE user_id = $1`, [userId]);
   });
 
-  res.clearCookie(COOKIE, { path: '/' });
+  res.clearCookie(COOKIE, { path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
   res.json({ ok: true });
 }));

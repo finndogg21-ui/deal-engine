@@ -92,7 +92,9 @@ function client(): Stripe {
 /** Absolute origin for Checkout redirects. */
 function baseUrl(): string {
   const raw = process.env.PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
-  return raw || 'https://web-production-cc975.up.railway.app';
+  // Primary domain fallback (used when PUBLIC_BASE_URL is unset). Set
+  // PUBLIC_BASE_URL in Railway to override if the canonical origin changes.
+  return raw || 'https://summitclearance.com';
 }
 
 export async function createCheckoutSession(
