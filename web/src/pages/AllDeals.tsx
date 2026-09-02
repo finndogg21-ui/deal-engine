@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { money, ago, hdStoreUrl, displayTitle, statesLine } from '../lib/deal-ui.js';
+import { money, ago, hdStoreUrl, safeHref, displayTitle, statesLine } from '../lib/deal-ui.js';
 import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
@@ -1268,7 +1268,7 @@ export default function AllDeals() {
                   key={r.report_id}
                   className="card-deal"
                   style={{ '--i': Math.min(i, 16) } as CSSProperties}
-                  onClick={() => { const u = r.product_url ?? r.source_url; if (u) window.open(u, '_blank', 'noopener'); }}
+                  onClick={() => { const u = safeHref(r.product_url ?? r.source_url); if (u) window.open(u, '_blank', 'noopener'); }}
                 >
                   <div className="card-img">
                     {r.discount_pct !== null && <span className="badge-off">{Math.round(Number(r.discount_pct))}% off</span>}
@@ -1339,8 +1339,8 @@ export default function AllDeals() {
               {sel.store.maps_url && <> · <a href={sel.store.maps_url} target="_blank" rel="noreferrer">Directions</a></>}
               {/* The retailer's own listing. Confirms the item is real and
                   carries the photos and specs we deliberately do not mirror. */}
-              {sel.product_url && <> · <a
-                href={hdStoreUrl(sel.product_url, sel.store_id?.split(':')[1] ?? nearestStoreNum) ?? sel.product_url}
+              {safeHref(sel.product_url) && <> · <a
+                href={safeHref(hdStoreUrl(sel.product_url, sel.store_id?.split(':')[1] ?? nearestStoreNum) ?? sel.product_url)!}
                 target="_blank" rel="noreferrer">View on {retailerName(sel.retailer)}</a></>}
             </p>
 

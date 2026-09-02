@@ -24,6 +24,18 @@ export function hdStoreUrl(url: string | null, storeNumber: string | null): stri
 }
 
 /**
+ * Only an http(s) URL becomes a clickable href / window.open target. Defense in
+ * depth for the deal links: community/vendor URLs are the one place a hostile
+ * value could reach an href, and React does NOT strip a `javascript:` href — it
+ * would execute on click. Returns null for anything that is not http(s), so the
+ * caller renders a disabled/absent link instead of a live script URL.
+ */
+export function safeHref(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return /^https?:\/\//i.test(String(url)) ? String(url) : null;
+}
+
+/**
  * Titleless source records arrive as "HD SKU <digits>" (ingest fallback).
  * A stranger reads that as broken; name it what it is instead.
  */

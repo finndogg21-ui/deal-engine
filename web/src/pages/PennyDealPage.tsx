@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getLocalZip } from '../lib/zip.js';
-import { ago, displayTitle, hdStoreUrl, money } from '../lib/deal-ui.js';
+import { ago, displayTitle, hdStoreUrl, safeHref, money } from '../lib/deal-ui.js';
 import '../dashboard.css';
 
 /**
@@ -182,8 +182,8 @@ export default function PennyDealPage() {
         </div>
 
         <p style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
-          {r.product_url && (
-            <a className="btn" href={hdStoreUrl(r.product_url, nearestStore) ?? r.product_url}
+          {safeHref(r.product_url) && (
+            <a className="btn" href={safeHref(hdStoreUrl(r.product_url, nearestStore) ?? r.product_url)!}
               target="_blank" rel="noreferrer">Open at your store on Home Depot</a>
           )}
         </p>

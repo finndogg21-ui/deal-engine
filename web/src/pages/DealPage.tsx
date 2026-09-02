@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { money, ago, displayTitle } from '../lib/deal-ui.js';
+import { money, ago, displayTitle, safeHref } from '../lib/deal-ui.js';
 import { RETAILERS } from '../lib/retailers.js';
 import StoreLedger, { type LedgerRow } from '../components/StoreLedger.js';
 
@@ -202,8 +202,8 @@ export default function DealPage() {
             <div><dt>Checked</dt><dd>{row.checked_at ? ago(row.checked_at) : 'unknown'}</dd></div>
           </dl>
 
-          {row.product_url && (
-            <a className="btn" href={row.product_url} target="_blank" rel="noreferrer">
+          {safeHref(row.product_url) && (
+            <a className="btn" href={safeHref(row.product_url)!} target="_blank" rel="noreferrer">
               View on {retailerName(row.retailer)}
             </a>
           )}

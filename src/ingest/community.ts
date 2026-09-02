@@ -28,6 +28,19 @@ import 'dotenv/config';
 import { getDb, type Db } from '../db/client.js';
 import { meetsTieredFloor } from '../engine/deal-floor.js';
 
+/**
+ * Only an http(s) URL is stored. Scraped feeds supply productUrl/sourceUrl/
+ * imageUrl verbatim; without this, a manipulated feed value like `javascript:…`
+ * would be persisted and later rendered into an href/window.open in the client,
+ * where it executes on click (React does not strip javascript: hrefs). Mirrors
+ * the member-submit path's httpsOrNull guard so both ingest routes are equal.
+ */
+const safeUrl = (v: unknown): string | null => {
+  if (!v) return null;
+  const raw = String(v).slice(0, 500);
+  return /^https?:\/\//i.test(raw) ? raw : null;
+};
+
 const UA = 'deal-engine-community-reader/1.0 (polite; 1-2 fetches/day)';
 
 export interface CommunityReport {
@@ -382,7 +395,7 @@ export async function ingestCommunity(db: Db): Promise<Array<{ source: string; f
             r.sku ?? null, r.itemId ?? null, r.title,
             r.price ?? null, r.listPrice ?? null, r.discountPct ?? null,
             r.state ?? null, r.city ?? null, r.storeNumber ?? null,
-            r.productUrl ?? null, r.sourceUrl ?? null, r.imageUrl ?? null,
+            safeUrl(r.productUrl), safeUrl(r.sourceUrl), safeUrl(r.imageUrl),
             r.reportedAt ?? null, JSON.stringify(r.raw ?? null),
           ],
         );
