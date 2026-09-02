@@ -168,7 +168,7 @@ app.get('/api/coverage', rateLimit({ key: 'coverage', max: 60, windowMs: 60_000 
 /* ---------------------------------------------------------------------------
  * GET /api/candidates
  * ------------------------------------------------------------------------- */
-app.get('/api/candidates', ...paid, async (req, res) => {
+app.get('/api/candidates', ...paid, rateLimit({ key: 'candidates', max: 60, windowMs: 60_000 }), async (req, res) => {
   try {
     const db = await getDb();
     const minScore = Number(req.query.min_score ?? 0);
@@ -310,7 +310,7 @@ app.get('/api/candidates', ...paid, async (req, res) => {
 /* ---------------------------------------------------------------------------
  * GET /api/candidates/:productId/:storeId  — the decision screen
  * ------------------------------------------------------------------------- */
-app.get('/api/candidates/:productId/:storeId', ...paid, async (req, res) => {
+app.get('/api/candidates/:productId/:storeId', ...paid, rateLimit({ key: 'candidate-detail', max: 60, windowMs: 60_000 }), async (req, res) => {
   try {
     const db = await getDb();
     const { productId, storeId } = req.params;
