@@ -48,12 +48,23 @@ app.set('trust proxy', 1);
  * connect 'self' for the same-origin API. Stripe Checkout is a full-page
  * redirect, so it needs no script/frame allowance here.
  */
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // Cross-origin isolation (OWASP Secure Headers baseline, 2025). COOP severs the
+  // window.opener link to cross-origin popups (XS-Leaks / tabnabbing); CORP stops
+  // other origins from embedding our resources (Spectre-class side channels / XSSI).
+  // Safe here: the app opens no cross-origin popups (Stripe checkout is a full-page
+  // redirect and deal buy-links use noopener), and nothing loads our bundle or API
+  // cross-origin. Fonts/images come FROM other origins, governed by THEIR CORP.
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  // A private API response must never sit in a shared/browser cache. Only /api is
+  // marked no-store; content-hashed static assets keep their normal long caching.
+  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "base-uri 'self'",
@@ -64,6 +75,7 @@ app.use((_req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https:",
     "connect-src 'self'",
+    "upgrade-insecure-requests",
   ].join('; '));
   next();
 });
