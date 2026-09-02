@@ -181,6 +181,16 @@ export function throttle(key: string, id: string, max: number, windowMs: number)
   return null;
 }
 
+/**
+ * Validate a numeric route param (a bigint PK) before it reaches a query. The
+ * queries are parameterized so this is not an injection guard — it turns a
+ * malformed id (which Postgres rejects with a cast error → generic 500) into a
+ * clean 400, and keeps non-numeric junk out of the query path entirely.
+ * Returns the id string if it is 1–18 digits, else null.
+ */
+export const idParam = (v: unknown): string | null =>
+  /^\d{1,18}$/.test(String(v ?? '')) ? String(v) : null;
+
 /** Wraps an async handler so a rejection becomes a 500 instead of a hang. */
 export function route(
   fn: (req: Request, res: Response) => Promise<unknown>,

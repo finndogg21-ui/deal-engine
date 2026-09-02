@@ -8,9 +8,13 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, requirePlan, rateLimit, idParam, route } from '../middleware.js';
 
 export const inventory = Router();
+
+// Reject a non-numeric :id with a clean 400 before it reaches a bigint query.
+inventory.param('id', (_req, res, next, val) =>
+  idParam(val) ? next() : res.status(400).json({ error: 'Invalid id.' }));
 
 // Inventory is the reseller half of the product; a consumer plan has no use
 // for it and it is not what they are paying for.

@@ -11,10 +11,14 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, requirePlan, rateLimit, idParam, route } from '../middleware.js';
 import { FEE_TABLE, FEES_VERIFIED_ON, estimateFee, isMarketplace } from '../../resell/fees.js';
 
 export const orders = Router();
+
+// Reject a non-numeric :id with a clean 400 before it reaches a bigint query.
+orders.param('id', (_req, res, next, val) =>
+  idParam(val) ? next() : res.status(400).json({ error: 'Invalid id.' }));
 
 const reseller = [requireAuth, requirePlan('member')];
 const STATUSES = ['listed', 'sold', 'shipped', 'delivered', 'refunded'];

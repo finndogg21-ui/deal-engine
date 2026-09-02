@@ -8,11 +8,16 @@
 
 import { Router } from 'express';
 import { getDb, type Db } from '../../db/client.js';
-import { requireAuth, requirePlan, rateLimit, route } from '../middleware.js';
+import { requireAuth, requirePlan, rateLimit, idParam, route } from '../middleware.js';
 import { resolveTerm, normalizeTerm } from '../../engine/terms.js';
 import { countRecentMatches, type GeoScope, type WatchCriteria } from '../../engine/match.js';
 
 export const watchlists = Router();
+
+// Reject a non-numeric :id with a clean 400 before it reaches a bigint query.
+// ('/watchlists/preview' is a static route, not :id, so it is unaffected.)
+watchlists.param('id', (_req, res, next, val) =>
+  idParam(val) ? next() : res.status(400).json({ error: 'Invalid id.' }));
 
 const paid = [requireAuth, requirePlan('member')];
 

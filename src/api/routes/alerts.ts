@@ -8,9 +8,13 @@
 
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
-import { requireAuth, requirePlan, route } from '../middleware.js';
+import { requireAuth, requirePlan, idParam, route } from '../middleware.js';
 
 export const alerts = Router();
+
+// Reject a non-numeric :id with a clean 400 before it reaches a bigint query.
+alerts.param('id', (_req, res, next, val) =>
+  idParam(val) ? next() : res.status(400).json({ error: 'Invalid id.' }));
 
 // Alerts are a paid feature (owner decision, 2026-09-01): sending and reviewing
 // deal alerts is part of the membership, not the free teaser. requirePlan also
