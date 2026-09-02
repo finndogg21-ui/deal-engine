@@ -19,6 +19,15 @@ export const mailerReady = () => isWired(ENV);
 
 export async function send(mail: OutboundEmail): Promise<void> {
   if (!mailerReady()) {
+    // The body can contain a one-time reset/deletion TOKEN. In production, never
+    // print it to the logs — a missing MAIL_URL is a real misconfiguration, so
+    // log the recipient only and withhold the body. (Do not throw: /forgot must
+    // still answer {ok:true} to stay enumeration-safe.)
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[MAIL NOT WIRED] refused to send to ${mail.to} — set ${ENV}. Body withheld (may contain a token).`);
+      return;
+    }
+    // Dev only: the full body is useful locally and no real token is at risk.
     console.log(
       `\n[MAIL NOT WIRED] would send to ${mail.to}\n` +
       `  subject: ${mail.subject}\n` +

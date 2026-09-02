@@ -37,6 +37,37 @@ const here = dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+
+/**
+ * Security headers on EVERY response (the API and the SPA HTML it serves). Set
+ * directly rather than pulling in helmet for a handful of setHeader calls.
+ * The CSP is permissive-but-real for a Vite/React SPA + Google Fonts + retailer
+ * images: script 'self' (the built bundle is external, no inline script);
+ * style 'unsafe-inline' for React style={{}} attributes and the Google Fonts
+ * stylesheet; img https: because product photos come from many retailer CDNs;
+ * connect 'self' for the same-origin API. Stripe Checkout is a full-page
+ * redirect, so it needs no script/frame allowance here.
+ */
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https:",
+    "connect-src 'self'",
+  ].join('; '));
+  next();
+});
+
 /**
  * The Stripe webhook must see the exact bytes Stripe signed, so it is mounted
  * with express.raw BEFORE express.json. Order matters: json() marks the body

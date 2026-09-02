@@ -120,10 +120,10 @@ stockFind.post(
     }
 
     if (!stockLookupReady()) {
-      return res.status(503).json({
-        error: 'Stock lookup is not wired up yet.',
-        detail: 'APIFY_TOKEN is not set. See src/vendors/store-lookup.ts.',
-      });
+      // Keep the env-var name and file path in the SERVER log, not the client
+      // response (they are an internal fingerprint of no use to a caller).
+      console.warn('stock lookup not configured: APIFY_TOKEN missing (see src/vendors/store-lookup.ts)');
+      return res.status(503).json({ error: 'Stock lookup is not available right now.' });
     }
 
     /* ---- vendor --------------------------------------------------------- */
@@ -168,9 +168,10 @@ stockFind.post(
       );
 
       console.error(`stock lookup failed ${productId} @ ${zip}:`, message);
+      // The raw vendor `message` is logged above and stored in stock_lookups;
+      // do NOT echo it to the client (it can carry internal URLs/detail).
       return res.status(vendorStatus === 429 ? 429 : 502).json({
         error: vendorStatus === 429 ? 'Too many checks right now.' : 'Could not check stock right now.',
-        detail: message,
         // Verified 2026-08-16: some ZIPs fail every time at this vendor while
         // neighbouring ones succeed on the same product.
         retryable: true,
