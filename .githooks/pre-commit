@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Secret guard for deal-engine. Blocks committing env files and high-confidence
+# secret literals, so a key can never reach git history the way they already are
+# kept out (in .env / Railway env vars). Activate once per clone with:
+#   git config core.hooksPath .githooks
+#
+# Patterns require real key MATERIAL (prefix + 16+ chars), so the pattern
+# definitions below do not trip the scanner, and the .githooks dir is excluded.
+
+fail=0
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+# 1) Never commit a real env file (allow the checked-in .env.example template).
+for f in $staged; do
+  case "$f" in
+    .env|.env.*)
+      if [ "$f" != ".env.example" ]; then
+        echo "BLOCKED: $f is an env file — secrets belong in .env (gitignored) or Railway."
+        fail=1
+      fi
+      ;;
+  esac
+done
+
+# 2) Scan ADDED lines for high-confidence secret VALUES (skip this hook dir).
+patterns='sk_live_[0-9A-Za-z]{16,}|sk_test_[0-9A-Za-z]{16,}|rk_live_[0-9A-Za-z]{16,}|whsec_[0-9A-Za-z]{20,}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY|postgres(ql)?://[^:@/ ]+:[^@/ ]+@'
+added=$(git diff --cached -U0 --diff-filter=ACM -- . ':(exclude).githooks/*' | grep -E '^\+' | grep -vE '^\+\+\+')
+hits=$(printf '%s\n' "$added" | grep -nE "$patterns" || true)
+if [ -n "$hits" ]; then
+  echo "BLOCKED: a staged change looks like a real secret:"
+  printf '%s\n' "$hits" | head
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "Commit blocked by .githooks/pre-commit. Move the value to .env or a Railway env var."
+  echo "If this is genuinely a false positive: git commit --no-verify"
+  exit 1
+fi
+exit 0
