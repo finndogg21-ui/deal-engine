@@ -23,8 +23,8 @@ import Admin from './pages/app/Admin.js';
 import ReportFind from './pages/app/ReportFind.js';
 import Watchlist from './pages/app/Watchlist.js';
 
-/** Placeholder. One constant, one edit when the real name is picked. */
-export const BRAND = "Finnley's Deals";
+/** The brand. Single source of truth — every header/footer/label reads this. */
+export const BRAND = "Summit Clearance";
 
 function NotFound() {
   return (

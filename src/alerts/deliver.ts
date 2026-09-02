@@ -15,7 +15,7 @@ import type { Db } from '../db/client.js';
 import { send } from '../vendors/mailer.js';
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:8787';
-const BRAND = process.env.BRAND_NAME ?? "Finnley's Deals";
+const BRAND = process.env.BRAND_NAME ?? "Summit Clearance";
 
 interface Pending {
   alert_id: string;
