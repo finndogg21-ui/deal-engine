@@ -47,6 +47,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "cloakbrowser": "^0.5.10",
     "playwright-core": "^1.62.1",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",

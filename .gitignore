@@ -33,3 +33,4 @@ hd-prod.json
 scripts/out/
 experiments/*/node_modules/
 experiments/*/out/
+.gstack/
