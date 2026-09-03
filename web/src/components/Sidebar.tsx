@@ -66,7 +66,12 @@ export default function Sidebar() {
       {/* TRACKS — cross-retailer views. Hidden clearance is the moat, so it gets
           a permanent home at the top of the rail, reachable from any screen and
           any store. These scope by ?tab=, not ?store=. */}
-      <div className="rail-group">
+      {/* On a phone the spools row inside the Find page already offers the
+          Hidden track (with a live count) — repeating it here printed "HIDDEN
+          CLEARANCE" twice in the first 300px, so ≤760px hides the rail copy
+          (.rail-tracks .rail-hidden). "All deals" stays on the phone rail:
+          it is the route back to all-stores after a store chip is tapped. */}
+      <div className="rail-group rail-tracks">
         <div className="rail-sec">Tracks</div>
         <Link
           to="/app?tab=all"

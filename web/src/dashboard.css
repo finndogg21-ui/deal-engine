@@ -1269,3 +1269,43 @@
      type sizes — denser + more readable without touching any font size. */
   .dash { padding-left: var(--s3); padding-right: var(--s3); }
 }
+
+/* ── MOBILE CHROME BUDGET (2026-09-03 launch run) ─────────────────────────
+   Measured live at 375x812: the first deal card started 640px down — an
+   entire phone screen of chrome, zero deals visible on load. The fix is
+   deleting duplicated chrome, not shrinking type (owner bar: as readable as
+   desktop). Kills: the ZIP nudge banner (the header ZIP field is already on
+   screen), one spool row (tabs share a row), and the search/sort stack
+   (they share a row). Desktop unchanged. */
+@media (max-width: 760px) {
+  /* The header ZIP field sits ~120px above this banner on every phone —
+     the nudge was a second, dashed copy of the same ask. */
+  .zip-nudge { display: none; }
+
+  .spools { gap: var(--s2); padding-bottom: var(--s3); }
+
+  /* Both track tabs on ONE row. 44px targets kept; type drops 16→14px which
+     stays ≥ the 13px secondary floor from the 2026-09-02 mobile cycle. */
+  .spool {
+    font-size: 14px;
+    padding: var(--s2) var(--s3);
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+
+  /* Search and sort share a row: search takes the slack, sort hugs content.
+     (Overrides the width:100% stack rule above — this block is later.) */
+  .spools .searchbox { flex: 1 1 55%; min-width: 0; }
+  .sortbox { width: auto; flex: 1 1 auto; }
+
+  /* Freshness stays (honesty rule) but as a slim mono caption line, not a
+     40px chip. */
+  .spools .health {
+    flex: 1 1 100%;
+    margin-left: 0;
+    border: 0;
+    padding: 0;
+    text-align: right;
+    font-size: 11.5px;
+  }
+}

@@ -50,6 +50,10 @@
 @media (max-width: 560px) {
   .tape-head { flex-wrap: wrap; gap: var(--s3); padding: var(--s3) var(--s4); }
   .tape-zip { margin-left: 0; flex: 1 1 100%; order: 3; }
+  /* The "Set once" coaching line is a desktop nicety; on a phone it is a
+     whole extra header row between the visitor and the first deal. The ZIP
+     field's own label carries the meaning. */
+  .zb-hint { display: none; }
 }
 
 /* ---- ZIP bar (lives in the header) ---- */
@@ -181,6 +185,11 @@
   .rail-group { display: contents; }
   .rail-group + .rail-group { margin-top: 0; }
   .rail-sec { display: none; }
+  /* The Hidden-clearance track also lives in the spools row on a phone (with
+     a live count), so the rail copy printed "HIDDEN CLEARANCE" twice in the
+     first 300px — hide the rail one. "All deals" STAYS: it is the only way
+     back to the all-stores view once a store chip is tapped. */
+  .rail-tracks .rail-hidden { display: none; }
   .rail-item { flex: 0 0 auto; min-width: 0; justify-content: center; }
   .rail-badge { display: none; }
 }
