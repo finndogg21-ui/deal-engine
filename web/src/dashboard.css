@@ -1193,3 +1193,48 @@
   color: var(--ink-faint);
   max-width: 44ch;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE READABILITY — one column means desktop room, so use it.
+   (mobile-design /coffee cycle 2026-09-02; see .coffee/runs/2026-09-02-mobile.md)
+
+   At <=430px the deck is a SINGLE column, so each card is the full ~330-410px
+   wide — but the "SIX-UP CARD DENSITY" block above (type sized for ~200px
+   cards, six across) was never undone here, so a full-width phone card still
+   rendered a 12.5px title, 9px retailer, 11px was-price and 10px facts
+   (measured live at 375px). Research floors (Apple HIG 44pt, Material 3 48dp,
+   WCAG 2.2 SC 2.5.8/1.4.3, NN/g, Baymard): body & title >=16px, secondary text
+   >=14px, the price a prominent element, tap targets >=44px. This restores the
+   card to a mobile-readable scale using the room a one-column card actually
+   has. Sizes/spacing ONLY — no color, no radius, no new tokens; the receipt
+   system is untouched. The cut still leads (44px) over the price (28px), per
+   the CUT hierarchy. Compact mode is currently unwired (its .compact class is
+   applied nowhere in AllDeals.tsx), so these .deck rules cannot collide with it.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+  .deck .card-body { padding: var(--s4); gap: var(--s2); }
+
+  /* Title to the 16px mobile floor; keep the 2-line clamp, drop the reserved
+     two-line min-height (one-column cards stack, so they need not align). */
+  .deck .card-title { font-size: 16px; line-height: 1.35; min-height: 0; }
+
+  /* The price, readable — sits just under the cut, which still leads. */
+  .deck .card-price { min-height: 0; }
+  .deck .card-price .now { font-size: 28px; }
+  .deck .card-price .was { font-size: 14px; }
+
+  /* Secondary text up off the sub-legible floor. */
+  .deck .retailer { font-size: 13px; }
+  .deck .card-facts { font-size: 14px; }
+  .deck .card-save { font-size: 13px; }
+
+  /* The cut scales back up with the room; it stays the loud element. */
+  .deck .card-off .off-n { font-size: 44px; }
+  .deck .card-off .off-u { font-size: 12px; }
+
+  /* The clearance reveal is a tap target: readable, with a >=44px hit area. */
+  .deck .clr-reveal {
+    font-size: 13px; padding: var(--s2) var(--s4);
+    min-height: 44px; display: inline-flex; align-items: center;
+  }
+}
