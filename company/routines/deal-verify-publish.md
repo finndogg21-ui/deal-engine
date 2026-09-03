@@ -61,6 +61,39 @@ the repo directory:
 Seeding never publishes — the verify pass below prices every item before the
 judge decides.
 
+### DEEP DISCOVERY — HD is NOT a small pool (captured 2026-08-27)
+The cheap POST /admin/discovery/seed only refills from ALREADY-STORED sweeps +
+community, so it goes "dry" (0/0) fast — but that is NOT HD running out of
+deals. HD's clearance catalog is ~25 Special-Values DEPARTMENTS, each with many
+items = thousands total. To keep the loop fed, ROTATE through departments
+(2-3 per cycle), seed each department's items, and the pool never empties.
+
+The 25 department base navParams (from the SpecialValues page, verified live):
+  Appliances 5yc1vZbv1w · Bath 5yc1vZbzb3 · Window-Treatments 5yc1vZar4w ·
+  Building-Materials 5yc1vZaqns · Lumber-Composites 5yc1vZbqpg ·
+  Moulding-Millwork 5yc1vZaq4y · Cleaning 5yc1vZbqsi · Home-Decor 5yc1vZas6p ·
+  Lighting 5yc1vZbvn5 · Doors-Windows 5yc1vZaqih · Electrical 5yc1vZarcd ·
+  Flooring 5yc1vZaq7r · Hardware 5yc1vZc21m · Heating-Venting-Cooling 5yc1vZc4k8 ·
+  Kitchen 5yc1vZar4i · Outdoors-Garden-Center 5yc1vZbx6k · Outdoors 5yc1vZbx82 ·
+  Paint 5yc1vZar2d · Plumbing 5yc1vZbqew · Holiday-Decorations 5yc1vZbd6e ·
+  Smart-Home 5yc1vZc1jw · Storage-Organization 5yc1vZas7e · Tools 5yc1vZc1xy ·
+  Automotive 5yc1vZc8o1 · Furniture 5yc1vZc7pc
+
+The Special-Values (clearance) navParam is the department base + that department's
+clearance facet. VERIFIED: Appliances = 5yc1vZbv1wZ7 (base + Z7). Do NOT assume
+Z7 for every department (the routine's own warning: a guessed Flooring Z7
+returned all 44,158 items). Get each department's real SV navParam from its
+page, OR use searchModel with the department's Special-Values facet.
+
+METHOD (once the browser session is NOT throttled): for each rotated department,
+either (a) POST searchModel with the SV navParam, or (b) render the SV listing
+page (/b/{Dept}/N-{svNavParam}) and read the product tiles' itemIds+prices, then
+write [{itemId,title,price,listPrice,discountPct,productUrl}] and
+`DB_DRIVER=postgres npx tsx scripts/seed-items.mts homedepot found.json`.
+BLOCKER 2026-08-27: after heavy session-wide scanning, ALL retailer fetches
+(incl. HD browse pages) hang — a cool-down / Chrome restart is required before
+deep discovery can run.
+
 ## STEPS
 
 1. SEED the pool (picks up anything new from the sweep/community ingest):

@@ -57,10 +57,44 @@ export default function Sidebar() {
   /* Both entries share the /app path and differ only by ?store=, and NavLink's
      own isActive ignores the query — it would light BOTH rows at once. Read the
      param directly instead. */
-  const active = new URLSearchParams(useLocation().search).get('store');
+  const params = new URLSearchParams(useLocation().search);
+  const active = params.get('store');
+  const activeTab = params.get('tab') ?? 'all';
 
   return (
     <nav className="rail" aria-label="Retailers">
+      {/* TRACKS — cross-retailer views. Hidden clearance is the moat, so it gets
+          a permanent home at the top of the rail, reachable from any screen and
+          any store. These scope by ?tab=, not ?store=. */}
+      <div className="rail-group">
+        <div className="rail-sec">Tracks</div>
+        <Link
+          to="/app?tab=all"
+          className={`rail-item${!active && activeTab === 'all' ? ' on' : ''}`}
+          aria-current={!active && activeTab === 'all' ? 'page' : undefined}
+        >
+          <svg className="rail-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d={STORE_ICON} />
+          </svg>
+          <span className="rail-name">All deals</span>
+        </Link>
+        <Link
+          to="/app?tab=hidden"
+          className={`rail-item rail-hidden${activeTab === 'hidden' ? ' on' : ''}`}
+          aria-current={activeTab === 'hidden' ? 'page' : undefined}
+        >
+          <svg className="rail-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {/* An eye-off glyph: the price the store keeps off the web. */}
+            <path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5a9 9 0 0 1-5-1.6" />
+            <circle cx="10" cy="10" r="2.2" />
+            <path d="M3 3l14 14" />
+          </svg>
+          <span className="rail-name">Hidden clearance</span>
+        </Link>
+      </div>
+
       {GROUPS.map((group) => (
         <div className="rail-group" key={group.label}>
           <div className="rail-sec">{group.label}</div>

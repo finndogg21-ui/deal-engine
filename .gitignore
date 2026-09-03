@@ -28,3 +28,8 @@ logs/
 
 # Local prod data dumps (regenerate with scripts/dump-prod-hd.mts)
 hd-prod.json
+
+# scan output dumps
+scripts/out/
+experiments/*/node_modules/
+experiments/*/out/

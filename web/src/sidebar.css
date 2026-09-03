@@ -142,6 +142,12 @@
   color: var(--on-accent);
 }
 
+/* The Hidden-clearance rail item is the moat — marked in grail amber so it
+   reads as the premium track from any screen. Amber outline when off, amber
+   fill when active. */
+.rail-hidden { border-color: var(--grail); }
+.rail-hidden.on { background: var(--grail); color: var(--grail-ink); border-color: var(--grail); }
+
 .rail-icon { width: 17px; height: 17px; flex: 0 0 auto; }
 .rail-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

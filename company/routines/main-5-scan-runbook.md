@@ -35,10 +35,34 @@ In a REAL Chrome window, per retailer:
    DB_DRIVER=postgres npx tsx src/ingest/lowes-ingest.ts    ~/Downloads/lowes-sweep.json
    DB_DRIVER=postgres npx tsx src/ingest/walmart-ingest.ts  ~/Downloads/walmart-sweep.json
 
-## HOME DEPOT — different, costs money
-Follow company/routines/deal-verify-publish.md (searchModel discovery →
-productClientOnlyProduct verify across 11 stores). Verify needs real Chrome or
-paid Unwrangle. NOT a $0 path — only run if you accept the cost.
+## IF THE DOWNLOAD IS BLOCKED (backgrounded tab) — the $0 file-spill extract
+Chrome drops `a.click()` downloads AND `clipboard.writeText` from a tab that
+isn't frontmost (`document.hasFocus()===false`, `visibilityState==='hidden'`).
+When driving real Chrome via claude-in-chrome the tab is usually backgrounded,
+so both channels silently fail. Extract WITHOUT a download, no focus needed:
+  1. Render the result JSON into the page wrapped in unique sentinels, then pad
+     with filler so the read spills to a file (forces get_page_text over its
+     response-token cap):
+       const s = window.__sweepResult ? JSON.stringify(window.__sweepResult()) : window.__wmResult();
+       const pre=document.createElement('pre');
+       pre.textContent='SOT_x'+s+'EOT_x'+'X'.repeat(60000);
+       document.body.replaceChildren(pre);   // removes React root so it can't re-render
+  2. get_page_text on the tab. It truncates page text at ~50k chars and, being
+     over the token cap, SAVES the result to a tool-results/*.txt file
+     (a JSON array [{type,text}]).
+  3. Python: json.loads(file)[0]['text'], slice between 'SOT_x' and 'EOT_x'.
+  4. If the payload > ~45k, split into halves (each <45k so both sentinels land
+     inside the ~50k truncation window) and reassemble. Target's 3-blob result
+     (~74k) took two halves; Walmart's (~5k) took one. Verified live 2026-08-27.
+
+## HOME DEPOT — also $0 via real Chrome (NOT paid)
+Follow company/routines/deal-verify-publish.md: searchModel discovery →
+productClientOnlyProduct verify across 11 stores, BOTH run free from a
+homedepot.com tab in real Chrome (the gateway answers a genuine session). Pull
+15 pending with GET /admin/discovery/pending?retailer=homedepot, verify in the
+tab, extract the verdicts with the file-spill method above (or chunk-pull if
+small), POST to /admin/discovery/verdicts. Unwrangle is only a paid fallback if
+you have no real-Chrome session — do not reach for it when Chrome is available.
 
 ## HONESTY GUARDS — never bypass
 Floor: <$50 ≥40%, $50–99 ≥30%, $100+ ≥25%. Walmart first-party only (exact

@@ -232,6 +232,9 @@ const BIGBOX_REPORT = new Set(['home-depot', 'lowes', 'target', 'walmart', 'best
 
 const TABS = [
   { id: 'all', label: 'All deals' },
+  // THE MOAT. Register-only / in-store-only prices the retailer will not print
+  // online (deal_kind==='hidden_clearance'). Its own first-class track.
+  { id: 'hidden', label: 'Hidden clearance' },
   { id: 'penny', label: 'Penny track' },
   { id: 'near', label: 'Closest to me' },
 ] as const;
@@ -493,7 +496,7 @@ export default function AllDeals() {
   // Penny button is one click away when viewing Home Depot.
   const [tab, setTab] = useState<TabId>(() => {
     const q = new URLSearchParams(window.location.search).get('tab');
-    return q === 'all' || q === 'near' || q === 'penny' ? q : 'all';
+    return q === 'all' || q === 'near' || q === 'penny' || q === 'hidden' ? q : 'all';
   });
   /**
    * ?store=<slug> scopes the feed to one retailer — this is what the sidebar's
@@ -527,11 +530,11 @@ export default function AllDeals() {
     const s = p.get('store');
     setStore(s);
     const t = p.get('tab');
-    // Penny is Home-Depot-only. A stale ?tab=penny on any other store (old
-    // bookmark, back button) falls back to All so the view is never stuck on a
-    // Penny track with no button and no rows.
-    if (t === 'penny' && s !== 'home-depot') setTab('all');
-    else if (t === 'all' || t === 'near' || t === 'penny') setTab(t);
+    // Penny is Home-Depot-only (community $0.01 hearsay). A stale ?tab=penny on
+    // any other store resolves to the verified Hidden-clearance track — the moat
+    // — never a silent drop to All, which read as "the hidden feed is broken".
+    if (t === 'penny' && s !== 'home-depot') setTab('hidden');
+    else if (t === 'all' || t === 'near' || t === 'penny' || t === 'hidden') setTab(t);
   }, [search]);
 
   const [compact, setCompact] = useState(() => {
@@ -777,6 +780,9 @@ export default function AllDeals() {
     // the Home Depot chip silently filters to zero deals.
     if (store) out = out.filter((c) => c.retailer === store || c.retailer === store.replace(/-/g, ''));
     if (tab === 'penny') out = out.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70);
+    // Hidden clearance = only the register-only / in-store-only rows the retailer
+    // will not print online. This is the moat, given its own track.
+    if (tab === 'hidden') out = out.filter((c) => c.hidden_clearance === true);
     const term = q.trim().toLowerCase();
     if (term) {
       out = out.filter((c) =>
@@ -875,6 +881,8 @@ export default function AllDeals() {
 
   const counts = useMemo(() => ({
     all: rows.length,
+    // The moat's own count — register-only rows in the current scope.
+    hidden: rows.filter((c) => c.hidden_clearance === true).length,
     // The penny spool = community reports + our ladder candidates. The badge
     // must count what the tab actually shows (the "Penny track 0" bug).
     penny: pennyReports.length + rows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
@@ -1014,10 +1022,19 @@ export default function AllDeals() {
           plus search; chips/sort/density controls are culled — the feed's
           default order IS the product's opinion. */}
       <div className="spools" role="tablist">
-        <button role="tab" aria-selected={tab !== 'penny'}
-          className={`spool${tab !== 'penny' ? ' on' : ''}`}
+        <button role="tab" aria-selected={tab === 'all'}
+          className={`spool${tab === 'all' ? ' on' : ''}`}
           onClick={() => setTab('all')}>
           All deals <span className="count">{counts.all}</span>
+        </button>
+        {/* THE MOAT, made a first-class track. Hidden clearance is the
+            register-only / in-store-only price the retailer will not print
+            online — the whole reason this is worth paying for. It is reachable
+            on every screen, not buried as a badge inside All deals. */}
+        <button role="tab" aria-selected={tab === 'hidden'}
+          className={`spool spool-hidden${tab === 'hidden' ? ' on' : ''}`}
+          onClick={() => setTab('hidden')}>
+          Hidden clearance <span className="count">{counts.hidden}</span>
         </button>
         {/* Penny is a Home-Depot-only mechanic (register-only $0.01, its own
             ladder + community penny reports). Every other retailer — the
@@ -1068,6 +1085,20 @@ export default function AllDeals() {
         {/* Keyed by tab: switching spools tears the old tape off and prints
             the new one (CSS: .deck animation). */}
         <div className="deck" key={tab}>
+          {/* The moat gets a plain-spoken caption when it is the active track,
+              so a first-time visitor understands WHY this feed is worth paying
+              for and how to act on it. */}
+          {tab === 'hidden' && (
+            <div className="community-head hidden-head">
+              <h3>Hidden clearance — the register-only price</h3>
+              <p>
+                The in-store markdown the retailer will not print online. We read it
+                straight from the store&rsquo;s own pricing, store by store. Scan the SKU
+                in store to confirm — clearance is per store and never guaranteed.
+              </p>
+            </div>
+          )}
+
           {/* Community-fed retailers (Dollar General, Tractor Supply) have no
               feed to scan — every lead is a member's own find. The action bar
               makes that explicit and hands them the report form. */}
@@ -1198,7 +1229,19 @@ export default function AllDeals() {
 
           {!loading && !loadError && shown.length === 0 && communityScope.penny.length === 0 && communityScope.clearance.length === 0 && (
             <div className="empty">
-              {store && COMMUNITY_STORES[store] ? (
+              {tab === 'hidden' ? (
+                /* The moat's own empty state — never "broken", just "nothing in
+                   THIS scope yet", with a way back to the full feed. */
+                <>
+                  <h2>No hidden clearance in view right now</h2>
+                  <p>
+                    Hidden clearance is the register-only price stores don&rsquo;t publish.
+                    We surface it as our store-level reads find it, starting with Home
+                    Depot. Check back soon, or browse the full feed.
+                  </p>
+                  <button className="btn" onClick={() => setTab('all')}>See all deals</button>
+                </>
+              ) : store && COMMUNITY_STORES[store] ? (
                 /* A community retailer with no rows yet means no member has
                    reported, not that anything is broken. Point at the form. */
                 <>
