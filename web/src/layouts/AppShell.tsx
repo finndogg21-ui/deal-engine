@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import ZipBar from '../components/ZipBar.js';
 import Sidebar from '../components/Sidebar.js';
@@ -16,31 +15,6 @@ export default function AppShell() {
   const { me, loading, signOut } = useAuth();
   const { pathname } = useLocation();
   const nav = useNavigate();
-
-  // Collapse-on-scroll header (mobile): the sticky header is ~194px on a phone,
-  // which pushed the deal feed most of the way off-screen on load. It now hides
-  // on scroll-DOWN (revealing the feed) and returns on scroll-UP. The transform
-  // is gated to <=760px in sidebar.css, so desktop is unaffected.
-  const [hideHead, setHideHead] = useState(false);
-  useEffect(() => {
-    let lastY = window.scrollY;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const dy = y - lastY;
-        if (Math.abs(dy) > 6) {
-          setHideHead(dy > 0 && y > 120); // hide past the header when going down
-          lastY = y;
-        }
-        ticking = false;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   // "Cancel in one tap, from inside the app" — the copy promises it, so provide
   // it. A paying member goes to the Stripe billing portal (manage/cancel); a
@@ -72,7 +46,7 @@ export default function AppShell() {
 
   return (
     <div className="tape-shell">
-      <header className={`tape-head${hideHead ? ' is-hidden' : ''}`}>
+      <header className="tape-head">
         <Link to="/app" className="tape-mark">{BRAND.toUpperCase()}</Link>
         <div className="tape-zip"><ZipBar /></div>
         {/* Auth actions match the actual session. A PUBLIC_PREVIEW visitor is the
