@@ -5,7 +5,7 @@ const STEPS = [
     n: '1',
     h: 'We record every clearance price, every day',
     p: [
-      'Home Depot and Lowe’s, store by store. Prices on clearance only move one direction, and we keep every step.',
+      'Home Depot and Target, store by store. Prices on clearance only move one direction, and we keep every step.',
       'This is the part that cannot be rushed. Nobody can go back and collect last month’s prices, which is why the recording started before the app did.',
     ],
   },
@@ -63,9 +63,9 @@ export default function HowItWorks() {
             paddingBottom: 'var(--s7)',
           }}>
             <div style={{
-              width: 34, height: 34, borderRadius: '50%',
+              width: 34, height: 34, borderRadius: 0,
               background: 'var(--sticker)', color: 'var(--on-accent)',
-              display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 17,
+              display: 'grid', placeItems: 'center', fontWeight: 500, fontSize: 17,
             }}>{s.n}</div>
             <div>
               <h3 style={{ marginTop: 0 }}>{s.h}</h3>
