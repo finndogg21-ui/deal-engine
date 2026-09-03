@@ -1234,4 +1234,13 @@
     font-size: 11px; padding: var(--s2) var(--s3);
     min-height: 44px; display: inline-flex; align-items: center;
   }
+
+  /* The whole card is already a tappable <button>, so the "See this deal"
+     sticker is pure chrome that halves deals-per-screen at two-up. Drop it on
+     phones (compact mode already hides it). */
+  .deck .card-cta { display: none; }
+
+  /* Reclaim the side gutters so the two-up cards get more width for the same
+     type sizes — denser + more readable without touching any font size. */
+  .dash { padding-left: var(--s3); padding-right: var(--s3); }
 }
