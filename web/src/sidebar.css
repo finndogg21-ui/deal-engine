@@ -183,11 +183,14 @@
   .rail-item { transition: none; }
 }
 
-/* Four retailers no longer fit as named chips on a phone — names truncated to
-   two letters ("HO…", "WA…"). Below 760px the chip shows the BADGE (HD / TG /
-   LW / WM), which is designed to be short, and hides the name instead of the
-   badge. */
+/* Phone rail shows the real retailer NAME, not the cryptic 2-letter code — the
+   phone view must be AS READABLE AS DESKTOP (owner bar). Chips size to content
+   in the horizontal scroller; the generic storefront icon is hidden to give the
+   names their width (and honor the no-generic-icons rule on the crowded phone
+   rail), and the badge code is dropped. Chips also get a real 44px tap target. */
 @media (max-width: 760px) {
-  .rail-name { display: none; }
-  .rail-badge { display: inline; margin-left: 0; opacity: 1; font-size: 12px; }
+  .rail-name { display: inline; }
+  .rail-badge { display: none; }
+  .rail-icon { display: none; }
+  .rail-item { min-height: 44px; }
 }
