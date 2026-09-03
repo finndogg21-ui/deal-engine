@@ -193,7 +193,7 @@ export default function PennyDealPage() {
           <p className="pp-cta-line">
             Pennies vanish in hours. Get the next one near you the moment it's reported.
           </p>
-          <Link className="btn pp-cta-btn" to="/signup">Get penny alerts, start free</Link>
+          <Link className="btn pp-cta-btn" to="/signup">Create a free account</Link>
         </div>
       </div>
     </div>
