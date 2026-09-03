@@ -9,6 +9,7 @@ import HowItWorks from './pages/site/HowItWorks.js';
 import Pricing from './pages/site/Pricing.js';
 import Faq from './pages/site/Faq.js';
 import About from './pages/site/About.js';
+import Amazon from './pages/site/Amazon.js';
 import Contact from './pages/site/Contact.js';
 import Privacy from './pages/site/Privacy.js';
 import Terms from './pages/site/Terms.js';
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/about" element={<About />} />
+        <Route path="/amazon" element={<Amazon />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
