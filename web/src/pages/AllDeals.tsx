@@ -5,7 +5,7 @@ import { readSetup } from '../lib/setup.js';
 import { RETAILERS } from '../lib/retailers.js';
 import FindStock from '../components/FindStock.js';
 import StoreLedger from '../components/StoreLedger.js';
-import { useAuth } from '../lib/auth.js';
+import { useAuth, isPreviewUser } from '../lib/auth.js';
 import { getLocalZip, onZipChange } from '../lib/zip.js';
 import '../dashboard.css';
 
@@ -690,16 +690,25 @@ export default function AllDeals() {
     // stale global slice.
   }, [store]);
 
+  // scan/health, stats/hit-rate and community-deals are member-only (they 402
+  // for anyone else), and printed real red 402s on the feed a cold ad visitor
+  // lands on. Gate the paid calls. NOTE: the shared public-preview identity is
+  // labelled plan:'member' client-side but the server's requirePlan STILL 402s
+  // it — so "real member" must also exclude the preview user, or the calls fire
+  // and 402 exactly as before. Keep /api/coverage (public) for the empty state.
+  const isMember = me?.plan === 'member' && !isPreviewUser(me);
   const loadStats = useCallback(async () => {
     // Best effort. These decorate the header, and a failure here must never
     // take the deal list down with it.
     try {
-      const [h, hr] = await Promise.all([
-        fetch('/api/scan/health').then((r) => (r.ok ? r.json() : null)),
-        fetch('/api/stats/hit-rate').then((r) => (r.ok ? r.json() : null)),
-      ]);
-      if (h) setHealth(h);
-      if (hr) setHit(hr);
+      if (isMember) {
+        const [h, hr] = await Promise.all([
+          fetch('/api/scan/health').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/stats/hit-rate').then((r) => (r.ok ? r.json() : null)),
+        ]);
+        if (h) setHealth(h);
+        if (hr) setHit(hr);
+      }
       // Whether we work where this person lives. Drives the empty state, which
       // otherwise blames our scan for something that is really "not your city yet".
       const cov = await fetch('/api/coverage').then((r) => (r.ok ? r.json() : null));
@@ -707,7 +716,7 @@ export default function AllDeals() {
     } catch {
       /* header stats are optional */
     }
-  }, []);
+  }, [isMember]);
 
   // "Closest to me": the national deal catalog with THIS ZIP's local stock
   // overlaid (even 0). Deals are national, so this is populated for every ZIP;
@@ -769,6 +778,9 @@ export default function AllDeals() {
   // Community penny reports — the crowd's $0.01 finds from public penny lists.
   // Loaded once; the penny tab renders them above the ladder candidates.
   useEffect(() => {
+    // Member-only (community-deals is requirePlan('member')). Don't call it for
+    // anonymous/free users — it 402s and logs a console error on the feed.
+    if (!isMember) return;
     void (async () => {
       try {
         const r = await fetch('/api/community-deals?kind=penny&limit=100');
@@ -781,7 +793,7 @@ export default function AllDeals() {
         if (r.ok && body && Array.isArray(body.reports)) setClearanceReports(body.reports as CommunityReport[]);
       } catch { /* section simply doesn't render */ }
     })();
-  }, []);
+  }, [isMember]);
 
   /**
    * INSTANT STOCK ON EVERY CARD. The moment a ZIP is set, nearRows (already
