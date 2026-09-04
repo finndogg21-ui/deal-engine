@@ -30,6 +30,7 @@ import { communityDeals } from './routes/community-deals.js';
 import { publishedDealsRoute } from './routes/published-deals.js';
 import { startStockWorker } from './stock-worker.js';
 import { billing } from './routes/billing.js';
+import { sms } from './routes/sms.js';
 import { admin } from './routes/admin.js';
 import { coverageFor } from '../coverage.js';
 
@@ -115,6 +116,7 @@ app.use('/api/auth', auth);
 app.use('/api', contact);
 app.use('/api', watchlists);
 app.use('/api', alerts);
+app.use('/api', sms);
 app.use('/api', finds);
 app.use('/api', inventory);
 app.use('/api', orders);

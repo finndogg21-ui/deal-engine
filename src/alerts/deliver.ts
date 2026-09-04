@@ -13,6 +13,7 @@
 
 import type { Db } from '../db/client.js';
 import { send } from '../vendors/mailer.js';
+import { queueSms, flushSmsOutbox } from '../vendors/sms.js';
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:8787';
 const BRAND = process.env.BRAND_NAME ?? "Summit Clearance";
@@ -21,6 +22,9 @@ interface Pending {
   alert_id: string;
   user_id: number;
   email: string;
+  phone: string | null;
+  sms_alerts: boolean;
+  phone_verified_at: string | null;
   product_id: string;
   store_id: string;
   reason: string;
@@ -56,7 +60,8 @@ export async function deliverPending(db: Db): Promise<DeliveryResult> {
   const result: DeliveryResult = { digests_sent: 0, alerts_delivered: 0, failed: 0 };
 
   const { rows } = await db.query<Pending>(
-    `SELECT a.alert_id, a.user_id, u.email, a.product_id, a.store_id, a.reason,
+    `SELECT a.alert_id, a.user_id, u.email, u.phone, u.sms_alerts, u.phone_verified_at,
+            a.product_id, a.store_id, a.reason,
             a.score_at_send, p.title, s.last_price AS price,
             s.last_discount AS discount_pct, st.name AS store_name
        FROM alerts a
@@ -92,6 +97,20 @@ export async function deliverPending(db: Db): Promise<DeliveryResult> {
             `Someone just bought this and confirmed the price.\n\n${line(a)}\n\n` +
             `Stock moves fast on confirmed finds.\n\n${BRAND}\n${APP_URL}/app/penny`,
         });
+        // SMS rides along for opted-in, verified numbers — urgent finds only.
+        // Digests stay email: a 6-line watchlist batch is 4+ SMS segments of
+        // cost and reads like spam; a register-confirmed find is the one
+        // interruption a reseller pays $20/mo to get instantly. Queued after
+        // the email succeeds and never throws past the outbox, so SMS trouble
+        // cannot mark an alert undelivered that email already delivered.
+        if (a.sms_alerts && a.phone && a.phone_verified_at) {
+          const bits = [a.title ?? 'Confirmed find'];
+          if (a.price !== null) bits.push(`$${Number(a.price).toFixed(2)}`);
+          if (a.store_name) bits.push(`at ${a.store_name}`);
+          await queueSms(db, userId, a.phone,
+            `${BRAND}: register-confirmed. ${bits.join(' · ')}. ${APP_URL}/app/penny`).catch((err) =>
+            console.error(`sms queue failed for user ${userId}`, err));
+        }
         await db.query(`UPDATE alerts SET delivered_at = now() WHERE alert_id = $1`, [a.alert_id]);
         result.alerts_delivered++;
         result.digests_sent++;
@@ -130,6 +149,10 @@ export async function deliverPending(db: Db): Promise<DeliveryResult> {
       result.failed++;
     }
   }
+
+  // Retry anything the SMS provider owes us (failed sends + the backlog that
+  // accumulated while Twilio was unconfigured).
+  await flushSmsOutbox(db).catch((err) => console.error('sms outbox flush failed', err));
 
   return result;
 }

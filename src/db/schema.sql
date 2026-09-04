@@ -669,3 +669,31 @@ ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_pct NUMERIC(5,2);
 ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_store TEXT;
 -- How many stores we actually asked, so "as low as" is honest about its sample.
 ALTER TABLE discovery ADD COLUMN IF NOT EXISTS clearance_stores_checked INTEGER;
+
+-- ── SMS notifications (frame, 2026-09-03) ──────────────────────────────────
+-- Owner requirement: alerts HAVE to reach members by SMS. Provider-agnostic
+-- frame: the outbox is the contract; src/vendors/sms.ts is the only file that
+-- knows Twilio exists. Until TWILIO_* env vars are set, sends land in the
+-- outbox as 'awaiting_config' and flush on the first configured run — nothing
+-- is silently dropped.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_alerts BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verify_code TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verify_expires TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS sms_outbox (
+  sms_id       BIGSERIAL PRIMARY KEY,
+  user_id      BIGINT NOT NULL REFERENCES users(user_id),
+  to_phone     TEXT NOT NULL,
+  body         TEXT NOT NULL,
+  -- queued | awaiting_config | sent | failed
+  status       TEXT NOT NULL DEFAULT 'queued',
+  provider_sid TEXT,
+  error        TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at      TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS sms_outbox_pending
+  ON sms_outbox (status, created_at)
+  WHERE status IN ('queued', 'awaiting_config');

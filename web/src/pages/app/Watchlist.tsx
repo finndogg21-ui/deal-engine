@@ -228,6 +228,8 @@ export default function Watchlist() {
           to look for "things I asked about". */}
       <StockQueuePanel />
 
+      <SmsPanel />
+
       {error && <p className="wl-error">{error}</p>}
 
       {watches === null && <p className="wl-lede">Loading your watches…</p>}
@@ -279,6 +281,108 @@ export default function Watchlist() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * Text alerts. Register-confirmed finds only — the one interruption worth a
+ * text; watchlist digests stay on email. The panel is honest about provider
+ * state: while the SMS line is still being connected it says so instead of
+ * promising a text that cannot arrive yet.
+ */
+function SmsPanel() {
+  const [state, setState] = useState<{ phone: string | null; verified: boolean; sms_alerts: boolean; provider_live: boolean } | null>(null);
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [stage, setStage] = useState<'idle' | 'code_sent' | 'busy'>('idle');
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try { setState(await api('/api/sms')); } catch { /* panel hides on 402 */ }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  // Paid feature: a preview/free user gets a 402 from /api/sms and no panel —
+  // same rule as every other alert surface.
+  if (!state) return null;
+
+  async function savePhone(e: React.FormEvent) {
+    e.preventDefault();
+    setStage('busy'); setMsg(null);
+    try {
+      await api('/api/sms/phone', { method: 'POST', body: JSON.stringify({ phone }) });
+      setStage('code_sent');
+      setMsg(state!.provider_live
+        ? 'Code sent. Enter the 6 digits from the text.'
+        : 'Number saved. The SMS line is still being connected — your code will arrive once it is live.');
+    } catch (err) {
+      setStage('idle');
+      setMsg(err instanceof Error ? err.message : 'Could not save that number.');
+    }
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setStage('busy'); setMsg(null);
+    try {
+      await api('/api/sms/verify', { method: 'POST', body: JSON.stringify({ code }) });
+      setStage('idle'); setCode(''); setMsg('Verified. Confirmed finds now text you.');
+      await load();
+    } catch (err) {
+      setStage('code_sent');
+      setMsg(err instanceof Error ? err.message : 'Wrong or expired code.');
+    }
+  }
+
+  async function togglePrefs() {
+    try {
+      await api('/api/sms/prefs', { method: 'POST', body: JSON.stringify({ sms_alerts: !state!.sms_alerts }) });
+      await load();
+    } catch { /* leave state as-is */ }
+  }
+
+  return (
+    <div className="wl-form" style={{ marginTop: 'var(--s6)' }}>
+      <h2 style={{ fontWeight: 500 }}>Text alerts</h2>
+      <p className="wl-lede">
+        Register-confirmed finds by SMS, the moment they are confirmed. Everything
+        else stays in your email digest.
+      </p>
+
+      {state.verified ? (
+        <div className="wl-foot">
+          <p className="wl-lede">
+            {state.phone} · verified
+            {!state.provider_live && ' · SMS line connecting — texts start once it is live'}
+          </p>
+          <button className="btn" type="button" onClick={() => void togglePrefs()}>
+            {state.sms_alerts ? 'Turn texts off' : 'Turn texts on'}
+          </button>
+        </div>
+      ) : stage === 'code_sent' ? (
+        <form className="wl-row" onSubmit={verify}>
+          <label className="wl-field wl-grow">
+            <span>6-digit code</span>
+            <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric" autoComplete="one-time-code" placeholder="000000" />
+          </label>
+          <button className="btn" type="submit" disabled={code.length !== 6}>Verify</button>
+        </form>
+      ) : (
+        <form className="wl-row" onSubmit={savePhone}>
+          <label className="wl-field wl-grow">
+            <span>US mobile number</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)}
+              inputMode="tel" autoComplete="tel" placeholder="(210) 555-0134" />
+          </label>
+          <button className="btn" type="submit" disabled={stage === 'busy' || phone.replace(/\D/g, '').length < 10}>
+            Text me a code
+          </button>
+        </form>
+      )}
+
+      {msg && <p className="wl-note" role="status">{msg}</p>}
     </div>
   );
 }
