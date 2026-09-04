@@ -51,3 +51,18 @@ lack. stop-slop on all new copy.
 ## Reference
 Blueprint: company/haste-blueprint.md · State: company/haste-run-state.md
 Research+council: workflow wf_852f08f0-871.
+
+## FINAL STATE (~03:20) — coherent redesign complete + live
+Also shipped: landing "How it works" realigned to the moat→proof→flip story so
+the whole landing tells ONE narrative with the receipt signature.
+
+The full landing now reads as one story: proof hero (shelf vs register) → the
+register-receipt signature → how it works (read the register price / spotter
+verifies / you flip) → value-led pricing. App feed reskinned to clean dark rows.
+Every screen warm-dark, Bricolage/Hanken/Spline, no broadsheet AI tell.
+
+**HOLDING for owner review (paywall-adjacent — won't change the gate blind):**
+the locked-deal teaser overlay + unlock print animation. These change how much
+of a locked deal shows and need a call on teaser aggressiveness. Detail-page
+receipt + nav trim are safe follow-ups. Direction is proven; pick these up on
+review.
