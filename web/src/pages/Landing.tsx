@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Receipt from '../components/Receipt.js';
 import '../landing.css';
 
 export default function Landing() {
@@ -22,6 +23,23 @@ export default function Landing() {
         <div className="hero-cta">
           <Link className="btn" to="/app">See a deal near you — free</Link>
           <Link className="btn btn-quiet" to="/how-it-works">How it works</Link>
+        </div>
+
+        {/* THE PROOF. A real deal from the feed, printed as the register receipt
+            — the signature that shows this is verifiable, not a guess. Real
+            numbers only (this is an actual published Home Depot markdown). */}
+        <div className="hero-proof">
+          <span className="hero-proof-label">One we found this week</span>
+          <Receipt
+            store="Home Depot #6574"
+            location="San Antonio, TX 78232"
+            item="American Originals Natural Red Oak 3/4 in. Solid Hardwood Flooring"
+            sku="304-871-208"
+            shelf="$133.85"
+            register="$14.00"
+            offPct={90}
+            when="verified in-store · 2 days ago"
+          />
         </div>
       </header>
 
