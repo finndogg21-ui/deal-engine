@@ -1231,6 +1231,24 @@
 @media (max-width: 430px) {
   .deck { gap: var(--s2); }
 
+  /* IMAGE PLATE — uniform, and not double-padded. Every product photo sits on
+     an identical fixed-height white plate so the feed reads as a clean grid
+     instead of "random image sizes". The base rule adds padding:--s3 on the
+     img on TOP of the white margin most source photos already bake in, which
+     shrank white-ground shots (a small flashing-tape) to a dot while
+     full-frame shots (a smoke-alarm box) filled — the exact inconsistency.
+     A fixed 116px plate + a small even inset makes them all the same size. */
+  .deck .card-img { aspect-ratio: auto; height: 116px; overflow: hidden; }
+  /* object-fit: COVER, not contain. contain respects the whitespace baked into
+     a source photo, so a small-object-on-white shot (the flashing tape) floated
+     tiny while a full-frame shot (the smoke box) filled — the "messed up sizes".
+     cover zooms every product to fill the identical plate, cropping the dead
+     margin, so the grid reads uniform. Standard deal/shopping-app thumbnail
+     treatment. No inner padding (cover fills edge to edge). */
+  .deck .card-img img { padding: 0; object-fit: cover; }
+  /* Best Buy already uses absolute-positioned cover images; leave those. */
+  .deck .card-deal.is-bb .card-img img { object-fit: cover; }
+
   /* Tighten the card's vertical rhythm so more deals fit per screen (owner:
      more than one deal per screen). No content removed, no font changed --
      smaller inter-element gaps + drop the wasted six-up price reservation. */

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import ZipBar from '../components/ZipBar.js';
 import Sidebar from '../components/Sidebar.js';
@@ -15,6 +16,33 @@ export default function AppShell() {
   const { me, loading, signOut } = useAuth();
   const { pathname } = useLocation();
   const nav = useNavigate();
+
+  // Collapse-on-scroll header (mobile). The header block (wordmark + Create
+  // account + ZIP + store rail) is ~150px — a quarter of a phone screen — and
+  // it is position:sticky, so it stayed pinned over the feed the whole time you
+  // scrolled. It now slides UP off-screen on scroll-DOWN (giving the feed the
+  // full screen) and returns on scroll-UP so the ZIP/actions are one flick away.
+  // Transform is gated to <=760px in sidebar.css; desktop is untouched.
+  const [hideHead, setHideHead] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const dy = y - lastY;
+        if (Math.abs(dy) > 6) {
+          setHideHead(dy > 0 && y > 120); // hide once scrolled past the header, going down
+          lastY = y;
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // "Cancel in one tap, from inside the app" — the copy promises it, so provide
   // it. A paying member goes to the Stripe billing portal (manage/cancel); a
@@ -46,7 +74,7 @@ export default function AppShell() {
 
   return (
     <div className="tape-shell">
-      <header className="tape-head">
+      <header className={`tape-head${hideHead ? ' is-hidden' : ''}`}>
         <Link to="/app" className="tape-mark">{BRAND.toUpperCase()}</Link>
         <div className="tape-zip"><ZipBar /></div>
         {/* Auth actions match the actual session. A PUBLIC_PREVIEW visitor is the

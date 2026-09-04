@@ -70,6 +70,15 @@
   .zb-hint { display: none; }
 }
 
+/* Collapse-on-scroll: the ~150px sticky header is a quarter of a phone screen,
+   so it slides UP out of view on scroll-down (giving the feed the whole screen)
+   and returns on scroll-up. JS toggles .is-hidden in AppShell. Mobile only.
+   Reduced-motion snaps (the global reduce block zeroes the transition). */
+@media (max-width: 760px) {
+  .tape-head { transition: transform 0.22s ease; will-change: transform; }
+  .tape-head.is-hidden { transform: translateY(-100%); }
+}
+
 /* ---- ZIP bar (lives in the header) ---- */
 
 .zb { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
