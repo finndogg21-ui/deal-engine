@@ -29,16 +29,25 @@ the star. Everything below serves that.
 Four build days. Marked **[me]** = I can do autonomously, **[you]** = needs the
 owner (account creation, payment, phone, a decision).
 
-### Thu 9/3 (tonight) — analysis + mobile + IA
-- **[me]** Mobile hostile-critic analysis → ranked flaw list (done: 8-lens panel).
-- **[me]** Ship the top mobile fixes (chrome density, redundant ZIP, hierarchy).
-- **[me]** Two-section IA: split **Regular Clearance** vs **Hidden Clearance** as
-  first-class sections (reuses the existing `deal_kind='hidden_clearance'` flag).
-- **[me]** Amazon frame: register Amazon as a `planned` retailer + resale-comp stub.
+### Thu 9/3 (tonight) — analysis + mobile + IA — ✅ SHIPPED (terminal run, by 12:15)
+- ✅ Mobile hostile-critic analysis → ranked flaw list (8-lens panel) + a measured
+  chrome budget: first deal was 640px down at 375x812, zero deals on screen.
+- ✅ Top mobile fixes shipped (69dac0c, 1958436): duplicated ZIP banner, duplicate
+  rail track, coaching line deleted; spool tabs + search/sort share rows.
+  **Verified locally: first deal at 443px, two full cards above the fold.**
+- ✅ Two-section IA (1ad6bf9 + d1effa1): Hidden is a first-class track AND only
+  renders on stores with a real register-price pipeline (HD today); stale deep
+  links resolve honestly; spool counts are store-scoped.
+- ✅ Amazon frame (89b39b1): comp columns migrated, `npm run amazon:comps` stub
+  (reports 4,871 published deals awaiting comps), honest card line wired.
+- ⚠️ **Deploy blocked for the agent** (permission classifier refuses the Railway
+  redeploy). All of the above is on origin/main, NOT live. Owner: one redeploy
+  ships everything — or add a settings.json allow-rule so runs can self-deploy.
 
 ### Fri 9/4 — hidden-clearance depth + SMS frame
-- **[me]** SMS notification frame: schema + opt-in UI + Twilio adapter stub (no live
-  sends — that needs your account).
+- ✅ **DONE EARLY (Thu, 6483821):** SMS frame shipped whole: sms_outbox +
+  phone-verify flow (rate-limited) + Watchlist panel + register-confirmed finds
+  ride along by text. Goes live the moment TWILIO_* env vars are set.
 - **[me]** Wire the HD hidden-clearance GraphQL scan into a repeatable job so the
   Hidden section has real depth at launch (needs the Scrapfly key — see §3).
 - **[you]** Decide Scrapfly $30/mo (turnkey hidden-clearance) vs the DIY cloak path.
