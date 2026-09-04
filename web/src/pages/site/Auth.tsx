@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth, api } from '../../lib/auth.js';
+import { trackSignup } from '../../lib/track.js';
 
 /** Sign in, sign up, forgot, and reset. One file, four small forms. */
 
@@ -105,6 +106,10 @@ export function SignUp() {
       // user signs in with what they just set, and someone who already had an
       // account signs in as normal. onboarding (/welcome) follows sign-in.
       await signUp(email, password, hp);
+      // The top-of-funnel conversion. Signup is enumeration-safe (no session
+      // back), so this is the one moment we know a registration happened — the
+      // event the Meta AI ad creator optimizes toward.
+      trackSignup();
       // Carry any incoming ?next= (e.g. from the pricing "create account" flow)
       // through sign-in; default new signups to onboarding.
       const next = safeNext(params.get('next')) ?? '/welcome';

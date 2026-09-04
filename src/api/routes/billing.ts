@@ -19,6 +19,7 @@
 import { Router } from 'express';
 import { getDb } from '../../db/client.js';
 import { requireAuth, requireRealUser, rateLimit, route } from '../middleware.js';
+import { reportPurchase } from '../../vendors/meta-capi.js';
 import {
   PLANS, createCheckoutSession, createPortalSession, stripeReady, verifyWebhook,
   type PlanId,
@@ -271,6 +272,34 @@ billing.post('/webhooks/stripe', route(async (req, res) => {
         return 'ignored';
     }
   });
+
+  // The money conversion, reported server-side to Meta (see meta-capi.ts for
+  // why not the browser). Fire ONLY on a genuinely new subscription that was
+  // just applied — not on .updated (renewals/plan changes) or duplicates — so
+  // the ad optimizer counts one Purchase per new member. Outside the tx: a
+  // network call must not hold or fail the DB transaction. event.id as the
+  // dedup key. Best-effort; reportPurchase never throws.
+  if (event.type === 'customer.subscription.created' && outcome === 'applied') {
+    const obj = event.data.object;
+    const uid = Number(obj.client_reference_id ?? (obj.metadata as Record<string, unknown>)?.user_id ?? 0);
+    const planId = String((obj.metadata as Record<string, unknown>)?.plan ?? 'member');
+    const value = PLANS[planId as PlanId]?.price ?? 20;
+    let email: string | null = null;
+    if (uid) {
+      const { rows } = await db.query<{ email: string | null }>(
+        `SELECT email FROM users WHERE user_id = $1`, [uid]);
+      email = rows[0]?.email ?? null;
+    }
+    void reportPurchase({
+      eventId: String(obj.id ?? event.id),
+      email,
+      valueUsd: value,
+      // event_time defaults to now — the webhook lands seconds after purchase,
+      // well inside Meta's dedup/attribution window.
+    }).then((sent) => {
+      if (sent) console.log(`meta capi: Purchase reported for sub ${obj.id}`);
+    });
+  }
 
   // Always 200 once verified: a non-2xx makes Stripe retry an event we have
   // already recorded.

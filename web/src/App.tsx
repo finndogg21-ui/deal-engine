@@ -1,4 +1,6 @@
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { trackPageView } from './lib/track.js';
 import LedgerPreview from './pages/LedgerPreview.js';
 import DealPage from './pages/DealPage.js';
 import SiteLayout from './layouts/SiteLayout.js';
@@ -40,6 +42,11 @@ function NotFound() {
 }
 
 export default function App() {
+  // SPA route changes don't reload the page, so the pixel's one auto-PageView
+  // would undercount every screen after the first. Fire one per navigation.
+  const { pathname } = useLocation();
+  useEffect(() => { trackPageView(); }, [pathname]);
+
   return (
     <Routes>
       {/* Public site: one frame, one spacing scale, one nav. */}

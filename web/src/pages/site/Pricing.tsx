@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, useAuth, isPreviewUser } from '../../lib/auth.js';
+import { trackInitiateCheckout } from '../../lib/track.js';
 
 interface PlanInfo {
   id: string;
@@ -66,6 +67,9 @@ export default function Pricing() {
         method: 'POST',
         body: JSON.stringify({ plan: MEMBERSHIP.id }),
       });
+      // Mid-funnel intent. The confirmed Purchase fires server-side from the
+      // Stripe webhook, so this only signals "reached checkout", not revenue.
+      trackInitiateCheckout(20);
       window.location.href = r.url;
     } catch (err) {
       const e = err as Error & { status?: number };
