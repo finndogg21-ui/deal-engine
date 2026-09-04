@@ -6,47 +6,50 @@
  * thing on the page; everything else stays quiet. */
 
 :root {
-  /* THE TAPE (redesign 2026-08-22, see company/redesign-blueprint.md).
-   * Pure black & white — thermal printers only print black. No accent color
-   * exists: meaning is carried by INVERSION (penny cards print black-ground)
-   * and by weight. Every token that used to be a color is now ink or paper,
-   * so components that referenced --sticker/--go/--drop inherit the skin
-   * without edits. */
-  --sticker: #111111; /* the one loud surface is ink itself */
-  --sticker-deep: #000000;
-  --on-accent: #fafaf7; /* paper-on-ink */
-  --ink: #111111;
-  --ink-soft: #333331;
-  --ink-faint: #585858;
-  --paper: #fafaf7; /* receipt-warm white */
-  --paper-sunk: #f1f1ec;
-  --rule: #d9d9d4;
-  --rule-strong: #111111; /* hard ink borders, always */
-  --drop: #111111;
-  --go: #111111;
-  --accent-text: #111111;
+  /* THE REGISTER (Haste redesign 2026-09-03, see company/haste-blueprint.md).
+   * Warm-dark, image-forward, calm. The old B&W "tape" was site-wide wallpaper
+   * (an AI tell); it's demoted to a single artifact (the register receipt).
+   * Meaning is carried by ONE owned action color (orange) + a money color
+   * (green). Every token routes through here, so this block reskins the whole
+   * app with no component edits. This is a single committed dark theme —
+   * the light/dark toggle folds into the same register look below. */
+  --sticker: #FF4A1C; /* the one owned action+moat color: Register Orange */
+  --sticker-deep: #E23F14;
+  --on-accent: #17140F; /* near-black text ON the orange CTA — punchy, high-contrast */
+  --ink: #F3EDE1;        /* Receipt Paper — all text on the dark canvas */
+  --ink-soft: #C9C3B7;
+  --ink-faint: #7C776D;  /* Ash — timestamps, struck shelf price, muted */
+  --paper: #17140F;      /* Register Black — warm near-black canvas */
+  --paper-sunk: #1F1B15; /* lifted surface (cards, wells) */
+  --rule: #2E2A23;       /* hairline dividers on dark */
+  --rule-strong: #F3EDE1; /* hard borders when one is needed */
+  --drop: #FF4A1C;
+  --go: #FF4A1C;
+  --accent-text: #FF4A1C;
 
-  /* ── THE MARKDOWN ACCENT ───────────────────────────────────────────────
-     THE TAPE is monochrome by constitution; these are the one exception,
-     and they are spent only on the numbers that decide a drive: the price
-     you pay and the money you keep. Everything structural stays ink on
-     paper, so the accent never becomes wallpaper.
-     Contrast on --paper #FAFAF7: cut 5.9:1, save 5.6:1 (AA at any size). */
-  --cut: #C2410C;        /* the price you actually pay */
-  --save: #15803D;       /* what you keep */
-  --grail: #A16207;      /* 80%+ only — the find worth a detour */
-  /* Text ON the grail block. It flips with the theme: a dark amber block
-     needs paper text, a bright amber block needs ink. Fixing one and not the
-     other is how the 9px stamp ended up at 3.84:1 in light mode. */
-  --grail-ink: #FAFAF7;
-  --grail-wash: #FEF3C7; /* highlighter under the grail stamp */
+  /* ── THE OWNED COLORS ──────────────────────────────────────────────────
+     Orange = ACT (unlock, moat badge, the register-only price). Green = SAVED
+     (money you keep, the verified chip). Stamp red lives ONLY inside the
+     receipt artifact. Nothing else gets color, so the accents never wallpaper.
+     Contrast on --paper #17140F: orange ~5.2:1, green ~7.1:1, paper-text ~13:1. */
+  --cut: #FF4A1C;        /* the register-only price you actually pay */
+  --save: #2FB562;       /* what you keep / spotter-verified */
+  --stamp: #C63A2E;      /* the "MARKDOWN — NOT ON SHELF" rubber stamp (receipt only) */
+  /* --grail retired: amber was the third wheel. Aliased to orange so any
+     lingering reference degrades to the owned accent, not a stray amber. The
+     feed-card rework removes grail-specific UI. */
+  --grail: #FF4A1C;
+  --grail-ink: #17140F;
+  --grail-wash: #2A2018;
 
-  /* Archivo heavy = hardware-store poster; IBM Plex Mono = the register's
-   * voice. Deliberately NOT Space Grotesk / JetBrains Mono (this year's
-   * templated-brutalist pair). */
-  --display: "Archivo", ui-sans-serif, system-ui, "Segoe UI", Helvetica, sans-serif;
-  --sans: "Archivo", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Bricolage Grotesque = a characterful humanist grotesque for headlines AND
+   * the dominant price number (NOT Space Grotesk — the free rival ships that).
+   * Hanken Grotesk = a plain humanist body (NOT Inter, NOT DM Sans). Spline
+   * Sans Mono is scoped to the receipt slip only (see .receipt), retiring the
+   * site-wide mono that read as the broadsheet AI tell. */
+  --display: "Bricolage Grotesque", ui-sans-serif, system-ui, "Segoe UI", Helvetica, sans-serif;
+  --sans: "Hanken Grotesk", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Zero radius. Receipts and price tags have corners. */
   --r-sm: 0px;
@@ -79,55 +82,17 @@
 /* Three theme states, not two. "system" stamps nothing and lets the media
  * query decide; an explicit choice stamps data-theme and wins either way. */
 
-/* Dark mode is the same tape, printed in negative: ink and paper swap, the
- * discipline (no color, hard borders) holds. */
+/* The Register redesign is a single committed warm-dark theme. The base :root
+ * IS the dark canvas, so the old "invert to dark" blocks would double-invert
+ * back to a cool near-black and undo the palette. They're kept as explicit
+ * no-ops (system-dark and an explicit dark toggle both inherit the register
+ * base) rather than deleted, so the data-theme plumbing keeps working and a
+ * future light variant has an obvious home. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --sticker: #fafaf7;
-    --sticker-deep: #ffffff;
-    --on-accent: #111111;
-    /* Lifted for dark ground. On --paper #111111: cut 8.9:1, save 11.2:1. */
-    --cut: #FB923C;
-    --save: #4ADE80;
-    --grail: #FBBF24;
-    --grail-ink: #111111;
-    --grail-wash: #3A2E0B;
-    --ink: #fafaf7;
-    --ink-soft: #d6d6d0;
-    --ink-faint: #a3a39d;
-    --paper: #111111;
-    --paper-sunk: #1a1a18;
-    --rule: #33332f;
-    --rule-strong: #fafaf7;
-    --drop: #fafaf7;
-    --go: #fafaf7;
-    --accent-text: #fafaf7;
-  }
+  :root:not([data-theme="light"]) { /* inherit register base — no override */ }
 }
 
-:root[data-theme="dark"] {
-  --sticker: #fafaf7;
-  --sticker-deep: #ffffff;
-  --on-accent: #111111;
-  /* Same lift as the media-query block, so the explicit toggle matches the
-     system preference. Defining these in only one of the two is how a theme
-     ends up with an unreadable accent. */
-  --cut: #FB923C;
-  --save: #4ADE80;
-  --grail: #FBBF24;
-  --grail-ink: #111111;
-  --grail-wash: #3A2E0B;
-  --ink: #fafaf7;
-  --ink-soft: #d6d6d0;
-  --ink-faint: #a3a39d;
-  --paper: #111111;
-  --paper-sunk: #1a1a18;
-  --rule: #33332f;
-  --rule-strong: #fafaf7;
-  --drop: #fafaf7;
-  --go: #fafaf7;
-  --accent-text: #fafaf7;
-}
+:root[data-theme="dark"] { /* inherit register base — no override */ }
 
 * { box-sizing: border-box; }
 
