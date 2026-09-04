@@ -366,6 +366,19 @@ function titleKey(title: unknown): string {
  *  hidden-clearance finds first, then everything by real dollars kept (with the
  *  inflated-list cap), and only one card per repeated product. Pure ordering —
  *  no row is dropped for content, only true title-duplicates are collapsed. */
+/** Freshness bucket from checked_at: 0 = fresh (≤3d), 1 = aging (≤7d), 2 = stale
+ *  (>7d or unknown). A deal "verified" 8 days ago is probably sold out — surfacing
+ *  it first is the receipt-as-liability risk the council flagged, so stale deals
+ *  sink below fresh ones regardless of how deep the discount is. */
+function freshBucket(r: Record<string, unknown>): number {
+  const raw = r.checked_at;
+  if (!raw) return 2;
+  const t = new Date(String(raw)).getTime();
+  if (!Number.isFinite(t)) return 2;
+  const days = (Date.now() - t) / 86_400_000;
+  return days <= 3 ? 0 : days <= 7 ? 1 : 2;
+}
+
 export function rankPublished(rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
   const scored = rows.map((r) => ({ r, s: dealSignal(r) }));
   // Dedupe by (retailer, collapsed title), keeping the best-saving instance.
@@ -377,7 +390,13 @@ export function rankPublished(rows: Array<Record<string, unknown>>): Array<Recor
     if (!prev || item.s.saved > prev.s.saved) best.set(key, item);
   }
   return [...best.values()]
-    .sort((a, b) => (b.s.tier - a.s.tier) || (b.s.saved - a.s.saved) || (b.s.pct - a.s.pct))
+    // Fresh first (don't lead with likely-sold-out deals), THEN the moat, then
+    // real dollars kept. A great 8-day-old deal still ranks below fresh ones.
+    .sort((a, b) =>
+      (freshBucket(a.r) - freshBucket(b.r)) ||
+      (b.s.tier - a.s.tier) ||
+      (b.s.saved - a.s.saved) ||
+      (b.s.pct - a.s.pct))
     .map((x) => x.r);
 }
 
