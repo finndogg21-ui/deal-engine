@@ -114,6 +114,28 @@ _(member count → monthly profit after the ~$41 fixed cost)_
 
 ## 3. Hidden-clearance: the moat, and how to feed it cheaply
 
+### ⚡ UPDATE 2026-09-03 (terminal run): the cloak self-scan held a full 600-read soak
+
+`scripts/hd-cloak-probe.mts` replays HD's federation-gateway GraphQL **from inside
+a cloakbrowser page context** (real Chrome TLS + real `_abck` cookie + home
+residential IP, NO proxy). Two runs today:
+- Probe (80 items ×2 stores): **160/160 HTTP 200**, 102 markdowns.
+- Soak (300 items ×2 stores): **600/600 HTTP 200, zero failures**, `firstFailAt: null`,
+  24.1 reads/min at 1.8s spacing, **5 true HIDDEN clearances + 511 markdowns captured**.
+
+This **partially overturns** the "not a free bypass" conclusion below. That
+conclusion assumed replaying the GraphQL *outside* a browser (bare TLS → JA3/JA4
+flag). Replaying it *inside* the page — where the TLS, cookies and IP are a real
+Chrome session — Akamai did not flag once in 760 reads. **Caveat, do not
+over-read:** this is single-session, single-home-IP, 2 stores, one day. Akamai
+adapts; the true test is the same script run daily for a week from the same IP
+(reputation burn) and across many stores. Cost if it holds: **~$0 data →
+break-even drops from 3 members to 1.** The Scrapfly $30/mo path stays the
+proven fallback for launch; the cloak path is now a real candidate to validate
+over the launch week, not a dead end.
+
+---
+
 **What already exists and works (verified 2026-08-30):** `scripts/hd-clearance-scan-gql.mts`
 reads Home Depot's *per-store* shelf price straight from HD's federation-gateway
 GraphQL API, replayed through Scrapfly ASP (clears Akamai), ~25 credits/read, **no
