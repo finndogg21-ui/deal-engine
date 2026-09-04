@@ -2,12 +2,26 @@
  * chrome is a single slim header whose bottom edge is a receipt perforation.
  * (See company/redesign-blueprint.md. The serration is CSS, not an image.) */
 
-.tape-shell { min-height: 100vh; background: var(--paper); }
+/* 100dvh, not 100vh: iOS Safari counts its retracting address bar INTO 100vh,
+   so a 100vh shell is taller than the visible screen and the page jumps as the
+   bar hides. dvh tracks the real visible height. vh stays as the fallback for
+   browsers without dvh. Horizontal safe-area keeps content off the rounded
+   corners in landscape. */
+.tape-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--paper);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
 
 .tape-head {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; gap: var(--s5);
   padding: var(--s3) var(--s5);
+  /* On a notched iPhone with viewport-fit=cover the sticky header sits under
+     the status bar / Dynamic Island; pad the top by the inset (0 elsewhere). */
+  padding-top: max(var(--s3), env(safe-area-inset-top));
   background: var(--paper);
   border-bottom: 2px solid var(--ink);
 }
@@ -45,7 +59,7 @@
 }
 .tape-out:hover { background: var(--ink); color: var(--paper); }
 
-.app-main { min-height: calc(100vh - 64px); }
+.app-main { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); }
 
 @media (max-width: 560px) {
   .tape-head { flex-wrap: wrap; gap: var(--s3); padding: var(--s3) var(--s4); }
