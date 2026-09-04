@@ -69,6 +69,13 @@ interface Candidate {
   product_id: string;
   store_id: string;
   title: string;
+  /** Teaser lock: a non-member card whose LOCATOR (price/store/sku) the server
+   *  stripped. Only the title, blurred image, and savings survive — the card
+   *  renders a locked variant and taps through to pricing, never a detail. */
+  locked?: boolean;
+  lock_id?: string;
+  /** Dollar savings shown on a locked card (the hook the server DOES send). */
+  saved_dollars?: number | null;
   category: string | null;
   retailer: string;
   image_url: string | null;
@@ -267,6 +274,33 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
   const [imgFailed, setImgFailed] = useState(false);
   const showImg = c.image_url && !imgFailed;
 
+  // LOCKED TEASER CARD. The server sent only title/image/savings — no price,
+  // store, or SKU — so there is nothing to look up. Show the hook (savings) and
+  // sell the register PRICE + the stores near you (not "the aisle" — we don't
+  // have bay data). Taps to pricing, never a detail page.
+  if (c.locked) {
+    return (
+      <Link className="card-deal card-locked" to="/pricing"
+        style={{ '--i': Math.min(idx, 16) } as CSSProperties} aria-label={`${c.title} — locked, unlock for $20/mo`}>
+        <div className="card-img">
+          {showImg
+            ? <img src={c.image_url!} alt="" loading="lazy" decoding="async" className="locked-img" onError={() => setImgFailed(true)} />
+            : <Ph />}
+          <span className="lock-chip" aria-hidden="true">Locked</span>
+        </div>
+        <div className="card-body">
+          <span className="retailer">{retailerName(c.retailer)}</span>
+          <p className="card-title">{c.title}</p>
+          <div className="locked-save">
+            {typeof c.saved_dollars === 'number' && c.saved_dollars > 0 ? `Save ${money(c.saved_dollars)}` : 'Big markdown'}
+            {c.discount_pct ? <span className="locked-pct"> · {Math.round(c.discount_pct)}% off</span> : null}
+          </div>
+          <div className="locked-cta">Unlock the price &amp; nearby stores →</div>
+        </div>
+      </Link>
+    );
+  }
+
   /**
    * A clearance price only counts when it is actually BELOW the shelf price.
    * HD returns some items with clearance.value equal to the shelf price and
@@ -324,7 +358,6 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
       <div className="card-img">
         {/* The percentage moved out of this corner and into the body, where it
             is the hero. Repeating it here would be the same fact twice. */}
-        {c.hidden_clearance && <span className="badge-off">CLEARANCE</span>}
         {/* The score chip only means something above zero. Every regular-deal
             retailer (Best Buy, Newegg, Woot, Ollie's, Grove, Staples) carries a
             permanent 0, and a grid of "0" chips reads as broken — so the chip
@@ -615,7 +648,26 @@ export default function AllDeals() {
         return;
       }
       // Map the verified pool onto the card shape the deck already renders.
-      const mapped: Candidate[] = (body.deals as Array<Record<string, unknown>>).map((d) => {
+      const mapped: Candidate[] = (body.deals as Array<Record<string, unknown>>).map((d, i) => {
+        // Locked teaser card: the server sent only title/image/savings, no
+        // locator. Render the minimal locked shape; everything actionable is
+        // absent by design so there is nothing to look up.
+        if (d.locked === true) {
+          return {
+            product_id: String(d.lock_id ?? `lk${i}`),
+            store_id: '', title: String(d.title ?? ''), category: null,
+            retailer: String(d.retailer ?? 'homedepot'),
+            image_url: (d.image_url as string) ?? null,
+            store_name: '', store_number: null, aisle_bay: null, other_stores: 0,
+            in_store_only: false, distance_mi: null, stage: '', penny_score: 0,
+            confidence: '', price: null, list_price: null, saves: null,
+            discount_pct: d.discount_pct === null || d.discount_pct === undefined ? null : Number(d.discount_pct),
+            stock_qty: null, last_seen_at: new Date().toISOString(), product_url: null,
+            locked: true,
+            lock_id: String(d.lock_id ?? `lk${i}`),
+            saved_dollars: d.saved_dollars === null || d.saved_dollars === undefined ? null : Number(d.saved_dollars),
+          } as Candidate;
+        }
         const price = d.hd_price === null || d.hd_price === undefined ? null : Number(d.hd_price);
         const disc = d.hd_discount === null || d.hd_discount === undefined ? null : Number(d.hd_discount);
         const hidden = d.deal_kind === 'hidden_clearance';

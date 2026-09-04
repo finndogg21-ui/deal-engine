@@ -13,7 +13,7 @@ export default function Landing() {
             to the register-only price. That contrast IS the product. */}
         <h1 className="hero-h1">
           <span className="hero-lede">$89 on the shelf. <b>$12 at the register.</b></span>
-          <span className="hero-detail">We found the aisle.</span>
+          <span className="hero-detail">We found the price.</span>
         </h1>
         <p className="hero-meta">
           Register-only Home Depot clearance — the markdown your store never prints
@@ -65,7 +65,7 @@ export default function Landing() {
           <div className="step">
             <div className="step-n">2</div>
             <div>
-              <h3>A spotter verifies it in the aisle</h3>
+              <h3>A spotter verifies it in-store</h3>
               <p>
                 Before a deal reaches you it&rsquo;s confirmed on a real shelf, with a real
                 timestamp — the spotter-verified stamp on the receipt. No fake stock, no
@@ -79,9 +79,9 @@ export default function Landing() {
             <div>
               <h3>You drive, buy, and flip</h3>
               <p>
-                The store, the aisle, and what it&rsquo;s worth to resell after fees — enough to
-                decide in ten seconds. Plus every online clearance worth chasing (Woot, Best Buy
-                Outlet, Target, Ollie&rsquo;s) in the same feed.
+                The register price, which stores near you have it, and what it&rsquo;s worth to
+                resell after fees — enough to decide in ten seconds. Plus every online clearance
+                worth chasing (Woot, Best Buy Outlet, Target, Ollie&rsquo;s) in the same feed.
               </p>
             </div>
           </div>

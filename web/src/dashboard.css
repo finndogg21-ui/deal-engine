@@ -1408,3 +1408,22 @@
   .deck .card-predict,
   .deck .card-facts { display: none; }
 }
+
+/* LOCKED TEASER CARD (council teaser 2026-09-04). Same row shape as a real deal
+   but the locator is gone: blurred thumbnail, the savings hook, and an orange
+   unlock line. Sells access to the register price + nearby stores. */
+.card-locked { text-decoration: none; cursor: pointer; }
+.card-locked .locked-img { filter: blur(7px) saturate(0.8); transform: scale(1.08); }
+.card-locked .lock-chip {
+  position: absolute; inset: 0; margin: auto; width: max-content; height: max-content;
+  align-self: center; font-family: var(--display); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper);
+  background: rgba(23,20,15,0.72); padding: 4px 10px; border: 1px solid var(--cut);
+}
+.card-locked .card-img { position: relative; display: grid; place-items: center; overflow: hidden; }
+.locked-save { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--save); }
+.locked-pct { color: var(--ink-faint); font-weight: 500; }
+.locked-cta {
+  margin-top: var(--s1); font-family: var(--sans); font-weight: 600; font-size: 13px;
+  color: var(--cut);
+}

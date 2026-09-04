@@ -81,11 +81,57 @@ publishedDealsRoute.get(
         ledger.get(`${String(r.retailer ?? 'homedepot')}:${String(r.sku ?? r.item_id ?? '')}`) ?? [],
     }));
 
-    // Teaser paywall: members get the full feed; everyone else (free accounts +
-    // the anonymous preview) sees the first TEASER_LIMIT with a `locked` flag and
-    // the real total, so the client can offer "subscribe to see all N".
+    const dollarsSaved = (r: Record<string, unknown>): number => {
+      const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+      const clr = num(r.clearance_price);   // register-only price, if hidden clearance
+      const list = num(r.hd_list);          // shelf/list price
+      const price = num(r.hd_price);         // current online/markdown price
+      if (clr !== null) {                    // hidden clearance: drop from shelf → register
+        const from = list ?? price;
+        return from !== null ? Math.max(0, from - clr) : 0;
+      }
+      if (list !== null && price !== null) return Math.max(0, list - price); // regular markdown
+      return 0;
+    };
+    const pct = (r: Record<string, unknown>): number => {
+      const n = r.clearance_pct ?? r.hd_discount;
+      return n === null || n === undefined ? 0 : Math.round(Number(n));
+    };
+
+    // TEASER PAYWALL (council-directed 2026-09-04). GATE the crown jewels, don't
+    // give them away. A non-member sees many deals with the SAVINGS visible
+    // ($ and %) but the LOCATOR stripped SERVER-SIDE — no price, store, aisle,
+    // SKU, item_id or stock leaves the server for a locked deal, so the paywall
+    // can't be read out of the payload. Exactly ONE mid-ranked deal rotates fully
+    // unlocked as live proof; the biggest deals stay locked. Sells access +
+    // volume + proximity, never the best deal itself.
     const paid = isPaidMember(req);
-    const deals = paid ? all : all.slice(0, TEASER_LIMIT);
-    res.json({ count: deals.length, total: all.length, locked: !paid && all.length > deals.length, deals });
+    if (paid) {
+      res.json({ count: all.length, total: all.length, locked: false, deals: all });
+      return;
+    }
+    const SHOWN = Math.min(all.length, 40);
+    const shown = all.slice(0, SHOWN);
+    // Rotate the single unlocked deal hourly, always mid-pack (never the top 8),
+    // so the crown jewels are never the free one.
+    const unlockedIdx = shown.length > 9
+      ? 8 + (new Date().getHours() % Math.max(1, shown.length - 8))
+      : Math.min(shown.length - 1, 0);
+    const deals = shown.map((d, i) => {
+      if (i === unlockedIdx) return { ...d, locked: false };
+      const r = d as Record<string, unknown>;
+      // Locked: keep only what's safe to advertise; strip every locator field.
+      return {
+        locked: true,
+        lock_id: `lk${i}`,
+        retailer: r.retailer ?? 'homedepot',
+        title: r.title ?? '',
+        image_url: r.image_url ?? null,
+        discount_pct: pct(r),
+        saved_dollars: Math.round(dollarsSaved(r)),
+        deal_kind: r.deal_kind ?? null,
+      };
+    });
+    res.json({ count: deals.length, total: all.length, locked: true, deals });
   }),
 );
