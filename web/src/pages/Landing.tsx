@@ -47,17 +47,17 @@ export default function Landing() {
 
       <section className="wrap section">
         <p className="sec-label">How it works</p>
-        <h2>Two feeds. One is everywhere. One is only ours.</h2>
+        <h2>The price the register knows and the website doesn&rsquo;t.</h2>
 
         <div className="steps">
           <div className="step">
             <div className="step-n">1</div>
             <div>
-              <h3>Online deals, shipped to you</h3>
+              <h3>We read the register price</h3>
               <p>
-                We watch clearance and outlet markdowns across Woot, Best Buy Outlet, Target,
-                Ollie’s and more, every day, and keep only the ones deep enough to matter, so you
-                skip the Discords and the channels and just see what actually dropped.
+                Home Depot cuts prices at the register that never hit the shelf tag or the
+                website. We read that register-only price store by store — the markdown you
+                can&rsquo;t find by walking in or opening their app. That&rsquo;s the moat.
               </p>
             </div>
           </div>
@@ -65,11 +65,11 @@ export default function Landing() {
           <div className="step">
             <div className="step-n">2</div>
             <div>
-              <h3>In-store clearance, near you</h3>
+              <h3>A spotter verifies it in the aisle</h3>
               <p>
-                Big-box stores quietly cut prices on the shelf that never show up on the website.
-                We read that hidden clearance price directly, starting with Home Depot. It is the
-                one thing no aggregator can copy, and it is just getting started.
+                Before a deal reaches you it&rsquo;s confirmed on a real shelf, with a real
+                timestamp — the spotter-verified stamp on the receipt. No fake stock, no
+                back-computed discounts. If we haven&rsquo;t verified it, you don&rsquo;t see it.
               </p>
             </div>
           </div>
@@ -77,10 +77,11 @@ export default function Landing() {
           <div className="step">
             <div className="step-n">3</div>
             <div>
-              <h3>Enough to decide in ten seconds</h3>
+              <h3>You drive, buy, and flip</h3>
               <p>
-                Price, discount, where it is, and what it is worth reselling after fees. When we
-                have a store’s stock we show it, and we never dress a guess up as a shelf count.
+                The store, the aisle, and what it&rsquo;s worth to resell after fees — enough to
+                decide in ten seconds. Plus every online clearance worth chasing (Woot, Best Buy
+                Outlet, Target, Ollie&rsquo;s) in the same feed.
               </p>
             </div>
           </div>
