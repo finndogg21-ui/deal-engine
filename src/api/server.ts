@@ -461,12 +461,31 @@ app.get('/api/stats/hit-rate', ...paid, async (req, res) => {
 // Serve the built dashboard if it exists, so one process runs everything.
 const webDist = join(here, '../../web/dist');
 if (existsSync(webDist)) {
-  app.use(express.static(webDist));
+  // Cache policy is the whole reason a phone can keep showing an OLD build after
+  // a deploy: index.html names the content-hashed bundle (index-<hash>.js), so
+  // if Safari caches index.html it keeps requesting the old hash and every
+  // deploy is invisible. Split the two:
+  //   - hashed assets under /assets/ are immutable — cache them hard (the hash
+  //     IS the cache-buster; a new build makes a new filename).
+  //   - index.html must NEVER be cached — always revalidate so the browser
+  //     picks up the newest bundle reference immediately.
+  app.use(express.static(webDist, {
+    setHeaders(res, path) {
+      if (path.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (path.includes('/assets/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
   app.all('*', (req, res) => {
     // An unmatched /api path is a typo or a stale client, not a page. Handing
     // it index.html would return 200 + HTML to code expecting JSON, which
     // reads as data corruption instead of the 404 it actually is.
     if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found.' });
+    // The SPA fallback serves index.html too — same no-cache rule, or a cached
+    // shell keeps loading a stale bundle on every deep link.
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(join(webDist, 'index.html'));
   });
 }
