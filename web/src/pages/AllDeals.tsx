@@ -197,6 +197,16 @@ const ONLINE_NATIONAL = new Set(['bestbuy', 'newegg', 'woot', 'grove', 'staples'
  * Keyed by the ?store= slug. Drives the "reported by hunters" action bar, the
  * report link, and the empty state, so DG and TSC share one code path.
  */
+/**
+ * Retailers with a real hidden-clearance pipeline (register-only prices we can
+ * actually read). The Hidden track only renders on these stores — and on the
+ * all-stores view, where it is the moat. Showing the tab on a store with no
+ * such pipeline promised a feed that could never fill (owner directive
+ * 2026-09-03: hidden clearance only on stores that actually have it).
+ */
+const HIDDEN_STORES = new Set(['home-depot']);
+const hiddenCapable = (s: string | null) => !s || HIDDEN_STORES.has(s);
+
 const COMMUNITY_STORES: Record<string, { name: string; find: string; blurb: string; report: string; empty: string }> = {
   'dollar-general': {
     name: 'Dollar General',
@@ -531,9 +541,12 @@ export default function AllDeals() {
     setStore(s);
     const t = p.get('tab');
     // Penny is Home-Depot-only (community $0.01 hearsay). A stale ?tab=penny on
-    // any other store resolves to the verified Hidden-clearance track — the moat
-    // — never a silent drop to All, which read as "the hidden feed is broken".
-    if (t === 'penny' && s !== 'home-depot') setTab('hidden');
+    // any other store resolves to the Hidden track where that store HAS one;
+    // otherwise to All — a store with no hidden pipeline has no hidden tab to
+    // land on, so All is the honest destination, not a broken-looking one.
+    if (t === 'penny' && s !== 'home-depot') setTab(hiddenCapable(s) ? 'hidden' : 'all');
+    // Same for a stale ?tab=hidden deep link on a store with no hidden feed.
+    else if (t === 'hidden' && !hiddenCapable(s)) setTab('all');
     else if (t === 'all' || t === 'near' || t === 'penny' || t === 'hidden') setTab(t);
   }, [search]);
 
@@ -879,15 +892,29 @@ export default function AllDeals() {
     };
   }, [q, store, tab, sortedPennyReports, clearanceReports]);
 
-  const counts = useMemo(() => ({
-    all: rows.length,
-    // The moat's own count — register-only rows in the current scope.
-    hidden: rows.filter((c) => c.hidden_clearance === true).length,
-    // The penny spool = community reports + our ladder candidates. The badge
-    // must count what the tab actually shows (the "Penny track 0" bug).
-    penny: pennyReports.length + rows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
-    near: nearRows.length,
-  }), [rows, nearRows, pennyReports]);
+  /* The spool badges must count what their tab will actually render. They were
+     computed from the UNSCOPED pool, so ?store=target showed "Hidden clearance
+     8" (the global figure) over a tab that filtered to zero rows — a number the
+     shopper could disprove in one tap. Scope by store first, exactly as the
+     deck does (dashed slug vs the API's dashless retailer field). */
+  const storeRows = useMemo(() => {
+    if (!store) return rows;
+    const dashless = store.replace(/-/g, '');
+    return rows.filter((c) => c.retailer === store || c.retailer === dashless);
+  }, [rows, store]);
+  const counts = useMemo(() => {
+    const storeKey = store ? store.replace(/-/g, '') : null;
+    const inStore = (r: CommunityReport) => !storeKey || storeKey === (r.retailer ?? 'homedepot');
+    return {
+      all: storeRows.length,
+      // The moat's own count — register-only rows in the current scope.
+      hidden: storeRows.filter((c) => c.hidden_clearance === true).length,
+      // The penny spool = community reports + our ladder candidates. The badge
+      // must count what the tab actually shows (the "Penny track 0" bug).
+      penny: pennyReports.filter(inStore).length + storeRows.filter((c) => c.stage === 'penny_candidate' || c.penny_score >= 70).length,
+      near: nearRows.length,
+    };
+  }, [storeRows, store, nearRows, pennyReports]);
 
   const openById = useCallback(async (pid: string, sid: string) => {
     // A failed detail fetch must not set a malformed object as `sel` — the
@@ -1031,11 +1058,16 @@ export default function AllDeals() {
             register-only / in-store-only price the retailer will not print
             online — the whole reason this is worth paying for. It is reachable
             on every screen, not buried as a badge inside All deals. */}
-        <button role="tab" aria-selected={tab === 'hidden'}
-          className={`spool spool-hidden${tab === 'hidden' ? ' on' : ''}`}
-          onClick={() => setTab('hidden')}>
-          Hidden clearance <span className="count">{counts.hidden}</span>
-        </button>
+        {/* Only stores with a real register-price pipeline get the Hidden
+            track (plus the all-stores view, where it is the moat). A store
+            that can never fill this feed does not advertise it. */}
+        {hiddenCapable(store) && (
+          <button role="tab" aria-selected={tab === 'hidden'}
+            className={`spool spool-hidden${tab === 'hidden' ? ' on' : ''}`}
+            onClick={() => setTab('hidden')}>
+            Hidden clearance <span className="count">{counts.hidden}</span>
+          </button>
+        )}
         {/* Penny is a Home-Depot-only mechanic (register-only $0.01, its own
             ladder + community penny reports). Every other retailer — the
             scraped ones, the community markdown lists — has no penny track, so
