@@ -39,3 +39,17 @@ So a reskin = retune these tokens + swap fonts (index.html) + per-screen layout 
 motion + copy. Component structure mostly stays. Cheapest high-impact lever.
 Per-screen CSS: landing.css, dashboard.css, site.css, sidebar.css, welcome.css,
 penny.css, resell.css, queue.css, notifications.css, admin.css.
+
+## NETWORK NOTE (2026-09-04 ~02:52)
+This Mac's connection to Neon (port 5432) is dropping intermittently
+(ETIMEDOUT/EHOSTUNREACH) → local /api/deals/published & /api/coverage 500 at
+random, so the local app feed shows 0 cards. NOT a redesign bug (CSS/fonts).
+Landing (static) verifies fine locally. Plan: verify static screens locally,
+verify the data-driven FEED on PRODUCTION after deploy (prod→Neon is stable).
+
+## Haste build progress
+- [x] Step 1: token swap (palette+fonts) — committed 539e518, landing verified.
+- [ ] Step 6 landing hero copy (blunt proof, stop-slop) — verifiable local
+- [ ] Step 2 feed card 2-up image-forward — verify on prod
+- [ ] Step 3 lock overlay / Step 4 receipt component / Step 5 unlock print
+- [ ] Deploy coherent v1, verify feed on prod

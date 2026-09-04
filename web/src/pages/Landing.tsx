@@ -6,23 +6,22 @@ export default function Landing() {
     <>
       {/* The thesis: the clearance price the shelf tag hides — plus every online deal worth chasing. */}
       <header className="wrap hero">
-        <p className="eyebrow">Clearance &amp; markdowns, tracked daily</p>
+        <p className="eyebrow">The price the shelf tag hides</p>
 
-        {/* The headline is the sentence, so it is the h1. */}
+        {/* The headline is the proof, in real numbers — the shelf price struck
+            to the register-only price. That contrast IS the product. */}
         <h1 className="hero-h1">
-          <span className="hero-lede">The best clearance,</span>
-          <span className="hero-detail">
-            on a shelf <b>near you</b>, and shipped to your door.
-          </span>
+          <span className="hero-lede">$89 on the shelf. <b>$12 at the register.</b></span>
+          <span className="hero-detail">We found the aisle.</span>
         </h1>
         <p className="hero-meta">
-          Home Depot, Target, Woot, Best Buy Outlet and more, plus the in-store clearance price
-          your store never puts online.
+          Register-only Home Depot clearance — the markdown your store never prints
+          online. Verified in-store, sorted by what a reseller can actually flip.
         </p>
 
         <div className="hero-cta">
-          <Link className="btn" to="/app">Start hunting</Link>
-          <Link className="btn btn-quiet" to="/how-it-works">See how it works</Link>
+          <Link className="btn" to="/app">See a deal near you — free</Link>
+          <Link className="btn btn-quiet" to="/how-it-works">How it works</Link>
         </div>
       </header>
 
