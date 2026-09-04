@@ -102,10 +102,10 @@ export default function Pricing() {
   return (
     <>
       <div className="wrap page-head">
-        <h1>One membership. Cancel in one tap.</h1>
+        <h1>Register-only Home Depot markdowns, before they sell out.</h1>
         <p className="lede">
-          No annual contract, no cancellation phone call, no discount offer when you try to
-          leave.
+          The deal&rsquo;s real. The discount&rsquo;s real. The aisle is $20 a month away —
+          and one flip pays for five. Cancel in one tap, no phone call, no save-offer.
         </p>
       </div>
 
@@ -123,7 +123,7 @@ export default function Pricing() {
             <h3>{MEMBERSHIP.name}</h3>
             <p style={{ marginBottom: 'var(--s4)' }}>{MEMBERSHIP.who}</p>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s2)', marginBottom: 'var(--s4)' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 32, fontWeight: 700 }}>{MEMBERSHIP.price}</span>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 40, fontWeight: 800, color: 'var(--cut)', fontVariantNumeric: 'tabular-nums' }}>{MEMBERSHIP.price}</span>
               <span style={{ color: 'var(--ink-faint)' }}>{MEMBERSHIP.per}</span>
             </div>
             <ul style={{ paddingLeft: 'var(--s5)', margin: '0 0 var(--s5)' }}>
