@@ -53,3 +53,12 @@ verify the data-driven FEED on PRODUCTION after deploy (prod→Neon is stable).
 - [ ] Step 2 feed card 2-up image-forward — verify on prod
 - [ ] Step 3 lock overlay / Step 4 receipt component / Step 5 unlock print
 - [ ] Deploy coherent v1, verify feed on prod
+
+## Progress update (~03:15)
+- [x] Step 1 token swap — deployed
+- [x] Step 6a hero copy — deployed
+- [x] Step 4 receipt component + 6b landing proof — deployed (signature shipped)
+- Feed: current dark single-column rows look clean on prod; KEEPING them (the
+  contrarian advisor preferred 1-up list). Not doing a blind 2-up rebuild.
+- [ ] Pricing/paywall page (conversion copy, verifiable) — NEXT
+- [ ] Lock overlay on locked deals / detail receipt / nav trim — as time allows
