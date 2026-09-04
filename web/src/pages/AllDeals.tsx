@@ -102,6 +102,10 @@ interface Candidate {
    *  is per store, so "as low as" needs both to be honest. */
   clearance_store?: string | null;
   clearance_stores_checked?: number | null;
+  /** Amazon resale comp — the sell side of the flip. NULL until a real
+      source (Keepa / RetailerAPI) is wired; never estimated. */
+  amazon_price?: number | null;
+  amazon_url?: string | null;
   /** Exact units per store — the ledger. Empty when we have never counted. */
   stores?: Array<{ store: string; qty: number | null; distance_mi: number | null }>;
 }
@@ -390,6 +394,16 @@ function DealCard({ c, selected, onOpen, idx = 0 }: { c: Candidate; selected: bo
           <div className="card-save">Margin up to {money(saved)}</div>
         )}
 
+        {/* The sell side, when we have actually read it. A real Amazon comp
+            beats "up to" — price paid vs price it fetches is the whole flip.
+            NULL renders nothing; an estimated comp is never shown. */}
+        {c.amazon_price !== null && c.amazon_price !== undefined && c.price !== null && (
+          <div className="card-save">
+            Sells on Amazon for {money(c.amazon_price)}
+            {c.amazon_price > c.price && ` · +${money(c.amazon_price - c.price)} over cost`}
+          </div>
+        )}
+
         {c.penny_score >= 70 && (
           <div className="card-predict">May ring up at $0.01, not confirmed</div>
         )}
@@ -652,6 +666,9 @@ export default function AllDeals() {
             d.clearance_stores_checked === null || d.clearance_stores_checked === undefined
               ? null
               : Number(d.clearance_stores_checked),
+          amazon_price: d.amazon_price === null || d.amazon_price === undefined
+            ? null : Number(d.amazon_price),
+          amazon_url: (d.amazon_url as string) ?? null,
           stores: Array.isArray(d.stores)
             ? (d.stores as Candidate['stores'])
             : [],

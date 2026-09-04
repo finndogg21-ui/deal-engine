@@ -697,3 +697,12 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
 CREATE INDEX IF NOT EXISTS sms_outbox_pending
   ON sms_outbox (status, created_at)
   WHERE status IN ('queued', 'awaiting_config');
+
+-- ── Amazon resale comps (frame, 2026-09-03) ────────────────────────────────
+-- The sell side of a flip: what the item actually fetches on Amazon. Columns
+-- land now so the feed, API and UI can carry a comp the day a source (Keepa /
+-- RetailerAPI) is wired; scripts/amazon-comps stays a stub until then. A NULL
+-- comp renders as nothing — never as a guessed margin (constitution rule 7).
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS amazon_price NUMERIC(10,2);
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS amazon_url TEXT;
+ALTER TABLE discovery ADD COLUMN IF NOT EXISTS amazon_checked_at TIMESTAMPTZ;

@@ -388,7 +388,8 @@ export async function publishedDeals(db: Db, limit = 200, retailer?: string | nu
     `SELECT discovery_id, retailer, item_id, sku, title, image_url, product_url,
             hd_price, hd_list, hd_discount, hd_store_id, hd_quantity,
             checked_at, source, deal_kind, clearance_price, clearance_pct,
-            clearance_store, clearance_stores_checked
+            clearance_store, clearance_stores_checked,
+            amazon_price, amazon_url, amazon_checked_at
        FROM discovery
       WHERE status = 'published' ${scope}`,
     params,
